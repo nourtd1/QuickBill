@@ -1,0 +1,234 @@
+import React, { useEffect, useState } from 'react';
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Image
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/AuthContext';
+import { useProfile } from '../../hooks/useProfile';
+import { LogOut, Check, Building2, Phone, Coins, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '../../lib/upload';
+
+export default function SettingsScreen() {
+    const { signOut } = useAuth();
+    const { profile, loading: profileLoading, fetchProfile, updateProfile } = useProfile();
+
+    const [businessName, setBusinessName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [currency, setCurrency] = useState('');
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    useEffect(() => {
+        if (profile) {
+            setBusinessName(profile.business_name || '');
+            setPhone(profile.phone_contact || '');
+            setCurrency(profile.currency || 'RWF');
+            setLogoUrl(profile.logo_url || null);
+        }
+    }, [profile]);
+
+    const handlePickImage = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (permissionResult.granted === false) {
+            Alert.alert("Permission requise", "Vous devez autoriser l'accès à la galerie pour changer le logo.");
+            return;
+        }
+
+        const pickerResult = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!pickerResult.canceled) {
+            handleUpload(pickerResult.assets[0].uri);
+        }
+    };
+
+    const handleUpload = async (uri: string) => {
+        setUploading(true);
+        try {
+            const publicUrl = await uploadImage(uri, 'logos');
+            setLogoUrl(publicUrl);
+        } catch (error: any) {
+            Alert.alert("Erreur Upload", error.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        const { error } = await updateProfile({
+            business_name: businessName,
+            phone_contact: phone,
+            currency: currency,
+            logo_url: logoUrl
+        });
+        setSaving(false);
+
+        if (error) {
+            Alert.alert("Erreur", "Impossible de mettre à jour le profil.");
+        } else {
+            Alert.alert("Succès", "Profil mis à jour !");
+        }
+    };
+
+    const handleSignOut = () => {
+        Alert.alert(
+            "Déconnexion",
+            "Êtes-vous sûr de vouloir vous déconnecter ?",
+            [
+                { text: "Annuler", style: "cancel" },
+                { text: "Se déconnecter", style: "destructive", onPress: signOut }
+            ]
+        );
+    };
+
+    if (profileLoading && !profile) {
+        return (
+            <View className="flex-1 items-center justify-center bg-background">
+                <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+        );
+    }
+
+    return (
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                className="flex-1"
+            >
+                <ScrollView className="flex-1 px-4 pt-4">
+                    <Text className="text-3xl font-bold text-gray-900 mb-8">Paramètres</Text>
+
+                    {/* Section: Business Info */}
+                    <View className="mb-6">
+                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Mon Business</Text>
+
+                        {/* Logo Upload Area */}
+                        <View className="items-center mb-6">
+                            <TouchableOpacity onPress={handlePickImage} className="relative">
+                                <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                                    {logoUrl ? (
+                                        <Image source={{ uri: logoUrl }} className="w-full h-full" />
+                                    ) : (
+                                        <Building2 size={40} color="#9CA3AF" />
+                                    )}
+                                    {uploading && (
+                                        <View className="absolute inset-0 bg-black/30 items-center justify-center">
+                                            <ActivityIndicator color="white" />
+                                        </View>
+                                    )}
+                                </View>
+                                <View className="absolute bottom-0 right-0 bg-primary p-2 rounded-full border-2 border-white">
+                                    <Camera size={16} color="white" />
+                                </View>
+                            </TouchableOpacity>
+                            <Text className="text-primary text-sm font-medium mt-2">Changer le logo</Text>
+                        </View>
+
+                        <View className="bg-white rounded-xl overflow-hidden shadow-sm">
+                            {/* Business Name */}
+                            <View className="flex-row items-center p-4 border-b border-gray-100">
+                                <Building2 size={20} color="#9CA3AF" className="mr-3" />
+                                <View className="flex-1">
+                                    <Text className="text-xs text-gray-400">Nom du Business</Text>
+                                    <TextInput
+                                        className="text-base text-gray-900 font-medium pt-1"
+                                        value={businessName}
+                                        onChangeText={setBusinessName}
+                                        placeholder="Ex: Super Boutique"
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Phone */}
+                            <View className="flex-row items-center p-4 border-b border-gray-100">
+                                <Phone size={20} color="#9CA3AF" className="mr-3" />
+                                <View className="flex-1">
+                                    <Text className="text-xs text-gray-400">Téléphone (sur factures)</Text>
+                                    <TextInput
+                                        className="text-base text-gray-900 font-medium pt-1"
+                                        value={phone}
+                                        onChangeText={setPhone}
+                                        placeholder="Ex: +250 788 000 000"
+                                        keyboardType="phone-pad"
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Currency */}
+                            <View className="flex-row items-center p-4">
+                                <Coins size={20} color="#9CA3AF" className="mr-3" />
+                                <View className="flex-1">
+                                    <Text className="text-xs text-gray-400">Devise</Text>
+                                    <TextInput
+                                        className="text-base text-gray-900 font-medium pt-1"
+                                        value={currency}
+                                        onChangeText={setCurrency}
+                                        placeholder="Ex: RWF, USD, EUR"
+                                        autoCapitalize="characters"
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Save Button */}
+                    <TouchableOpacity
+                        onPress={handleSave}
+                        disabled={saving}
+                        className={`w-full py-4 rounded-xl flex-row items-center justify-center mb-8 ${saving ? 'bg-gray-400' : 'bg-primary'}`}
+                    >
+                        {saving ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Text className="text-white font-bold text-lg mr-2">Enregistrer</Text>
+                                <Check size={20} color="white" />
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Account Section */}
+                    <View className="mb-6">
+                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Compte</Text>
+                        <TouchableOpacity
+                            onPress={handleSignOut}
+                            className="bg-white rounded-xl p-4 flex-row items-center justify-between shadow-sm"
+                        >
+                            <View className="flex-row items-center leading-5">
+                                <LogOut size={20} color="#FF3B30" className="mr-3" />
+                                <Text className="text-red-500 font-medium text-base">Se déconnecter</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text className="text-center text-gray-400 text-xs mb-8">
+                        QuickBill v1.0.0
+                    </Text>
+
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
+    );
+}

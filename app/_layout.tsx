@@ -11,7 +11,9 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import { validateEnv } from '../lib/env';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+    /* ignore error */
+});
 
 function RootLayoutNav() {
     const { session, loading } = useAuth();
@@ -26,7 +28,9 @@ function RootLayoutNav() {
         if (loading || !loaded) return;
 
         // Hide splash screen once fonts and auth are checked
-        SplashScreen.hideAsync();
+        SplashScreen.hideAsync().catch(() => {
+            /* ignore error */
+        });
 
         const inAuthGroup = segments[0] === '(auth)';
 

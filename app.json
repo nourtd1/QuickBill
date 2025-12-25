@@ -2,6 +2,7 @@
   "expo": {
     "name": "QuickBill",
     "slug": "QuickBill",
+    "scheme": "quickbill",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,7 +29,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ]
   }
 }

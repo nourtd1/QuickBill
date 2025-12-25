@@ -16,30 +16,46 @@ export function useInvoice() {
 
         setSaving(true);
         try {
-            // 1. Create or Get Customer (Basic logic: Just create for now or find by name if you prefer)
-            // For MVP simplicity, we will just create a new customer record or attach to existing if found?
-            // Let's first Insert the Invoice. 
-            // Ideally we need a customer_id. Let's insert a customer first.
-
-            const { data: customerData, error: customerError } = await supabase
+            // 1. Find existing customer by name (case-insensitive) or create new one
+            const trimmedName = customerName.trim();
+            
+            // Search for existing customer
+            const { data: existingCustomer } = await supabase
                 .from('customers')
-                .insert({
-                    user_id: user.id,
-                    name: customerName,
-                    phone: '' // Optional for now
-                })
-                .select()
+                .select('id')
+                .eq('user_id', user.id)
+                .ilike('name', trimmedName)
+                .limit(1)
                 .single();
 
-            if (customerError) throw customerError;
+            let customerId: string;
+
+            if (existingCustomer) {
+                // Use existing customer
+                customerId = existingCustomer.id;
+            } else {
+                // Create new customer
+                const { data: customerData, error: customerError } = await supabase
+                    .from('customers')
+                    .insert({
+                        user_id: user.id,
+                        name: trimmedName,
+                        phone: '' // Optional for now
+                    })
+                    .select()
+                    .single();
+
+                if (customerError) throw customerError;
+                customerId = customerData.id;
+            }
 
             // 2. Insert Invoice
             const { data: invoiceData, error: invoiceError } = await supabase
                 .from('invoices')
                 .insert({
                     user_id: user.id,
-                    customer_id: customerData.id,
-                    invoice_number: `INV-${Math.floor(Math.random() * 100000)}`, // Simple Random ID
+                    customer_id: customerId,
+                    invoice_number: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // More unique ID
                     status: 'UNPAID',
                     total_amount: totalAmount,
                     created_at: new Date().toISOString()

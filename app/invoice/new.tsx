@@ -19,6 +19,8 @@ import * as FileSystem from 'expo-file-system';
 import { generateInvoiceHTML } from '../../lib/generate-html';
 import { useProfile } from '../../hooks/useProfile';
 import { useInvoice } from '../../hooks/useInvoice';
+import { validateCustomerName, validateInvoiceItems, validateTotalAmount } from '../../lib/validation';
+import { showError, showSuccess, getErrorMessage } from '../../lib/error-handler';
 
 interface NewInvoiceItem {
     id: string;
@@ -77,33 +79,47 @@ export default function NewInvoice() {
     };
 
     const handleCreateAndShare = async () => {
-        if (!customerName.trim()) {
-            Alert.alert('Erreur', 'Veuillez entrer le nom du client.');
+        // Validate customer name
+        const customerValidation = validateCustomerName(customerName);
+        if (!customerValidation.isValid) {
+            Alert.alert('Erreur', customerValidation.error);
             return;
         }
-        if (total <= 0) {
-            Alert.alert('Erreur', 'Le montant total doit être supérieur à 0.');
+
+        // Prepare and validate items
+        const itemsData = items.map(item => ({
+            description: item.description || "Article",
+            quantity: parseFloat(item.quantity) || 0,
+            unitPrice: parseFloat(item.unit_price) || 0
+        }));
+
+        const itemsValidation = validateInvoiceItems(itemsData);
+        if (!itemsValidation.isValid) {
+            Alert.alert('Erreur', itemsValidation.error);
+            return;
+        }
+
+        // Validate total amount
+        const totalValidation = validateTotalAmount(total);
+        if (!totalValidation.isValid) {
+            Alert.alert('Erreur', totalValidation.error);
             return;
         }
 
         setGeneratingPdf(true);
         try {
             // 1. Save to Database first
-            const itemsData = items.map(item => ({
-                description: item.description || "Article",
-                quantity: parseFloat(item.quantity) || 0,
-                unitPrice: parseFloat(item.unit_price) || 0
-            }));
+            const savedInvoice = await createInvoice(customerName.trim(), itemsData, total);
 
-            const savedInvoice = await createInvoice(customerName, itemsData, total);
-
-            if (!savedInvoice) throw new Error("Erreur inconnue lors de la sauvegarde");
+            if (!savedInvoice) {
+                throw new Error("Erreur inconnue lors de la sauvegarde");
+            }
 
             // 2. Prepare Data for PDF using Real Profile & Saved Data
             const invoiceData = {
                 invoiceNumber: savedInvoice.invoice_number,
                 date: new Date(savedInvoice.created_at).toLocaleDateString(),
-                customerName,
+                customerName: customerName.trim(),
                 businessName: profile?.business_name || "Mon Business",
                 businessPhone: profile?.phone_contact || "Contactez-nous",
                 currency: profile?.currency || "RWF",
@@ -128,17 +144,15 @@ export default function NewInvoice() {
                 });
 
                 // Success & Cloud sync done
-                Alert.alert("Succès", "Facture enregistrée et prête à être envoyée !", [
-                    { text: "OK", onPress: () => router.back() }
-                ]);
-
+                showSuccess("Facture enregistrée et prête à être envoyée !", "Succès");
+                router.back();
             } else {
                 Alert.alert("Info", `PDF sauvegardé : ${uri}`);
                 router.back();
             }
 
         } catch (error: any) {
-            Alert.alert("Erreur", "Problème : " + error.message);
+            showError(error, "Erreur lors de la création");
         } finally {
             setGeneratingPdf(false);
         }
@@ -225,7 +239,7 @@ export default function NewInvoice() {
 
                                 <View className="items-end mt-2">
                                     <Text className="text-gray-400 text-xs">
-                                        {(parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)} RWF
+                                        {((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)).toLocaleString()} {profile?.currency || 'RWF'}
                                     </Text>
                                 </View>
                             </View>
@@ -248,7 +262,7 @@ export default function NewInvoice() {
             <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <View className="flex-row justify-between items-center mb-4">
                     <Text className="text-gray-500 font-medium text-lg">Total</Text>
-                    <Text className="text-3xl font-bold">{total.toLocaleString()} RWF</Text>
+                    <Text className="text-3xl font-bold">{total.toLocaleString()} {profile?.currency || 'RWF'}</Text>
                 </View>
 
                 <TouchableOpacity

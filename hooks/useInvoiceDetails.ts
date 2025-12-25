@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Invoice } from '../types';
+import { Invoice, InvoiceWithRelations } from '../types';
 
 export function useInvoiceDetails(id: string) {
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
+    const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
 
@@ -22,7 +22,15 @@ export function useInvoiceDetails(id: string) {
                 .single();
 
             if (error) throw error;
-            setInvoice(data as Invoice);
+
+            // Transform Supabase response to typed format
+            const typedData: InvoiceWithRelations = {
+                ...data,
+                customer: Array.isArray(data.customer) ? data.customer[0] || null : data.customer || null,
+                items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : []),
+            };
+
+            setInvoice(typedData);
         } catch (err) {
             console.error('Error fetching invoice details:', err);
         } finally {

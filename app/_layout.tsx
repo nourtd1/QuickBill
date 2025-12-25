@@ -3,11 +3,12 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useCallback } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from 'nativewind';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { validateEnv } from '../lib/env';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -50,7 +51,18 @@ function RootLayoutNav() {
     );
 }
 
+
 export default function RootLayout() {
+    // Validate environment variables on app start
+    useEffect(() => {
+        try {
+            validateEnv();
+        } catch (error: any) {
+            console.error('❌ Configuration error:', error.message);
+            // In production, you might want to show an error screen instead
+        }
+    }, []);
+
     return (
         <AuthProvider>
             <RootLayoutNav />

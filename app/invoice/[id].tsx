@@ -10,6 +10,8 @@ import * as Sharing from 'expo-sharing';
 import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
 import { useProfile } from '../../hooks/useProfile';
 import { generateInvoiceHTML } from '../../lib/generate-html';
+import { showError } from '../../lib/error-handler';
+import { InvoiceWithRelations } from '../../types';
 
 export default function InvoiceDetails() {
     const { id } = useLocalSearchParams();
@@ -23,23 +25,28 @@ export default function InvoiceDetails() {
         setSharing(true);
 
         try {
+            // Type guard to ensure we have the proper structure
+            const customer = Array.isArray(invoice.customer) 
+                ? invoice.customer[0] 
+                : invoice.customer;
+            
+            const items = invoice.items || [];
+
             // 1. Prepare Data using loaded invoice & profile
             const invoiceData = {
                 invoiceNumber: invoice.invoice_number,
                 date: new Date(invoice.created_at).toLocaleDateString(),
-                // @ts-ignore: joined data
-                customerName: invoice.customer?.name || "Client",
+                customerName: customer?.name || "Client",
                 businessName: profile.business_name,
                 businessPhone: profile.phone_contact || undefined,
                 currency: profile.currency || "RWF",
                 logoUrl: profile?.logo_url || undefined,
-                // @ts-ignore: joined data
-                items: invoice.items?.map((i: any) => ({
+                items: items.map((i) => ({
                     description: i.description,
                     quantity: i.quantity,
                     unitPrice: i.unit_price,
                     total: i.quantity * i.unit_price
-                })) || [],
+                })),
                 totalAmount: invoice.total_amount
             };
 
@@ -55,7 +62,7 @@ export default function InvoiceDetails() {
             });
 
         } catch (error: any) {
-            Alert.alert("Erreur", "Partage impossible : " + error.message);
+            showError(error, "Erreur de partage");
         } finally {
             setSharing(false);
         }
@@ -114,8 +121,11 @@ export default function InvoiceDetails() {
                         <View className="flex-row justify-between mb-4 border-b border-gray-100 pb-4">
                             <View>
                                 <Text className="text-gray-400 text-xs uppercase mb-1">Client</Text>
-                                {/* @ts-ignore */}
-                                <Text className="text-lg font-bold text-gray-900">{invoice.customer?.name}</Text>
+                                <Text className="text-lg font-bold text-gray-900">
+                                    {Array.isArray(invoice.customer) 
+                                        ? invoice.customer[0]?.name || 'Inconnu'
+                                        : invoice.customer?.name || 'Inconnu'}
+                                </Text>
                             </View>
                             <View className="items-end">
                                 <Text className="text-gray-400 text-xs uppercase mb-1">Date</Text>
@@ -125,9 +135,8 @@ export default function InvoiceDetails() {
 
                         <View>
                             <Text className="text-gray-400 text-xs uppercase mb-3">Détails</Text>
-                            {/* @ts-ignore */}
                             {(invoice.items || []).map((item, idx) => (
-                                <View key={idx} className="flex-row justify-between mb-2">
+                                <View key={item.id || idx} className="flex-row justify-between mb-2">
                                     <Text className="text-gray-600 flex-1 mr-2">
                                         {item.quantity}x {item.description}
                                     </Text>

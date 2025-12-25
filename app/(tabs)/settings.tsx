@@ -17,6 +17,8 @@ import { useProfile } from '../../hooks/useProfile';
 import { LogOut, Check, Building2, Phone, Coins, Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../../lib/upload';
+import { validateBusinessName, validatePhone, validateCurrency } from '../../lib/validation';
+import { showError, showSuccess } from '../../lib/error-handler';
 
 export default function SettingsScreen() {
     const { signOut } = useAuth();
@@ -76,19 +78,43 @@ export default function SettingsScreen() {
     };
 
     const handleSave = async () => {
-        setSaving(true);
-        const { error } = await updateProfile({
-            business_name: businessName,
-            phone_contact: phone,
-            currency: currency,
-            logo_url: logoUrl
-        });
-        setSaving(false);
+        // Validate inputs
+        const businessNameValidation = validateBusinessName(businessName);
+        if (!businessNameValidation.isValid) {
+            Alert.alert('Erreur', businessNameValidation.error);
+            return;
+        }
 
-        if (error) {
-            Alert.alert("Erreur", "Impossible de mettre à jour le profil.");
-        } else {
-            Alert.alert("Succès", "Profil mis à jour !");
+        const phoneValidation = validatePhone(phone);
+        if (!phoneValidation.isValid) {
+            Alert.alert('Erreur', phoneValidation.error);
+            return;
+        }
+
+        const currencyValidation = validateCurrency(currency);
+        if (!currencyValidation.isValid) {
+            Alert.alert('Erreur', currencyValidation.error);
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const { error } = await updateProfile({
+                business_name: businessName.trim(),
+                phone_contact: phone.trim() || null,
+                currency: currency.trim().toUpperCase(),
+                logo_url: logoUrl
+            });
+
+            if (error) {
+                showError(error, "Erreur de mise à jour");
+            } else {
+                showSuccess("Profil mis à jour !");
+            }
+        } catch (error) {
+            showError(error, "Erreur de mise à jour");
+        } finally {
+            setSaving(false);
         }
     };
 

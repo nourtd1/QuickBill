@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { StatusBar } from 'expo-status-bar';
+import { validateEmail, validatePassword } from '../../lib/validation';
+import { showError, showSuccess, getErrorMessage } from '../../lib/error-handler';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -9,29 +11,67 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
 
     async function signInWithEmail() {
-        setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        // Validate inputs
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+            Alert.alert('Erreur', emailValidation.error);
+            return;
+        }
 
-        if (error) Alert.alert('Erreur', error.message);
-        setLoading(false);
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            Alert.alert('Erreur', passwordValidation.error);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+            });
+
+            if (error) {
+                showError(error, 'Erreur de connexion');
+            }
+        } catch (error) {
+            showError(error, 'Erreur de connexion');
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function signUpWithEmail() {
-        setLoading(true);
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-        });
-
-        if (error) {
-            Alert.alert('Erreur', error.message);
-        } else {
-            Alert.alert('Succès', 'Vérifiez votre boîte mail pour confirmer votre inscription !');
+        // Validate inputs
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+            Alert.alert('Erreur', emailValidation.error);
+            return;
         }
-        setLoading(false);
+
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            Alert.alert('Erreur', passwordValidation.error);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.signUp({
+                email: email.trim(),
+                password,
+            });
+
+            if (error) {
+                showError(error, 'Erreur d\'inscription');
+            } else {
+                showSuccess('Vérifiez votre boîte mail pour confirmer votre inscription !');
+            }
+        } catch (error) {
+            showError(error, 'Erreur d\'inscription');
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (

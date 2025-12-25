@@ -1,0 +1,136 @@
+# 📱 Titre du Projet : QuickBill (Nom de code)
+
+**Slogan :** Tes factures professionnelles sur WhatsApp en 30 secondes.
+
+## 1. La Vision
+
+Permettre à un vendeur informel (Instagram/WhatsApp) de passer du statut de "débrouillard" à celui de "professionnel" en lui offrant un outil pour créer des preuves de paiement instantanées et suivre qui lui doit de l'argent.
+
+---
+
+## 2. Fonctionnalités Clés (Scope du MVP)
+
+Nous allons limiter l'application à **4 écrans principaux** pour maximiser la vitesse de développement.
+
+### A. Authentification & Onboarding (Simple)
+
+* **Login :** Connexion via Google ou Email (via Supabase Auth).
+* **Configuration du Business (La première fois seulement) :**
+* Nom du Business.
+* Téléphone.
+* Logo (Upload d'image).
+* Devise préférée (ex: RWF, USD, EUR, CFA).
+
+
+
+### B. Création de Facture (Le Cœur)
+
+* Un gros bouton "+" sur l'écran d'accueil.
+* **Formulaire ultra-rapide :**
+* Nom du Client (Peut être sélectionné dans les contacts du téléphone ou nouveau).
+* Date (Automatique = Aujourd'hui).
+* Liste des articles : Nom de l'article + Prix + Quantité.
+* Calcul automatique du Total.
+
+
+* **Statut du paiement :** Toggle "Payé" ou "Non Payé" (Dette).
+
+### C. Génération & Partage (Le "Wow Effect")
+
+* L'application génère un PDF propre utilisant `expo-print`.
+* **Design du PDF :** En-tête avec le logo du vendeur, tableau des articles, total, et un pied de page "Généré par QuickBill".
+* **Bouton "Partager sur WhatsApp" :** Ouvre WhatsApp avec un message pré-rempli : *"Bonjour [Nom Client], voici ta facture pour ta commande chez [Nom Business]. Merci !"* + Le PDF en pièce jointe.
+
+### D. Tableau de Bord (La Rétention)
+
+* Liste des dernières factures (classées par date).
+* **Filtre visuel :** Les factures impayées apparaissent avec une pastille ROUGE. Les payées en VERT.
+* Total du mois en cours (Chiffre d'Affaires).
+
+---
+
+## 3. Architecture Technique (Ta Stack)
+
+* **Frontend :** React Native (Expo SDK 50+).
+* **Backend / DB :** Supabase (PostgreSQL).
+* **Stockage Image :** Supabase Storage (pour les logos utilisateurs).
+* **Mode Hors-ligne (Crucial) :** Utilise **TanStack Query (React Query)** ou simplement **AsyncStorage** pour stocker les données en local d'abord, puis synchroniser avec Supabase quand la connexion revient.
+* *Pourquoi ?* Le vendeur n'a pas toujours de la data, mais il doit pouvoir faire une facture.
+
+
+
+---
+
+## 4. Modèle de Données (Supabase Schema)
+
+Voici la structure de ta base de données pour démarrer. C'est simple et efficace.
+
+**Table : `profiles**` (Liée à auth.users)
+
+* `id` (uuid, PK)
+* `business_name` (text)
+* `phone_contact` (text)
+* `currency` (text, default 'RWF')
+* `logo_url` (text)
+* `is_premium` (boolean, default false)
+
+**Table : `customers**`
+
+* `id` (uuid, PK)
+* `user_id` (uuid, FK -> profiles.id)
+* `name` (text)
+* `phone` (text)
+
+**Table : `invoices**`
+
+* `id` (uuid, PK)
+* `user_id` (uuid, FK -> profiles.id)
+* `customer_id` (uuid, FK -> customers.id)
+* `invoice_number` (text, ex: "INV-001")
+* `status` (text, enum: 'PAID', 'UNPAID')
+* `total_amount` (numeric)
+* `created_at` (timestamp)
+
+**Table : `invoice_items**` (Les lignes de la facture)
+
+* `id` (uuid, PK)
+* `invoice_id` (uuid, FK -> invoices.id)
+* `description` (text)
+* `quantity` (int)
+* `unit_price` (numeric)
+
+---
+
+## 5. Les "Petits Détails" Importants (UX/UI)
+
+Ce sont ces détails qui feront que ton app sera aimée :
+
+1. **Le message WhatsApp pré-écrit :** Ne force pas l'utilisateur à taper le message. Prépare-le pour lui. Utilise `Linking.openURL('whatsapp://send?text=...')`.
+2. **L'Auto-incrémentation :** Si la dernière facture était la #005, la prochaine doit être automatiquement la #006. Ne demande pas au vendeur de taper le numéro.
+3. **La gestion du clavier :** Sur mobile, assure-toi que le clavier ne cache pas le bouton "Valider" (utilise `KeyboardAvoidingView`).
+4. **Feedback Tactile :** Une petite vibration quand la facture est créée avec succès (Haptics).
+
+---
+
+## 6. Stratégie de Monétisation (Intégrée au Code)
+
+Pour le MVP, on met en place le "Freemium" via une restriction visuelle.
+
+* **Utilisateur Gratuit :** Sur le PDF généré, tout en bas, il y a écrit en petit mais visible : *"Généré gratuitement avec QuickBill - Téléchargez l'app !"*. Et il ne peut pas mettre son propre logo (ou alors en tout petit).
+* **Utilisateur Premium :** Pas de mention "QuickBill", son Logo est en gros en haut de la facture.
+
+*Note technique :* Dans ta table `profiles`, la colonne `is_premium` gère ça. Dans ton code de génération PDF, tu fais une condition simple :
+
+```javascript
+{user.is_premium ? renderUserLogo() : renderWatermark()}
+
+```
+
+---
+
+## 7. Plan d'Attaque (Roadmap de Développement)
+
+* **Semaine 1 :** Setup du projet Expo + Supabase. Création des écrans "Login" et "Settings" (Profil).
+* **Semaine 2 :** Création du formulaire de facture + Base de données (CRUD Invoices).
+* **Semaine 3 :** Intégration de `expo-print` pour le PDF et `expo-sharing` pour WhatsApp.
+* **Semaine 4 :** Polissage (Design, Loading states, gestion des erreurs) et Test avec 3 amis vendeurs.

@@ -20,7 +20,7 @@ const CURRENCIES = ['RWF', 'USD', 'EUR', 'FCFA'];
 
 export default function SetupScreen() {
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, refreshProfile } = useAuth();
     const [businessName, setBusinessName] = useState('');
     const [currency, setCurrency] = useState('RWF');
     const [loading, setLoading] = useState(false);
@@ -46,6 +46,10 @@ export default function SetupScreen() {
 
             if (error) throw error;
 
+            // Rafraîchir le profil dans le contexte pour que le garde du _layout voie les changements
+            await refreshProfile();
+
+            // La redirection sera soit gérée par le garde, soit on peut la forcer ici
             router.replace('/(tabs)');
         } catch (error: any) {
             Alert.alert('Erreur', error.message || 'Impossible de sauvegarder votre profil.');

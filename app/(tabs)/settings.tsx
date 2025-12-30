@@ -12,15 +12,17 @@ import {
     Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
-import { LogOut, Check, Building2, Phone, Coins, Camera } from 'lucide-react-native';
+import { LogOut, Check, Building2, Phone, Coins, Camera, PenTool, ChevronRight, Package } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../../lib/upload';
 import { validateBusinessName, validatePhone, validateCurrency } from '../../lib/validation';
 import { showError, showSuccess } from '../../lib/error-handler';
 
 export default function SettingsScreen() {
+    const router = useRouter();
     const { signOut } = useAuth();
     const { profile, loading: profileLoading, fetchProfile, updateProfile } = useProfile();
 
@@ -229,11 +231,58 @@ export default function SettingsScreen() {
                             <ActivityIndicator color="white" />
                         ) : (
                             <>
-                                <Text className="text-white font-bold text-lg mr-2">Enregistrer</Text>
-                                <Check size={20} color="white" />
+                                <Text className="text-white font-bold text-lg mr-2">Enregistrer les infos</Text>
+                                <Check size={20} color="white" strokeWidth={3} />
                             </>
                         )}
                     </TouchableOpacity>
+
+                    {/* Section: Signature */}
+                    <View className="mb-8">
+                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Signature & Branding</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/settings/signature')}
+                            className="bg-white rounded-xl p-5 flex-row items-center justify-between shadow-sm border border-slate-50"
+                        >
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center mr-4">
+                                    <PenTool size={20} color="#2563EB" />
+                                </View>
+                                <View>
+                                    <Text className="text-slate-900 font-bold text-base">Ma Signature</Text>
+                                    <Text className="text-slate-500 text-xs">Ajouter ou modifier votre signature</Text>
+                                </View>
+                            </View>
+                            <ChevronRight size={20} color="#CBD5E1" />
+                        </TouchableOpacity>
+
+                        {profile?.signature_url && (
+                            <View className="mt-3 bg-emerald-50 p-3 rounded-lg border border-emerald-100 flex-row items-center">
+                                <Check size={14} color="#10B981" />
+                                <Text className="text-emerald-700 text-[10px] font-bold uppercase ml-2">Signature active sur les factures</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Section: Inventory */}
+                    <View className="mb-8">
+                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Inventaire</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/items')}
+                            className="bg-white rounded-xl p-5 flex-row items-center justify-between shadow-sm border border-slate-50"
+                        >
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 bg-orange-50 rounded-full items-center justify-center mr-4">
+                                    <Package size={20} color="#F59E0B" />
+                                </View>
+                                <View>
+                                    <Text className="text-slate-900 font-bold text-base">Produits & Services</Text>
+                                    <Text className="text-slate-500 text-xs">Gérez vos articles préenregistrés</Text>
+                                </View>
+                            </View>
+                            <ChevronRight size={20} color="#CBD5E1" />
+                        </TouchableOpacity>
+                    </View>
 
                     {/* Account Section */}
                     <View className="mb-6">

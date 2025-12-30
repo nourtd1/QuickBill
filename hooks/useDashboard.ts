@@ -3,11 +3,17 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Invoice } from '../types';
 
+export interface MonthlyData {
+    month: string;
+    value: number;
+}
+
 export function useDashboard() {
     const { user } = useAuth();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [monthlyRevenue, setMonthlyRevenue] = useState(0);
     const [pendingAmount, setPendingAmount] = useState(0);
+    const [chartData, setChartData] = useState<MonthlyData[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchDashboardData = useCallback(async () => {
@@ -15,54 +21,80 @@ export function useDashboard() {
         setLoading(true);
 
         try {
-            // 1. Get recent invoices with customer details
-            const { data, error } = await supabase
+            // 1. Get recent 5 invoices with customer details
+            const { data: invoiceData, error: invoiceError } = await supabase
                 .from('invoices')
                 .select(`
-          *,
-          customer:customers (name)
-        `)
+                    *,
+                    customer:clients (name)
+                `)
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(5);
 
-            if (error) throw error;
+            if (invoiceError) throw invoiceError;
 
-            // Cast the joined data somewhat loosely or ensure Type mapping
-            const formattedInvoices = (data || []).map((inv: any) => ({
+            const formattedInvoices = (invoiceData || []).map((inv: any) => ({
                 ...inv,
-                customer: inv.customer // Supabase returns joined object here
+                customer: inv.customer
             })) as Invoice[];
 
             setInvoices(formattedInvoices);
 
-            // 2. Calculate Stats (This month)
+            // 2. Stats calculation
             const now = new Date();
             const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-            // Revenue (This Month)
-            const { data: revenueData, error: revenueError } = await supabase
+            // Encaissé ce mois (PAID only)
+            const { data: paidData, error: paidError } = await supabase
                 .from('invoices')
                 .select('total_amount')
                 .eq('user_id', user.id)
-                .gte('created_at', firstDayOfMonth); // Invoices created this month
+                .eq('status', 'PAID')
+                .gte('created_at', firstDayOfMonth);
 
-            if (revenueError) throw revenueError;
+            if (paidError) throw paidError;
+            setMonthlyRevenue(paidData.reduce((sum, item) => sum + (item.total_amount || 0), 0));
 
-            const revenue = revenueData.reduce((sum, item) => sum + (item.total_amount || 0), 0);
-            setMonthlyRevenue(revenue);
-
-            // Pending Amount (Total Unpaid)
-            const { data: pendingData, error: pendingError } = await supabase
+            // En attente (UNPAID)
+            const { data: unpaidData, error: unpaidError } = await supabase
                 .from('invoices')
                 .select('total_amount')
                 .eq('user_id', user.id)
                 .eq('status', 'UNPAID');
 
-            if (pendingError) throw pendingError;
+            if (unpaidError) throw unpaidError;
+            setPendingAmount(unpaidData.reduce((sum, item) => sum + (item.total_amount || 0), 0));
 
-            const pending = pendingData.reduce((sum, item) => sum + (item.total_amount || 0), 0);
-            setPendingAmount(pending);
+            // 3. Chart Data (Last 6 months)
+            const monthsNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+            const last6Months: MonthlyData[] = [];
+
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const monthIndex = d.getMonth();
+                const year = d.getFullYear();
+
+                const startOfMonth = new Date(year, monthIndex, 1).toISOString();
+                const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59).toISOString();
+
+                const { data: mData } = await supabase
+                    .from('invoices')
+                    .select('total_amount')
+                    .eq('user_id', user.id)
+                    .eq('status', 'PAID')
+                    .gte('created_at', startOfMonth)
+                    .lte('created_at', endOfMonth);
+
+                const total = (mData || []).reduce((sum, item) => sum + (item.total_amount || 0), 0);
+
+                last6Months.push({
+                    month: monthsNames[monthIndex],
+                    value: total
+                });
+            }
+            setChartData(last6Months);
 
         } catch (err) {
             console.error('Error fetching dashboard:', err);
@@ -75,6 +107,7 @@ export function useDashboard() {
         invoices,
         monthlyRevenue,
         pendingAmount,
+        chartData,
         loading,
         refresh: fetchDashboardData
     };

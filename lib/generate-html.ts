@@ -15,6 +15,8 @@ export interface InvoiceData {
     businessPhone?: string;
     currency: string;
     logoUrl?: string | null;
+    signatureUrl?: string | null;
+    title?: string; // e.g. "FACTURE" or "DEVIS"
 }
 
 export function generateInvoiceHTML(data: InvoiceData): string {
@@ -127,6 +129,29 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             border-top: 1px solid #eee;
             padding-top: 20px;
         }
+        .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: flex-end;
+            padding-right: 20px;
+        }
+        .signature-container {
+            text-align: center;
+            width: 200px;
+        }
+        .signature-image {
+            max-width: 150px;
+            max-height: 80px;
+            object-fit: contain;
+            margin-bottom: 5px;
+        }
+        .signature-line {
+            border-top: 1px solid #ccc;
+            margin-top: 5px;
+            padding-top: 5px;
+            font-size: 10px;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -142,7 +167,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             <div class="client-name">${data.customerName}</div>
         </div>
         <div class="invoice-meta text-right">
-            <h1>FACTURE</h1>
+            <h1>${data.title || 'FACTURE'}</h1>
             <div style="color: #666;">#${data.invoiceNumber}</div>
             <div style="color: #666;">${data.date}</div>
         </div>
@@ -171,10 +196,19 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
     <div class="total-section">
         <div class="total-box">
-            <div class="total-label">TOTAL À PAYER</div>
+            <div class="total-label">${data.title === 'DEVIS' ? 'TOTAL ESTIMÉ' : 'TOTAL À PAYER'}</div>
             <div class="total-amount">${data.totalAmount.toLocaleString()} ${data.currency}</div>
         </div>
     </div>
+
+    ${data.signatureUrl ? `
+    <div class="signature-section">
+        <div class="signature-container">
+            <img src="${data.signatureUrl}" class="signature-image" />
+            <div class="signature-line">Signature du Responsable</div>
+        </div>
+    </div>
+    ` : ''}
 
     <div class="footer">
         Généré gratuitement avec QuickBill - facturation simple et rapide.

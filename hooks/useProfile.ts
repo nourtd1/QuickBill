@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Profile } from '../types';
 
 export function useProfile() {
-    const { user } = useAuth();
+    const { user, refreshProfile: refreshAuthProfile } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -12,27 +12,34 @@ export function useProfile() {
         if (!user) return;
 
         setLoading(true);
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
 
-        if (!error && data) {
-            setProfile(data as Profile);
+            if (!error && data) {
+                setProfile(data as Profile);
+            }
+        } catch (err) {
+            console.error("Erreur fetchProfile:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const updateProfile = async (updates: Partial<Profile>) => {
         if (!user) return { error: 'No user' };
 
+        console.log("Tentative d'update profil avec:", updates);
         const { error } = await supabase
             .from('profiles')
-            .upsert({ id: user.id, ...updates });
+            .upsert({ id: user.id, ...updates, updated_at: new Date().toISOString() });
 
         if (!error) {
             setProfile(prev => prev ? { ...prev, ...updates } : null);
+            await refreshAuthProfile(); // Synchroniser avec le contexte global d'Auth
             await fetchProfile();
         }
 

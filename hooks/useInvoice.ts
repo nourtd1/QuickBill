@@ -10,52 +10,56 @@ export function useInvoice() {
     const createInvoice = async (
         customerName: string,
         items: { description: string; quantity: number; unitPrice: number }[],
-        totalAmount: number
+        totalAmount: number,
+        clientId?: string // Optionnel: si le client est déjà sélectionné
     ) => {
         if (!user) throw new Error('Utilisateur non connecté');
 
         setSaving(true);
         try {
-            // 1. Find existing customer by name (case-insensitive) or create new one
-            const trimmedName = customerName.trim();
-            
-            // Search for existing customer
-            const { data: existingCustomer } = await supabase
-                .from('customers')
-                .select('id')
-                .eq('user_id', user.id)
-                .ilike('name', trimmedName)
-                .limit(1)
-                .single();
+            let selectedClientId = clientId;
 
-            let customerId: string;
+            // 1. Si pas de clientId, on cherche par nom ou on crée
+            if (!selectedClientId) {
+                const trimmedName = customerName.trim();
 
-            if (existingCustomer) {
-                // Use existing customer
-                customerId = existingCustomer.id;
-            } else {
-                // Create new customer
-                const { data: customerData, error: customerError } = await supabase
-                    .from('customers')
-                    .insert({
-                        user_id: user.id,
-                        name: trimmedName,
-                        phone: '' // Optional for now
-                    })
-                    .select()
+                // Recherche dans la nouvelle table 'clients'
+                const { data: existingClient } = await supabase
+                    .from('clients')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .ilike('name', trimmedName)
+                    .limit(1)
                     .single();
 
-                if (customerError) throw customerError;
-                customerId = customerData.id;
+                if (existingClient) {
+                    selectedClientId = existingClient.id;
+                } else {
+                    // Création automatique dans 'clients' si non trouvé
+                    const { data: clientData, error: clientError } = await supabase
+                        .from('clients')
+                        .insert({
+                            user_id: user.id,
+                            name: trimmedName,
+                        })
+                        .select()
+                        .single();
+
+                    if (clientError) throw clientError;
+                    selectedClientId = clientData.id;
+                }
             }
 
-            // 2. Insert Invoice
+            // 2. Insert Invoice (On garde temporairement customer_id pour la compatibilité schéma si besoin, 
+            // mais idéalement on devrait migrer la FK vers client_id si le schéma change)
+            // Note: Je suppose ici que le schéma des invoices utilise 'customer_id' 
+            // et que la table 'clients' est la nouvelle référence.
             const { data: invoiceData, error: invoiceError } = await supabase
                 .from('invoices')
                 .insert({
                     user_id: user.id,
-                    customer_id: customerId,
-                    invoice_number: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // More unique ID
+                    customer_id: selectedClientId, // On réutilise le champ customer_id pour pointer vers 'clients'
+                    invoice_number: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                     status: 'UNPAID',
                     total_amount: totalAmount,
                     created_at: new Date().toISOString()

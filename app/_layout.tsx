@@ -109,6 +109,12 @@ function RootLayoutNav() {
             <Stack.Screen name="setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/signature" options={{ headerShown: false, title: 'Signature' }} />
+            <Stack.Screen name="items/index" options={{ headerShown: false }} />
+            <Stack.Screen name="items/form" options={{ headerShown: false }} />
+            <Stack.Screen name="estimates/index" options={{ headerShown: false }} />
+            <Stack.Screen name="estimates/new" options={{ headerShown: false }} />
+            <Stack.Screen name="estimates/[id]" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="invoice/new" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="invoice/[id]" options={{ presentation: 'modal', headerShown: false }} />
         </Stack>

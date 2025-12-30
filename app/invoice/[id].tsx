@@ -7,40 +7,55 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+import { useAuth } from '../../context/AuthContext';
 import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
-import { useProfile } from '../../hooks/useProfile';
 import { generateInvoiceHTML } from '../../lib/generate-html';
 import { showError } from '../../lib/error-handler';
-import { InvoiceWithRelations } from '../../types';
 
 export default function InvoiceDetails() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const { invoice, loading, updating, toggleStatus } = useInvoiceDetails(id as string);
-    const { profile } = useProfile();
+    const { profile, refreshProfile } = useAuth();
     const [sharing, setSharing] = useState(false);
 
     const handleShare = async () => {
-        if (!invoice || !profile) return;
-        setSharing(true);
+        console.log("Clic sur Partager détecté");
 
+        if (!invoice) {
+            Alert.alert("Erreur", "Données de la facture non chargées.");
+            return;
+        }
+
+        // Si le profil n'est pas là, on essaie de le refresh
+        if (!profile || !profile.business_name) {
+            console.log("Profil incomplet, tentative de rafraîchissement...");
+            await refreshProfile();
+            Alert.alert(
+                "Profil requis",
+                "Vous devez configurer le nom de votre business dans l'onglet Paramètres avant de partager une facture."
+            );
+            return;
+        }
+
+        setSharing(true);
         try {
-            // Type guard to ensure we have the proper structure
-            const customer = Array.isArray(invoice.customer) 
-                ? invoice.customer[0] 
-                : invoice.customer;
-            
+            console.log("Données facture:", invoice.invoice_number);
+            console.log("Données profil:", profile.business_name);
+
+            const customer = invoice.customer;
             const items = invoice.items || [];
 
-            // 1. Prepare Data using loaded invoice & profile
             const invoiceData = {
+                title: 'FACTURE',
                 invoiceNumber: invoice.invoice_number,
                 date: new Date(invoice.created_at).toLocaleDateString(),
                 customerName: customer?.name || "Client",
-                businessName: profile.business_name,
-                businessPhone: profile.phone_contact || undefined,
+                businessName: profile.business_name || "Business",
+                businessPhone: profile.phone_contact || "",
                 currency: profile.currency || "RWF",
                 logoUrl: profile?.logo_url || undefined,
+                signatureUrl: profile?.signature_url || undefined,
                 items: items.map((i) => ({
                     description: i.description,
                     quantity: i.quantity,
@@ -50,19 +65,24 @@ export default function InvoiceDetails() {
                 totalAmount: invoice.total_amount
             };
 
-            // 2. Generate
+            console.log("Génération PDF en cours...");
             const html = generateInvoiceHTML(invoiceData);
             const { uri } = await Print.printToFileAsync({ html, base64: false });
 
-            // 3. Share
-            await Sharing.shareAsync(uri, {
-                UTI: '.pdf',
-                mimeType: 'application/pdf',
-                dialogTitle: `Facture ${invoice.invoice_number}`
-            });
-
-        } catch (error: any) {
-            showError(error, "Erreur de partage");
+            console.log("Fichier généré à:", uri);
+            const isAvailable = await Sharing.isAvailableAsync();
+            if (isAvailable) {
+                await Sharing.shareAsync(uri, {
+                    UTI: '.pdf',
+                    mimeType: 'application/pdf',
+                    dialogTitle: `Facture ${invoice.invoice_number}`
+                });
+            } else {
+                Alert.alert("Action", `Le partage n'est pas disponible. PDF créé à: ${uri}`);
+            }
+        } catch (error) {
+            console.error("Erreur partage:", error);
+            showError(error);
         } finally {
             setSharing(false);
         }
@@ -122,9 +142,7 @@ export default function InvoiceDetails() {
                             <View>
                                 <Text className="text-gray-400 text-xs uppercase mb-1">Client</Text>
                                 <Text className="text-lg font-bold text-gray-900">
-                                    {Array.isArray(invoice.customer) 
-                                        ? invoice.customer[0]?.name || 'Inconnu'
-                                        : invoice.customer?.name || 'Inconnu'}
+                                    {invoice.customer?.name || 'Inconnu'}
                                 </Text>
                             </View>
                             <View className="items-end">

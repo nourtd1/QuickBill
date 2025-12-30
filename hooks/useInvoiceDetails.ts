@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Invoice, InvoiceWithRelations } from '../types';
+import { InvoiceWithRelations } from '../types';
 
 export function useInvoiceDetails(id: string) {
     const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null);
@@ -11,22 +11,26 @@ export function useInvoiceDetails(id: string) {
         if (!id) return;
         setLoading(true);
         try {
+            // Updated to use 'clients' table instead of 'customers'
             const { data, error } = await supabase
                 .from('invoices')
                 .select(`
-          *,
-          customer:customers (*),
-          items:invoice_items (*)
-        `)
+                    *,
+                    customer:clients (*),
+                    items:invoice_items (*)
+                `)
                 .eq('id', id)
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase error in fetchInvoice:', error);
+                throw error;
+            }
 
             // Transform Supabase response to typed format
             const typedData: InvoiceWithRelations = {
                 ...data,
-                customer: Array.isArray(data.customer) ? data.customer[0] || null : data.customer || null,
+                customer: Array.isArray(data.customer) ? data.customer[0] : data.customer,
                 items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : []),
             };
 

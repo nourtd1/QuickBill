@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, CheckCircle, Clock } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Link2 } from 'lucide-react-native';
+import { Linking } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
@@ -11,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
 import { generateInvoiceHTML } from '../../lib/generate-html';
 import { showError } from '../../lib/error-handler';
+import QRCode from 'qrcode';
 
 export default function InvoiceDetails() {
     const { id } = useLocalSearchParams();
@@ -62,7 +65,9 @@ export default function InvoiceDetails() {
                     unitPrice: i.unit_price,
                     total: i.quantity * i.unit_price
                 })),
-                totalAmount: invoice.total_amount
+                totalAmount: invoice.total_amount,
+                qrCodeUrl: profile.payment_details ? `data:image/svg+xml;utf8,${encodeURIComponent(await QRCode.toString(profile.payment_details, { type: 'svg' }))}` : undefined,
+                paymentMethod: profile.payment_method || undefined
             };
 
             console.log("Génération PDF en cours...");
@@ -86,6 +91,57 @@ export default function InvoiceDetails() {
         } finally {
             setSharing(false);
         }
+    };
+
+    const handleWhatsApp = async () => {
+        if (!invoice || !profile) return;
+
+        const customer = invoice.customer;
+        if (!customer?.phone) {
+            Alert.alert("Numéro manquant", "Ce client n'a pas de numéro de téléphone enregistré.");
+            return;
+        }
+
+        // 1. Nettoyage du numéro
+        const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
+
+        // 2. Préparation du message
+        let message = profile.whatsapp_template || "Bonjour {client}, voici votre facture {numero} de {montant} {devise}.";
+        message = message
+            .replace('{client}', customer.name)
+            .replace('{numero}', invoice.invoice_number)
+            .replace('{montant}', invoice.total_amount.toLocaleString())
+            .replace('{devise}', profile.currency || 'RWF');
+
+        // 3. Utilisation de wa.me (Universal Link)
+        // C'est la méthode recommandée par Meta pour supporter Standard et Business
+        const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+
+        try {
+            await Linking.openURL(url);
+        } catch (error) {
+            console.error("Erreur WhatsApp:", error);
+            // Fallback pour les cas où le lien web ne d'ouvre pas
+            const fallbackUrl = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+            try {
+                await Linking.openURL(fallbackUrl);
+            } catch (innerError) {
+                Alert.alert("Erreur", "WhatsApp ne semble pas être installé sur cet appareil.");
+            }
+        }
+    };
+
+    const handleCopyWebLink = async () => {
+        if (!invoice?.share_token) {
+            Alert.alert("Erreur", "Le lien de partage n'est pas encore prêt.");
+            return;
+        }
+
+        const baseUrl = "https://quickbill.app";
+        const publicUrl = `${baseUrl}/public/invoice/${invoice.share_token}`;
+
+        await Clipboard.setStringAsync(publicUrl);
+        Alert.alert("Lien copié !", "Le lien public de la facture a été copié.");
     };
 
     if (loading || !invoice) {
@@ -176,18 +232,34 @@ export default function InvoiceDetails() {
                 </ScrollView>
 
                 {/* Bottom Actions */}
-                <View className="p-4 bg-white border-t border-gray-100">
+                <View className="p-4 bg-white border-t border-gray-100 flex-row gap-2">
+                    <TouchableOpacity
+                        onPress={handleWhatsApp}
+                        className="flex-1 bg-emerald-600 py-4 rounded-xl flex-row items-center justify-center shadow-sm"
+                    >
+                        <MessageCircle size={18} color="white" className="mr-1" />
+                        <Text className="text-white font-bold text-sm">WhatsApp</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={handleCopyWebLink}
+                        className="flex-1 bg-blue-600 py-4 rounded-xl flex-row items-center justify-center shadow-sm"
+                    >
+                        <Globe size={18} color="white" className="mr-1" />
+                        <Text className="text-white font-bold text-sm">Lien Web</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         onPress={handleShare}
                         disabled={sharing}
-                        className="w-full bg-slate-900 py-4 rounded-xl flex-row items-center justify-center shadow-lg"
+                        className="flex-1 bg-slate-900 py-4 rounded-xl flex-row items-center justify-center shadow-sm"
                     >
                         {sharing ? (
-                            <ActivityIndicator color="white" />
+                            <ActivityIndicator color="white" size="small" />
                         ) : (
                             <>
-                                <Share2 size={20} color="white" className="mr-2" />
-                                <Text className="text-white font-bold text-lg">Partager le PDF</Text>
+                                <Share2 size={18} color="white" className="mr-1" />
+                                <Text className="text-white font-bold text-sm">PDF</Text>
                             </>
                         )}
                     </TouchableOpacity>

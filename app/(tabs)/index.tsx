@@ -18,7 +18,9 @@ import {
     TrendingUp,
     CreditCard,
     Package,
-    User
+    User,
+    TrendingDown,
+    Wallet
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -32,7 +34,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 function Dashboard() {
     const router = useRouter();
     const { user, profile } = useAuth();
-    const { invoices, monthlyRevenue, pendingAmount, chartData, loading, refresh } = useDashboard();
+    const { invoices, monthlyRevenue, monthlyExpenses, netProfit, pendingAmount, chartData, loading, refresh } = useDashboard();
 
     useEffect(() => {
         refresh();
@@ -111,6 +113,28 @@ function Dashboard() {
                             {(pendingAmount || 0).toLocaleString()} {currency}
                         </Text>
                         <Text className="text-orange-100 text-[10px] mt-2 font-medium">Total impayé</Text>
+                    </View>
+                </View>
+
+                {/* Profit Section */}
+                <View className="px-6 mb-8">
+                    <View className="bg-slate-900 p-6 rounded-[32px] shadow-xl flex-row items-center justify-between">
+                        <View>
+                            <Text className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Bénéfice Net</Text>
+                            <Text className="text-white text-3xl font-black">
+                                {netProfit.toLocaleString()} <Text className="text-sm font-normal text-white/50">{currency}</Text>
+                            </Text>
+                        </View>
+                        <View className="items-end">
+                            <View className="flex-row items-center mb-1">
+                                <TrendingUp size={14} color="#10B981" />
+                                <Text className="text-emerald-400 text-xs font-bold ml-1">{(monthlyRevenue || 0).toLocaleString()}</Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <TrendingDown size={14} color="#EF4444" />
+                                <Text className="text-red-400 text-xs font-bold ml-1">{(monthlyExpenses || 0).toLocaleString()}</Text>
+                            </View>
+                        </View>
                     </View>
                 </View>
 
@@ -219,13 +243,23 @@ function Dashboard() {
 
             </ScrollView>
 
-            <TouchableOpacity
-                onPress={() => router.push('/invoice/new')}
-                className="absolute bottom-10 right-8 w-16 h-16 bg-blue-600 rounded-full items-center justify-center shadow-xl shadow-blue-300"
-                style={{ elevation: 8 }}
-            >
-                <Plus size={32} color="white" strokeWidth={3} />
-            </TouchableOpacity>
+            <View className="absolute bottom-10 right-8 items-center" style={{ gap: 16 }}>
+                <TouchableOpacity
+                    onPress={() => router.push('/expenses/add')}
+                    className="w-14 h-14 bg-red-500 rounded-full items-center justify-center shadow-lg shadow-red-200"
+                    style={{ elevation: 5 }}
+                >
+                    <Wallet size={24} color="white" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={() => router.push('/invoice/new')}
+                    className="w-16 h-16 bg-blue-600 rounded-full items-center justify-center shadow-xl shadow-blue-300"
+                    style={{ elevation: 8 }}
+                >
+                    <Plus size={32} color="white" strokeWidth={3} />
+                </TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 }

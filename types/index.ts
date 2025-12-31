@@ -6,6 +6,9 @@ export interface Profile {
     currency: string;
     is_premium?: boolean;
     signature_url?: string | null;
+    whatsapp_template?: string;
+    payment_method?: string;
+    payment_details?: string;
 }
 
 export interface Customer {
@@ -45,6 +48,7 @@ export interface Invoice {
     total_amount: number;
     created_at: string; // ISO timestamp
     items?: InvoiceItem[];
+    share_token?: string;
 }
 
 // Helper type for invoice with properly joined data
@@ -83,9 +87,21 @@ export interface Estimate {
     total_amount: number;
     currency: string;
     created_at: string;
+    share_token?: string;
 }
 
 export interface EstimateWithRelations extends Omit<Estimate, 'customer'> {
     customer: Client;
     items: EstimateItem[];
+}
+
+export interface Expense {
+    id: string;
+    user_id: string;
+    amount: number;
+    category: string;
+    description?: string | null;
+    date: string;
+    receipt_url?: string | null;
+    created_at: string;
 }

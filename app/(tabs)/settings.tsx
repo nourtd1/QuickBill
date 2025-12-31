@@ -1,124 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
-    TextInput,
     TouchableOpacity,
     ScrollView,
-    ActivityIndicator,
     Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Image
+    Image,
+    Dimensions
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
-import { LogOut, Check, Building2, Phone, Coins, Camera, PenTool, ChevronRight, Package } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '../../lib/upload';
-import { validateBusinessName, validatePhone, validateCurrency } from '../../lib/validation';
-import { showError, showSuccess } from '../../lib/error-handler';
+import {
+    LogOut,
+    Building2,
+    PenTool,
+    ChevronRight,
+    Package,
+    MessageSquare,
+    Bell,
+    ShieldCheck,
+    QrCode,
+    CreditCard,
+    User as UserIcon,
+    Wallet
+} from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+
+const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const { signOut } = useAuth();
-    const { profile, loading: profileLoading, fetchProfile, updateProfile } = useProfile();
-
-    const [businessName, setBusinessName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [currency, setCurrency] = useState('');
-    const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
-    const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const { signOut, user } = useAuth();
+    const { profile, fetchProfile } = useProfile();
 
     useEffect(() => {
         fetchProfile();
     }, []);
-
-    useEffect(() => {
-        if (profile) {
-            setBusinessName(profile.business_name || '');
-            setPhone(profile.phone_contact || '');
-            setCurrency(profile.currency || 'RWF');
-            setLogoUrl(profile.logo_url || null);
-        }
-    }, [profile]);
-
-    const handlePickImage = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (permissionResult.granted === false) {
-            Alert.alert("Permission requise", "Vous devez autoriser l'accès à la galerie pour changer le logo.");
-            return;
-        }
-
-        const pickerResult = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'images',
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
-
-        if (!pickerResult.canceled) {
-            handleUpload(pickerResult.assets[0].uri);
-        }
-    };
-
-    const handleUpload = async (uri: string) => {
-        setUploading(true);
-        try {
-            const publicUrl = await uploadImage(uri, 'logos');
-            setLogoUrl(publicUrl);
-        } catch (error: any) {
-            Alert.alert("Erreur Upload", error.message);
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleSave = async () => {
-        // Validate inputs
-        const businessNameValidation = validateBusinessName(businessName);
-        if (!businessNameValidation.isValid) {
-            Alert.alert('Erreur', businessNameValidation.error);
-            return;
-        }
-
-        const phoneValidation = validatePhone(phone);
-        if (!phoneValidation.isValid) {
-            Alert.alert('Erreur', phoneValidation.error);
-            return;
-        }
-
-        const currencyValidation = validateCurrency(currency);
-        if (!currencyValidation.isValid) {
-            Alert.alert('Erreur', currencyValidation.error);
-            return;
-        }
-
-        setSaving(true);
-        try {
-            const { error } = await updateProfile({
-                business_name: businessName.trim(),
-                phone_contact: phone.trim() || null,
-                currency: currency.trim().toUpperCase(),
-                logo_url: logoUrl
-            });
-
-            if (error) {
-                showError(error, "Erreur de mise à jour");
-            } else {
-                showSuccess("Profil mis à jour !");
-            }
-        } catch (error) {
-            showError(error, "Erreur de mise à jour");
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const handleSignOut = () => {
         Alert.alert(
@@ -131,179 +50,148 @@ export default function SettingsScreen() {
         );
     };
 
-    if (profileLoading && !profile) {
-        return (
-            <View className="flex-1 items-center justify-center bg-background">
-                <ActivityIndicator size="large" color="#007AFF" />
+    const MenuButton = ({ icon: Icon, title, subtitle, onPress, color, bgColor }: any) => (
+        <TouchableOpacity
+            onPress={onPress}
+            className="bg-white rounded-[32px] p-4 flex-row items-center border border-slate-50 mb-4 shadow-sm active:opacity-70"
+        >
+            <View className={`w-14 h-14 ${bgColor} rounded-2xl items-center justify-center mr-4`}>
+                <Icon size={26} color={color} />
             </View>
-        );
-    }
+            <View className="flex-1">
+                <Text className="text-slate-900 font-black text-base">{title}</Text>
+                <Text className="text-slate-400 text-xs font-medium">{subtitle}</Text>
+            </View>
+            <ChevronRight size={20} color="#CBD5E1" />
+        </TouchableOpacity>
+    );
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                className="flex-1"
-            >
-                <ScrollView className="flex-1 px-4 pt-4">
-                    <Text className="text-3xl font-bold text-gray-900 mb-8">Paramètres</Text>
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
 
-                    {/* Section: Business Info */}
-                    <View className="mb-6">
-                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Mon Business</Text>
-
-                        {/* Logo Upload Area */}
-                        <View className="items-center mb-6">
-                            <TouchableOpacity onPress={handlePickImage} className="relative">
-                                <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                                    {logoUrl ? (
-                                        <Image source={{ uri: logoUrl }} className="w-full h-full" />
-                                    ) : (
-                                        <Building2 size={40} color="#9CA3AF" />
-                                    )}
-                                    {uploading && (
-                                        <View className="absolute inset-0 bg-black/30 items-center justify-center">
-                                            <ActivityIndicator color="white" />
-                                        </View>
-                                    )}
-                                </View>
-                                <View className="absolute bottom-0 right-0 bg-primary p-2 rounded-full border-2 border-white">
-                                    <Camera size={16} color="white" />
-                                </View>
-                            </TouchableOpacity>
-                            <Text className="text-primary text-sm font-medium mt-2">Changer le logo</Text>
+                {/* Header Profile Section */}
+                <LinearGradient
+                    colors={['#1E293B', '#0F172A']}
+                    className="pt-16 pb-24 px-6 rounded-b-[40px] shadow-lg"
+                >
+                    <View className="flex-row justify-between items-center mb-6">
+                        <View>
+                            <Text className="text-white/60 text-sm font-medium uppercase tracking-widest">Configuration</Text>
+                            <Text className="text-white text-3xl font-black">Mon Compte</Text>
                         </View>
-
-                        <View className="bg-white rounded-xl overflow-hidden shadow-sm">
-                            {/* Business Name */}
-                            <View className="flex-row items-center p-4 border-b border-gray-100">
-                                <Building2 size={20} color="#9CA3AF" className="mr-3" />
-                                <View className="flex-1">
-                                    <Text className="text-xs text-gray-400">Nom du Business</Text>
-                                    <TextInput
-                                        className="text-base text-gray-900 font-medium pt-1"
-                                        value={businessName}
-                                        onChangeText={setBusinessName}
-                                        placeholder="Ex: Super Boutique"
-                                    />
-                                </View>
-                            </View>
-
-                            {/* Phone */}
-                            <View className="flex-row items-center p-4 border-b border-gray-100">
-                                <Phone size={20} color="#9CA3AF" className="mr-3" />
-                                <View className="flex-1">
-                                    <Text className="text-xs text-gray-400">Téléphone (sur factures)</Text>
-                                    <TextInput
-                                        className="text-base text-gray-900 font-medium pt-1"
-                                        value={phone}
-                                        onChangeText={setPhone}
-                                        placeholder="Ex: +250 788 000 000"
-                                        keyboardType="phone-pad"
-                                    />
-                                </View>
-                            </View>
-
-                            {/* Currency */}
-                            <View className="flex-row items-center p-4">
-                                <Coins size={20} color="#9CA3AF" className="mr-3" />
-                                <View className="flex-1">
-                                    <Text className="text-xs text-gray-400">Devise</Text>
-                                    <TextInput
-                                        className="text-base text-gray-900 font-medium pt-1"
-                                        value={currency}
-                                        onChangeText={setCurrency}
-                                        placeholder="Ex: RWF, USD, EUR"
-                                        autoCapitalize="characters"
-                                    />
-                                </View>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Save Button */}
-                    <TouchableOpacity
-                        onPress={handleSave}
-                        disabled={saving}
-                        className={`w-full py-4 rounded-xl flex-row items-center justify-center mb-8 ${saving ? 'bg-gray-400' : 'bg-primary'}`}
-                    >
-                        {saving ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <>
-                                <Text className="text-white font-bold text-lg mr-2">Enregistrer les infos</Text>
-                                <Check size={20} color="white" strokeWidth={3} />
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                    {/* Section: Signature */}
-                    <View className="mb-8">
-                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Signature & Branding</Text>
-                        <TouchableOpacity
-                            onPress={() => router.push('/settings/signature')}
-                            className="bg-white rounded-xl p-5 flex-row items-center justify-between shadow-sm border border-slate-50"
-                        >
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center mr-4">
-                                    <PenTool size={20} color="#2563EB" />
-                                </View>
-                                <View>
-                                    <Text className="text-slate-900 font-bold text-base">Ma Signature</Text>
-                                    <Text className="text-slate-500 text-xs">Ajouter ou modifier votre signature</Text>
-                                </View>
-                            </View>
-                            <ChevronRight size={20} color="#CBD5E1" />
-                        </TouchableOpacity>
-
-                        {profile?.signature_url && (
-                            <View className="mt-3 bg-emerald-50 p-3 rounded-lg border border-emerald-100 flex-row items-center">
-                                <Check size={14} color="#10B981" />
-                                <Text className="text-emerald-700 text-[10px] font-bold uppercase ml-2">Signature active sur les factures</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Section: Inventory */}
-                    <View className="mb-8">
-                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Inventaire</Text>
-                        <TouchableOpacity
-                            onPress={() => router.push('/items')}
-                            className="bg-white rounded-xl p-5 flex-row items-center justify-between shadow-sm border border-slate-50"
-                        >
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 bg-orange-50 rounded-full items-center justify-center mr-4">
-                                    <Package size={20} color="#F59E0B" />
-                                </View>
-                                <View>
-                                    <Text className="text-slate-900 font-bold text-base">Produits & Services</Text>
-                                    <Text className="text-slate-500 text-xs">Gérez vos articles préenregistrés</Text>
-                                </View>
-                            </View>
-                            <ChevronRight size={20} color="#CBD5E1" />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Account Section */}
-                    <View className="mb-6">
-                        <Text className="text-gray-500 text-sm font-semibold mb-3 uppercase">Compte</Text>
                         <TouchableOpacity
                             onPress={handleSignOut}
-                            className="bg-white rounded-xl p-4 flex-row items-center justify-between shadow-sm"
+                            className="bg-white/10 p-3 rounded-2xl border border-white/10"
                         >
-                            <View className="flex-row items-center leading-5">
-                                <LogOut size={20} color="#FF3B30" className="mr-3" />
-                                <Text className="text-red-500 font-medium text-base">Se déconnecter</Text>
-                            </View>
+                            <LogOut size={22} color="white" />
                         </TouchableOpacity>
                     </View>
 
-                    <Text className="text-center text-gray-400 text-xs mb-8">
-                        QuickBill v1.0.0
-                    </Text>
+                    {/* Profile Summary Card */}
+                    <View className="bg-white p-5 rounded-[32px] shadow-xl flex-row items-center mt-4">
+                        <View className="w-16 h-16 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border-2 border-slate-50">
+                            {profile?.logo_url ? (
+                                <Image source={{ uri: profile.logo_url }} className="w-full h-full" />
+                            ) : (
+                                <Building2 size={28} color="#94A3B8" />
+                            )}
+                        </View>
 
-                </ScrollView>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                        <View className="ml-4 flex-1">
+                            <Text className="text-slate-900 font-black text-lg leading-tight" numberOfLines={1}>
+                                {profile?.business_name || 'Mon Business'}
+                            </Text>
+                            <Text className="text-slate-400 text-xs font-bold mt-0.5">{user?.email}</Text>
+                        </View>
+
+                        <View className="bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200">
+                            <Text className="text-emerald-700 text-[9px] font-black uppercase tracking-wider">Premium</Text>
+                        </View>
+                    </View>
+                </LinearGradient>
+
+                <View className="px-6 -mt-8 pb-32">
+
+                    {/* Section: Identité */}
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Identité & Contact</Text>
+
+                    <MenuButton
+                        icon={Building2}
+                        title="Profil Business"
+                        subtitle="Nom, Logo, Devise et Contact"
+                        onPress={() => router.push('/settings/business')}
+                        color="#2563EB"
+                        bgColor="bg-blue-50"
+                    />
+
+                    <MenuButton
+                        icon={PenTool}
+                        title="Signature"
+                        subtitle="Dessinez votre signature numérique"
+                        onPress={() => router.push('/settings/signature')}
+                        color="#7C3AED"
+                        bgColor="bg-purple-50"
+                    />
+
+                    {/* Section: Automatisation */}
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mt-4 mb-4 ml-2">Automatisation</Text>
+
+                    <MenuButton
+                        icon={MessageSquare}
+                        title="WhatsApp Express"
+                        subtitle="Template de message automatique"
+                        onPress={() => router.push('/settings/whatsapp')}
+                        color="#10B981"
+                        bgColor="bg-emerald-50"
+                    />
+
+                    <MenuButton
+                        icon={QrCode}
+                        title="Paiement QR Code"
+                        subtitle="Configuration du scan pour payer"
+                        onPress={() => router.push('/settings/payment')}
+                        color="#F59E0B"
+                        bgColor="bg-orange-50"
+                    />
+
+                    {/* Section: Outils */}
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mt-4 mb-4 ml-2">Gestion</Text>
+
+                    <MenuButton
+                        icon={Package}
+                        title="Catalogue"
+                        subtitle="Services et articles préenregistrés"
+                        onPress={() => router.push('/items')}
+                        color="#EC4899"
+                        bgColor="bg-pink-50"
+                    />
+
+                    <MenuButton
+                        icon={ShieldCheck}
+                        title="Sécurité"
+                        subtitle="Confidentialité et accès"
+                        onPress={() => Alert.alert("Sécurité", "Fonctionnalité de protection par code PIN bientôt disponible.")}
+                        color="#64748B"
+                        bgColor="bg-slate-100"
+                    />
+
+                    <View className="mt-8 mb-4">
+                        <TouchableOpacity
+                            onPress={handleSignOut}
+                            className="bg-red-50 py-5 rounded-[28px] items-center border border-red-100"
+                        >
+                            <Text className="text-red-600 font-black text-base">Se déconnecter</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text className="text-center text-slate-300 text-[10px] font-black uppercase tracking-widest mt-4">
+                        QuickBill v2.2.0 • Premium Edition
+                    </Text>
+                </View>
+
+            </ScrollView>
+        </View>
     );
 }

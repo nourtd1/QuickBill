@@ -12,6 +12,7 @@ export function useDashboard() {
     const { user } = useAuth();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+    const [monthlyExpenses, setMonthlyExpenses] = useState(0);
     const [pendingAmount, setPendingAmount] = useState(0);
     const [chartData, setChartData] = useState<MonthlyData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -21,31 +22,22 @@ export function useDashboard() {
         setLoading(true);
 
         try {
-            // 1. Get recent 5 invoices with customer details
+            // 1. Get recent 5 invoices
             const { data: invoiceData, error: invoiceError } = await supabase
                 .from('invoices')
-                .select(`
-                    *,
-                    customer:clients (name)
-                `)
+                .select(`*, customer:clients (name)`)
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
                 .limit(5);
 
             if (invoiceError) throw invoiceError;
-
-            const formattedInvoices = (invoiceData || []).map((inv: any) => ({
-                ...inv,
-                customer: inv.customer
-            })) as Invoice[];
-
-            setInvoices(formattedInvoices);
+            setInvoices((invoiceData || []) as any);
 
             // 2. Stats calculation
             const now = new Date();
             const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-            // Encaissé ce mois (PAID only)
+            // Encaissé ce mois (Revenue)
             const { data: paidData, error: paidError } = await supabase
                 .from('invoices')
                 .select('total_amount')
@@ -54,7 +46,19 @@ export function useDashboard() {
                 .gte('created_at', firstDayOfMonth);
 
             if (paidError) throw paidError;
-            setMonthlyRevenue(paidData.reduce((sum, item) => sum + (item.total_amount || 0), 0));
+            const revenue = paidData.reduce((sum, item) => sum + (item.total_amount || 0), 0);
+            setMonthlyRevenue(revenue);
+
+            // Dépenses ce mois
+            const { data: expenseData, error: expenseError } = await supabase
+                .from('expenses')
+                .select('amount')
+                .eq('user_id', user.id)
+                .gte('date', firstDayOfMonth.split('T')[0]);
+
+            if (expenseError) throw expenseError;
+            const expenses = expenseData.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            setMonthlyExpenses(expenses);
 
             // En attente (UNPAID)
             const { data: unpaidData, error: unpaidError } = await supabase
@@ -106,6 +110,8 @@ export function useDashboard() {
     return {
         invoices,
         monthlyRevenue,
+        monthlyExpenses,
+        netProfit: monthlyRevenue - monthlyExpenses,
         pendingAmount,
         chartData,
         loading,

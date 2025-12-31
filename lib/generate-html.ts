@@ -16,6 +16,8 @@ export interface InvoiceData {
     currency: string;
     logoUrl?: string | null;
     signatureUrl?: string | null;
+    qrCodeUrl?: string | null;
+    paymentMethod?: string | null;
     title?: string; // e.g. "FACTURE" or "DEVIS"
 }
 
@@ -206,6 +208,22 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         <div class="signature-container">
             <img src="${data.signatureUrl}" class="signature-image" />
             <div class="signature-line">Signature du Responsable</div>
+        </div>
+    </div>
+    ` : ''}
+ 
+    ${data.qrCodeUrl ? `
+    <div style="margin-top: 50px; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-block;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="text-align: center;">
+                <img src="${data.qrCodeUrl}" width="100" height="100" style="border-radius: 8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" />
+                <div style="font-size: 10px; color: #64748b; font-weight: bold; margin-top: 8px; letter-spacing: 0.5px;">SCANNEZ POUR PAYER</div>
+            </div>
+            <div style="margin-left: 20px;">
+                <div style="font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Moyen de Paiement</div>
+                <div style="font-size: 16px; color: #1e293b; font-weight: 800; margin-bottom: 2px;">${data.paymentMethod || 'Direct'}</div>
+                <div style="font-size: 12px; color: #3b82f6; font-weight: 600;">Paiement simple et sécurisé</div>
+            </div>
         </div>
     </div>
     ` : ''}

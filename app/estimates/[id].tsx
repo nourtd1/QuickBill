@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Share as RNShare } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Trash2, Printer, Share, CheckCircle2, AlertCircle, Clock, Sparkles, Building2, User, Phone, FileText } from 'lucide-react-native';
+import { ArrowLeft, Trash2, Printer, Share, CheckCircle2, AlertCircle, Clock, Sparkles, Building2, User, Phone, FileText, Globe } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
@@ -13,6 +14,7 @@ import { showSuccess, showError } from '../../lib/error-handler';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { generateInvoiceHTML } from '../../lib/generate-html';
+import QRCode from 'qrcode';
 
 export default function EstimateDetails() {
     const { id } = useLocalSearchParams();
@@ -46,7 +48,9 @@ export default function EstimateDetails() {
                     unitPrice: i.unit_price,
                     total: i.quantity * i.unit_price
                 })),
-                totalAmount: estimate.total_amount
+                totalAmount: estimate.total_amount,
+                qrCodeUrl: profile.payment_details ? `data:image/svg+xml;utf8,${encodeURIComponent(await QRCode.toString(profile.payment_details, { type: 'svg' }))}` : undefined,
+                paymentMethod: profile.payment_method || undefined
             };
 
             const html = generateInvoiceHTML(estimateData);
@@ -163,6 +167,19 @@ export default function EstimateDetails() {
         ]);
     };
 
+    const handleCopyWebLink = async () => {
+        if (!estimate?.share_token) {
+            Alert.alert("Erreur", "Le lien de partage n'est pas encore prêt.");
+            return;
+        }
+
+        const baseUrl = "https://quickbill.app";
+        const publicUrl = `${baseUrl}/public/estimate/${estimate.share_token}`;
+
+        await Clipboard.setStringAsync(publicUrl);
+        Alert.alert("Lien copié !", "Le lien public du devis a été copié.");
+    };
+
     if (loading) {
         return (
             <View className="flex-1 items-center justify-center bg-white">
@@ -260,33 +277,45 @@ export default function EstimateDetails() {
 
             </ScrollView>
 
-            <View className="absolute bottom-0 left-0 right-0 p-6 pb-10 flex-row bg-white border-t border-slate-100 shadow-xl">
+            <View className="absolute bottom-0 left-0 right-0 p-6 pb-10 flex-row bg-white border-t border-slate-100 shadow-xl gap-2">
                 <TouchableOpacity
-                    className="flex-1 bg-slate-900 h-16 rounded-2xl flex-row items-center justify-center mr-3"
+                    className="flex-1 bg-slate-900 h-16 rounded-2xl flex-row items-center justify-center mr-0"
                     onPress={handleShareEstimate}
                     disabled={sharing}
                 >
-                    {sharing ? <ActivityIndicator color="white" /> : (
+                    {sharing ? <ActivityIndicator color="white" size="small" /> : (
                         <>
-                            <Share size={20} color="white" />
-                            <Text className="text-white font-bold ml-2">Partager</Text>
+                            <Share size={18} color="white" />
+                            <Text className="text-white font-bold ml-1 text-xs">PDF</Text>
                         </>
                     )}
                 </TouchableOpacity>
 
-                {estimate.status !== 'CONVERTED' && (
+                <TouchableOpacity
+                    className="flex-1 bg-blue-600 h-16 rounded-2xl flex-row items-center justify-center"
+                    onPress={handleCopyWebLink}
+                >
+                    <Globe size={18} color="white" />
+                    <Text className="text-white font-bold ml-1 text-xs">WEB</Text>
+                </TouchableOpacity>
+
+                {estimate.status !== 'CONVERTED' ? (
                     <TouchableOpacity
                         className="flex-[1.5] bg-orange-500 h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-orange-200"
                         onPress={handleConvertToInvoice}
                         disabled={isConverting}
                     >
-                        {isConverting ? <ActivityIndicator color="white" /> : (
+                        {isConverting ? <ActivityIndicator color="white" size="small" /> : (
                             <>
-                                <Sparkles size={20} color="white" />
-                                <Text className="text-white font-black ml-2 uppercase">Facturer</Text>
+                                <Sparkles size={18} color="white" />
+                                <Text className="text-white font-black ml-1 uppercase text-xs">Facturer</Text>
                             </>
                         )}
                     </TouchableOpacity>
+                ) : (
+                    <View className="flex-[1.5] bg-slate-100 h-16 rounded-2xl items-center justify-center">
+                        <Text className="text-slate-400 font-bold text-xs uppercase text-center">Facturé</Text>
+                    </View>
                 )}
             </View>
 

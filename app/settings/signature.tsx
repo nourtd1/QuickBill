@@ -13,13 +13,13 @@ import { useRouter } from 'expo-router';
 import SignatureScreen, { SignatureViewRef } from 'react-native-signature-canvas';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Trash2, Check, Info } from 'lucide-react-native';
-import * as FileSystem from 'expo-file-system';
+import { X, Trash2, Check, PenTool } from 'lucide-react-native';
 import { decode } from 'base64-arraybuffer';
+import { StatusBar } from 'expo-status-bar';
 
 function SignatureSettingScreen() {
     const router = useRouter();
-    const { user, profile, refreshProfile } = useAuth();
+    const { user, refreshProfile } = useAuth();
     const signatureRef = useRef<SignatureViewRef>(null);
     const [loading, setLoading] = useState(false);
 
@@ -36,11 +36,9 @@ function SignatureSettingScreen() {
         setLoading(true);
 
         try {
-            // 1. Préparer l'image (le canvas renvoie du base64 avec header data:image/png;base64,...)
             const base64Data = signature.replace('data:image/png;base64,', '');
             const filePath = `signatures/${user.id}.png`;
 
-            // 2. Upload vers Supabase Storage (Bucket 'logos')
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('logos')
                 .upload(filePath, decode(base64Data), {
@@ -50,12 +48,10 @@ function SignatureSettingScreen() {
 
             if (uploadError) throw uploadError;
 
-            // 3. Récupérer l'URL publique
             const { data: { publicUrl } } = supabase.storage
                 .from('logos')
                 .getPublicUrl(filePath);
 
-            // 4. Mettre à jour le profil
             const { error: updateError } = await supabase
                 .from('profiles')
                 .update({ signature_url: publicUrl })
@@ -76,33 +72,41 @@ function SignatureSettingScreen() {
 
     const style = `
         .m-signature-pad--footer { display: none; margin: 0px; }
-        body,html { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
-        .m-signature-pad { border: none; box-shadow: none; margin: 0; }
+        body,html { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: transparent; }
+        .m-signature-pad { border: none; box-shadow: none; margin: 0; background-color: transparent; }
     `;
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
-            {/* Header */}
-            <View className="px-6 py-4 flex-row items-center justify-between border-b border-slate-100 bg-white">
-                <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                        <ArrowLeft size={24} color="#1E293B" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
+
+            {/* Header Modern Banker */}
+            <View className="bg-primary pt-16 pb-8 px-6 rounded-b-[40px] shadow-lg z-10">
+                <View className="flex-row justify-between items-center mb-4">
+                    <TouchableOpacity onPress={() => router.back()} disabled={loading} className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                        <X size={24} color="white" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-black text-text-main">Ma Signature</Text>
+                    <Text className="text-white text-xl font-black tracking-tight">Ma Signature</Text>
+                    <View style={{ width: 40 }} />
                 </View>
-                {loading && <ActivityIndicator color="#1E40AF" />}
+                <Text className="text-blue-100 text-center font-medium">Authentifiez vos documents officiels.</Text>
             </View>
 
-            <View className="flex-1 p-6">
-                <View className="bg-slate-50 p-4 rounded-2xl mb-6 flex-row items-center">
-                    <Info size={18} color="#64748B" />
-                    <Text className="text-slate-500 text-xs ml-2 flex-1">
-                        Signez à l'intérieur de la zone ci-dessous. Cette signature sera ajoutée automatiquement au bas de vos factures.
+            <View className="flex-1 px-4 pt-6 pb-8">
+
+                {/* Information Card */}
+                <View className="bg-white p-4 rounded-2xl mb-6 flex-row items-center justify-center border border-slate-100 shadow-sm">
+                    <View className="bg-blue-50 p-2 rounded-lg mr-3">
+                        <PenTool size={18} color="#1E40AF" />
+                    </View>
+                    <Text className="text-slate-500 text-xs font-bold text-center">
+                        Dessinez votre signature dans la zone ci-dessous
                     </Text>
                 </View>
 
-                {/* Zone de Signature */}
-                <View className="flex-1 border-2 border-dashed border-slate-200 rounded-3xl overflow-hidden bg-white">
+                {/* Signature Pad */}
+                <View className="flex-1 bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200 relative mb-6">
+                    {/* Background Pattern or Grid can be simulated here if needed, but keeping it clean white is better for signature */}
                     <SignatureScreen
                         ref={signatureRef}
                         onOK={handleOK}
@@ -110,33 +114,41 @@ function SignatureSettingScreen() {
                         webStyle={style}
                         autoClear={false}
                         descriptionText=""
-                        bgWidth={Dimensions.get('window').width - 48}
-                        bgHeight={Dimensions.get('window').height - 300}
+                        bgWidth={Dimensions.get('window').width - 34} // Adjust for padding/borders
+                        bgHeight={Dimensions.get('window').height - 400} // Approximate height
+                        imageType="image/png"
                     />
+                    <Text className="absolute bottom-4 self-center text-slate-200 text-xs font-bold uppercase pointer-events-none">Espace de Signature</Text>
                 </View>
 
-                {/* Boutons d'Action */}
-                <View className="flex-row items-center space-x-4 mt-8" style={{ gap: 16 }}>
+                {/* Action Buttons */}
+                <View className="flex-row items-center space-x-4 mb-4" style={{ gap: 16 }}>
                     <TouchableOpacity
                         onPress={handleClear}
                         disabled={loading}
-                        className="flex-1 bg-white h-16 rounded-2xl flex-row items-center justify-center border border-slate-200"
+                        className="flex-1 bg-white h-16 rounded-2xl flex-row items-center justify-center border border-slate-200 shadow-sm active:bg-slate-50"
                     >
                         <Trash2 size={20} color="#64748B" className="mr-2" />
-                        <Text className="text-slate-600 font-bold text-lg">Effacer</Text>
+                        <Text className="text-slate-600 font-bold text-lg uppercase">Effacer</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={() => signatureRef.current?.readSignature()}
                         disabled={loading}
-                        className="flex-1 bg-primary h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200"
+                        className="flex-1 bg-primary h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200 active:bg-blue-700"
                     >
-                        <Check size={20} color="white" strokeWidth={3} className="mr-2" />
-                        <Text className="text-white font-bold text-lg">Valider</Text>
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Check size={20} color="white" strokeWidth={3} className="mr-2" />
+                                <Text className="text-white font-black text-lg uppercase">Valider</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>
-        </SafeAreaView>
+        </View>
     );
 }
 

@@ -8,13 +8,14 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
-    Alert
+    Alert,
+    Dimensions
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, User, Phone, Mail, MapPin, Trash2 } from 'lucide-react-native';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
+import { StatusBar } from 'expo-status-bar';
 
 export default function ClientFormScreen() {
     const router = useRouter();
@@ -131,125 +132,140 @@ export default function ClientFormScreen() {
     if (fetching) {
         return (
             <View className="flex-1 items-center justify-center bg-slate-50">
-                <ActivityIndicator color="#007AFF" />
+                <ActivityIndicator size="large" color="#1E40AF" />
             </View>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            {/* Header */}
-            <View className="px-4 py-4 flex-row items-center justify-between border-b border-slate-100">
-                <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                        <ArrowLeft size={24} color="#334155" />
-                    </TouchableOpacity>
-                    <Text className="text-xl font-bold text-slate-900">
-                        {isEditing ? 'Modifier le client' : 'Nouveau client'}
-                    </Text>
-                </View>
-
-                {isEditing && (
-                    <TouchableOpacity onPress={handleDelete} className="p-2">
-                        <Trash2 size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                )}
-            </View>
-
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 className="flex-1"
             >
-                <ScrollView className="flex-1 px-6 pt-6">
-                    <View className="space-y-6 pb-20">
+                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                    {/* Modern Header */}
+                    <View className="bg-primary pt-16 pb-24 px-6 rounded-b-[40px] shadow-lg">
+                        <View className="flex-row justify-between items-center">
+                            <TouchableOpacity
+                                onPress={() => router.back()}
+                                className="bg-white/10 p-3 rounded-2xl border border-white/10"
+                            >
+                                <ArrowLeft size={24} color="white" />
+                            </TouchableOpacity>
+                            <Text className="text-white text-xl font-black tracking-tight">
+                                {isEditing ? 'Modifier Client' : 'Nouveau Client'}
+                            </Text>
+                            {isEditing ? (
+                                <TouchableOpacity onPress={handleDelete} className="bg-red-500/20 p-3 rounded-2xl border border-red-500/30">
+                                    <Trash2 size={24} color="#FECACA" />
+                                </TouchableOpacity>
+                            ) : (
+                                <View className="w-12" />
+                            )}
+                        </View>
+                    </View>
 
-                        {/* Champ : Nom */}
-                        <View>
-                            <Text className="text-slate-700 font-semibold mb-2 ml-1">Nom du client *</Text>
-                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14">
-                                <User size={20} color="#94A3B8" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-base text-slate-900"
-                                    placeholder="Ex: Jean Dupont"
-                                    value={name}
-                                    onChangeText={setName}
-                                    autoCapitalize="words"
-                                />
+                    {/* Overlapping Content */}
+                    <View className="px-6 -mt-16">
+                        <View className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-200/50 mb-8 border border-slate-100">
+                            <View className="space-y-5">
+                                {/* Name Input */}
+                                <View>
+                                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Identité</Text>
+                                    <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-16 transition-all focus:border-primary focus:bg-blue-50/30">
+                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3">
+                                            <User size={20} color="#1E40AF" />
+                                        </View>
+                                        <TextInput
+                                            className="flex-1 text-base text-slate-900 font-semibold"
+                                            placeholder="Nom complet ou société"
+                                            placeholderTextColor="#94A3B8"
+                                            value={name}
+                                            onChangeText={setName}
+                                            autoCapitalize="words"
+                                        />
+                                    </View>
+                                </View>
+
+                                {/* Phone Input */}
+                                <View>
+                                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Contact</Text>
+                                    <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-16 mb-3">
+                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3">
+                                            <Phone size={20} color="#64748B" />
+                                        </View>
+                                        <TextInput
+                                            className="flex-1 text-base text-slate-900 font-medium"
+                                            placeholder="+33 6 00 00 00 00"
+                                            placeholderTextColor="#94A3B8"
+                                            value={phone}
+                                            onChangeText={setPhone}
+                                            keyboardType="phone-pad"
+                                        />
+                                    </View>
+
+                                    <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-16">
+                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3">
+                                            <Mail size={20} color="#64748B" />
+                                        </View>
+                                        <TextInput
+                                            className="flex-1 text-base text-slate-900 font-medium"
+                                            placeholder="email@exemple.com"
+                                            placeholderTextColor="#94A3B8"
+                                            value={email}
+                                            onChangeText={setEmail}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                        />
+                                    </View>
+                                </View>
+
+                                {/* Address Input */}
+                                <View>
+                                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Localisation</Text>
+                                    <View className="flex-row items-start bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 min-h-[120]">
+                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3 mt-1">
+                                            <MapPin size={20} color="#64748B" />
+                                        </View>
+                                        <TextInput
+                                            className="flex-1 text-base text-slate-900 font-medium pt-3"
+                                            placeholder="Adresse postale complète..."
+                                            placeholderTextColor="#94A3B8"
+                                            value={address}
+                                            onChangeText={setAddress}
+                                            multiline
+                                            numberOfLines={3}
+                                            textAlignVertical="top"
+                                        />
+                                    </View>
+                                </View>
                             </View>
                         </View>
 
-                        {/* Champ : Téléphone */}
-                        <View>
-                            <Text className="text-slate-700 font-semibold mb-2 ml-1">Téléphone</Text>
-                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14">
-                                <Phone size={20} color="#94A3B8" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-base text-slate-900"
-                                    placeholder="Ex: +33 6 12 34 56 78"
-                                    value={phone}
-                                    onChangeText={setPhone}
-                                    keyboardType="phone-pad"
-                                />
-                            </View>
-                        </View>
-
-                        {/* Champ : Email */}
-                        <View>
-                            <Text className="text-slate-700 font-semibold mb-2 ml-1">Email</Text>
-                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14">
-                                <Mail size={20} color="#94A3B8" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-base text-slate-900"
-                                    placeholder="Ex: jean.dupont@email.com"
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                />
-                            </View>
-                        </View>
-
-                        {/* Champ : Adresse */}
-                        <View>
-                            <Text className="text-slate-700 font-semibold mb-2 ml-1">Adresse</Text>
-                            <View className="flex-row items-start bg-white border border-slate-100 rounded-2xl px-4 py-3 min-h-[100]">
-                                <MapPin size={20} color="#94A3B8" className="mt-1" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-base text-slate-900"
-                                    placeholder="Adresse complète du client..."
-                                    value={address}
-                                    onChangeText={setAddress}
-                                    multiline
-                                    numberOfLines={3}
-                                    textAlignVertical="top"
-                                />
-                            </View>
-                        </View>
-
+                        <TouchableOpacity
+                            onPress={handleSave}
+                            disabled={loading}
+                            className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200 mb-10 ${loading ? 'bg-primary/70' : 'bg-primary'}`}
+                            activeOpacity={0.8}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <Text className="text-white text-lg font-bold mr-3">
+                                        {isEditing ? 'Mettre à jour' : 'Enregistrer'}
+                                    </Text>
+                                    <View className="bg-white/20 p-1.5 rounded-full">
+                                        <Check size={20} color="white" strokeWidth={3} />
+                                    </View>
+                                </>
+                            )}
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Bottom Button */}
-            <View className="px-6 pb-8 pt-4 bg-white border-t border-slate-50">
-                <TouchableOpacity
-                    onPress={handleSave}
-                    disabled={loading}
-                    className={`bg-blue-600 h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200 ${loading ? 'opacity-70' : ''}`}
-                    activeOpacity={0.8}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <>
-                            <Text className="text-white text-lg font-bold mr-2">
-                                {isEditing ? 'Mettre à jour' : 'Enregistrer le client'}
-                            </Text>
-                            <Check size={20} color="white" strokeWidth={3} />
-                        </>
-                    )}
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+        </View>
     );
 }

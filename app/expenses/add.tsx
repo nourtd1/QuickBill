@@ -16,16 +16,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
-    ArrowLeft,
+    X,
     Camera,
     Check,
-    X,
-    Tag,
     Calendar as CalendarIcon,
     FileText,
-    Banknote,
     Upload,
-    Plus
+    Plus,
+    Tag,
+    DollarSign,
+    Wallet
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
@@ -141,184 +141,194 @@ export default function AddExpenseScreen() {
     };
 
     return (
-        <View className="flex-1 bg-background">
-            <StatusBar style="dark" />
-            <SafeAreaView className="flex-1" style={{ backgroundColor: '#EFF6FF' }}>
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
-                {/* Header */}
-                <View className="flex-row justify-between items-center px-6 py-4 bg-white border-b border-slate-100">
-                    <TouchableOpacity onPress={() => router.back()} disabled={saving} className="p-2 -ml-2 bg-slate-50 rounded-full">
-                        <X size={24} color="#64748B" />
+            {/* Header */}
+            <View className="bg-primary pt-16 pb-8 px-6 rounded-b-[40px] shadow-lg z-10">
+                <View className="flex-row justify-between items-center mb-4">
+                    <TouchableOpacity onPress={() => router.back()} disabled={saving} className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                        <X size={24} color="white" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-bold text-slate-900">Nouvelle Dépense</Text>
-                    <View style={{ width: 32 }} />
+                    <Text className="text-white text-xl font-black tracking-tight">Nouvelle Dépense</Text>
+                    <View style={{ width: 40 }} />
                 </View>
+                <Text className="text-blue-100 text-center font-medium">Enregistrez vos dépenses pour suivre votre trésorerie.</Text>
+            </View>
 
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    className="flex-1"
-                >
-                    <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                className="flex-1"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+                <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
 
-                        {/* Amount Card */}
-                        <View className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 mb-6 items-center justify-center">
-                            <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-4">Montant TTC</Text>
-                            <View className="flex-row items-baseline justify-center mb-6">
-                                <TextInput
-                                    className="text-slate-900 text-6xl font-black text-center min-w-[60px]"
-                                    value={amount}
-                                    onChangeText={setAmount}
-                                    placeholder="0"
-                                    placeholderTextColor="#CBD5E1"
-                                    keyboardType="numeric"
-                                    autoFocus
-                                />
-                                <Text className="text-slate-400 text-3xl font-black ml-2">{currency}</Text>
-                            </View>
-
-                            {/* Quick Add Buttons */}
-                            <View className="flex-row flex-wrap justify-center gap-3">
-                                {QUICK_AMOUNTS.map((val) => (
-                                    <TouchableOpacity
-                                        key={val}
-                                        onPress={() => handleAddAmount(val)}
-                                        className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 flex-row items-center"
-                                    >
-                                        <Plus size={12} color="#64748B" className="mr-1" />
-                                        <Text className="text-slate-600 font-bold text-xs">{val}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                    {/* Amount Card */}
+                    <View className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 mb-6 items-center justify-center">
+                        <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-4">Montant TTC</Text>
+                        <View className="flex-row items-baseline justify-center mb-6">
+                            <TextInput
+                                className="text-slate-900 text-6xl font-black text-center min-w-[60px]"
+                                value={amount}
+                                onChangeText={setAmount}
+                                placeholder="0"
+                                placeholderTextColor="#CBD5E1"
+                                keyboardType="numeric"
+                                autoFocus
+                            />
+                            <Text className="text-slate-400 text-3xl font-black ml-2">{currency}</Text>
                         </View>
 
-                        {/* Form Fields */}
-                        <View className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-6">
+                        {/* Quick Add Buttons */}
+                        <View className="flex-row flex-wrap justify-center gap-3">
+                            {QUICK_AMOUNTS.map((val) => (
+                                <TouchableOpacity
+                                    key={val}
+                                    onPress={() => handleAddAmount(val)}
+                                    className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 flex-row items-center active:bg-slate-100"
+                                >
+                                    <Plus size={12} color="#64748B" className="mr-1" />
+                                    <Text className="text-slate-600 font-bold text-xs">+{val.toLocaleString()}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
 
-                            {/* Category */}
-                            <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-3 ml-1">Catégorie</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 -mx-2 px-2">
+                    {/* Form Fields */}
+                    <View className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-6">
+
+                        {/* Category */}
+                        <View className="mb-6">
+                            <View className="flex-row items-center mb-3 ml-1">
+                                <Tag size={16} color="#64748B" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider">Catégorie</Text>
+                            </View>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-2 px-2" contentContainerStyle={{ paddingRight: 20 }}>
                                 {CATEGORIES.map((cat) => (
                                     <TouchableOpacity
                                         key={cat.label}
                                         onPress={() => setCategory(cat.label)}
-                                        className={`mr-3 px-4 py-3 rounded-2xl border items-center justify-center flex-row ${category === cat.label
-                                                ? 'bg-slate-900 border-slate-900'
-                                                : 'bg-white border-slate-100'
+                                        className={`mr-3 px-4 py-3 rounded-2xl border items-center justify-center flex-row shadow-sm ${category === cat.label
+                                            ? 'bg-primary border-primary'
+                                            : 'bg-white border-slate-100'
                                             }`}
                                     >
                                         <Text className="text-lg mr-2">{cat.icon}</Text>
-                                        <Text className={`font-bold text-xs ${category === cat.label ? 'text-white' : 'text-slate-600'
-                                            }`}>
+                                        <Text className={`font-bold text-xs ${category === cat.label ? 'text-white' : 'text-slate-600'}`}>
                                             {cat.label}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
+                        </View>
 
-                            {/* Date & Description */}
-                            <View className="space-y-4">
-                                <View>
-                                    <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-2 ml-1">Date</Text>
-                                    <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                        <CalendarIcon size={20} color="#64748B" className="mr-3" />
-                                        <TextInput
-                                            className="text-slate-900 font-bold text-base flex-1"
-                                            value={date}
-                                            onChangeText={setDate}
-                                            placeholder="YYYY-MM-DD"
-                                        />
-                                    </View>
+                        {/* Date & Description */}
+                        <View className="space-y-4">
+                            <View>
+                                <View className="flex-row items-center mb-2 ml-1">
+                                    <CalendarIcon size={16} color="#64748B" className="mr-2" />
+                                    <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest">Date</Text>
                                 </View>
+                                <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <TextInput
+                                        className="text-slate-900 font-bold text-base flex-1"
+                                        value={date}
+                                        onChangeText={setDate}
+                                        placeholder="YYYY-MM-DD"
+                                    />
+                                </View>
+                            </View>
 
-                                <View>
-                                    <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-2 ml-1">Description</Text>
-                                    <View className="flex-row items-start bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                        <FileText size={20} color="#64748B" className="mr-3 mt-1" />
-                                        <TextInput
-                                            className="text-slate-900 font-bold text-base flex-1"
-                                            value={description}
-                                            onChangeText={setDescription}
-                                            placeholder="Ex: Facture électricité..."
-                                            placeholderTextColor="#94A3B8"
-                                            multiline
-                                        />
-                                    </View>
+                            <View>
+                                <View className="flex-row items-center mb-2 ml-1">
+                                    <FileText size={16} color="#64748B" className="mr-2" />
+                                    <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest">Description</Text>
+                                </View>
+                                <View className="flex-row items-start bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <TextInput
+                                        className="text-slate-900 font-bold text-base flex-1"
+                                        value={description}
+                                        onChangeText={setDescription}
+                                        placeholder="Facultatif : notes, détails..."
+                                        placeholderTextColor="#94A3B8"
+                                        multiline
+                                    />
                                 </View>
                             </View>
                         </View>
+                    </View>
 
-                        {/* Receipt Section */}
-                        <View className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-8">
-                            <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-4 ml-1">Justificatif</Text>
+                    {/* Receipt Section */}
+                    <View className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-8">
+                        <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-4 ml-1">Justificatif (Reçu / Facture)</Text>
 
-                            {receiptUri ? (
-                                <View className="relative">
-                                    <Image
-                                        source={{ uri: receiptUri }}
-                                        className="w-full h-48 rounded-2xl border border-slate-100"
-                                        resizeMode="cover"
-                                    />
-                                    <TouchableOpacity
-                                        onPress={() => setReceiptUri(null)}
-                                        className="absolute top-2 right-2 bg-white/90 p-2 rounded-full"
-                                    >
-                                        <X size={16} color="#EF4444" />
-                                    </TouchableOpacity>
-                                    {uploading && (
-                                        <View className="absolute inset-0 bg-black/30 rounded-2xl items-center justify-center">
-                                            <ActivityIndicator color="white" />
-                                        </View>
-                                    )}
-                                </View>
-                            ) : (
-                                <View className="flex-row gap-4">
-                                    <TouchableOpacity
-                                        onPress={handleCamera}
-                                        className="flex-1 bg-slate-50 border-2 border-dashed border-slate-200 p-6 rounded-3xl items-center justify-center active:scale-95 transition-all"
-                                    >
-                                        <Camera size={28} color="#94A3B8" />
-                                        <Text className="text-slate-500 font-bold text-xs mt-2">Appareil</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        onPress={handlePickImage}
-                                        className="flex-1 bg-slate-50 border-2 border-dashed border-slate-200 p-6 rounded-3xl items-center justify-center active:scale-95 transition-all"
-                                    >
-                                        <Upload size={28} color="#94A3B8" />
-                                        <Text className="text-slate-500 font-bold text-xs mt-2">Galerie</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-                        </View>
-
-                        {/* Spacing for bottom button */}
-                        <View className="h-24" />
-
-                    </ScrollView>
-                </KeyboardAvoidingView>
-
-                {/* Fixed Bottom Button */}
-                <View className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 shadow-lg">
-                    <TouchableOpacity
-                        onPress={handleSave}
-                        disabled={saving}
-                        className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg ${saving || !amount ? 'bg-slate-200' : 'bg-slate-900 shadow-slate-200'
-                            }`}
-                    >
-                        {saving ? (
-                            <ActivityIndicator color="white" />
+                        {receiptUri ? (
+                            <View className="relative">
+                                <Image
+                                    source={{ uri: receiptUri }}
+                                    className="w-full h-48 rounded-2xl border border-slate-100"
+                                    resizeMode="cover"
+                                />
+                                <TouchableOpacity
+                                    onPress={() => setReceiptUri(null)}
+                                    className="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-sm"
+                                >
+                                    <X size={16} color="#EF4444" />
+                                </TouchableOpacity>
+                                {uploading && (
+                                    <View className="absolute inset-0 bg-slate-900/50 rounded-2xl items-center justify-center">
+                                        <ActivityIndicator color="white" />
+                                    </View>
+                                )}
+                            </View>
                         ) : (
-                            <>
-                                <Banknote size={24} color={!amount ? "#94A3B8" : "white"} className="mr-2" />
-                                <Text className={`font-black text-lg uppercase ${!amount ? 'text-slate-400' : 'text-white'}`}>
-                                    Confirmer la Dépense
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                </View>
+                            <View className="flex-row gap-4">
+                                <TouchableOpacity
+                                    onPress={handleCamera}
+                                    className="flex-1 bg-slate-50 border border-slate-200 p-6 rounded-3xl items-center justify-center active:bg-slate-100"
+                                >
+                                    <View className="bg-white p-3 rounded-full mb-2 shadow-sm">
+                                        <Camera size={24} color="#64748B" />
+                                    </View>
+                                    <Text className="text-slate-600 font-bold text-xs">Appareil Photo</Text>
+                                </TouchableOpacity>
 
-            </SafeAreaView>
+                                <TouchableOpacity
+                                    onPress={handlePickImage}
+                                    className="flex-1 bg-slate-50 border border-slate-200 p-6 rounded-3xl items-center justify-center active:bg-slate-100"
+                                >
+                                    <View className="bg-white p-3 rounded-full mb-2 shadow-sm">
+                                        <Upload size={24} color="#64748B" />
+                                    </View>
+                                    <Text className="text-slate-600 font-bold text-xs">Galerie Photos</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+
+                </ScrollView>
+            </KeyboardAvoidingView>
+
+            {/* Fixed Bottom Button */}
+            <View className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-[32px]">
+                <TouchableOpacity
+                    onPress={handleSave}
+                    disabled={saving}
+                    className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg ${saving || !amount ? 'bg-slate-200 shadow-transparent' : 'bg-slate-900 shadow-slate-400'
+                        }`}
+                >
+                    {saving ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <>
+                            <Text className={`font-black text-lg uppercase mr-2 ${!amount ? 'text-slate-400' : 'text-white'}`}>
+                                Confirmer la Dépense
+                            </Text>
+                            {!amount ? null : <Check size={24} color="white" strokeWidth={3} />}
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }

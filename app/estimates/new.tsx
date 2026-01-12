@@ -13,14 +13,13 @@ import {
     FlatList
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { X, Plus, Trash2, Save, UserPlus, Search, User, Edit3, ShoppingBag, Package } from 'lucide-react-native';
+import { X, Plus, Trash2, Save, UserPlus, Search, User, Edit3, ShoppingBag, Package, ChevronDown, Check } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useProfile } from '../../hooks/useProfile';
 import { useAuth } from '../../context/AuthContext';
 import { showError, showSuccess } from '../../lib/error-handler';
 import { Client, Item } from '../../types';
 import { supabase } from '../../lib/supabase';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface NewEstimateItem {
     id: string;
@@ -206,114 +205,153 @@ export default function NewEstimate() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
-            <View className="flex-row justify-between items-center px-6 py-4 bg-white border-b border-slate-100">
-                <TouchableOpacity onPress={() => router.back()} disabled={saving} className="p-2 -ml-2">
-                    <X size={24} color="#64748B" />
-                </TouchableOpacity>
-                <Text className="text-xl font-black text-slate-900">Nouveau Devis</Text>
-                <View style={{ width: 32 }} />
+            {/* Header */}
+            <View className="bg-primary pt-16 pb-8 px-6 rounded-b-[40px] shadow-lg z-10">
+                <View className="flex-row justify-between items-center mb-4">
+                    <TouchableOpacity onPress={() => router.back()} className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                        <X size={24} color="white" />
+                    </TouchableOpacity>
+                    <Text className="text-white text-xl font-black tracking-tight">Nouveau Devis</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <Text className="text-blue-100 text-center font-medium">Remplissez les informations ci-dessous pour créer un nouveau devis.</Text>
             </View>
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-                <ScrollView className="flex-1 px-4 pt-6">
+                <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
 
-                    <Text className="text-slate-500 text-xs font-bold mb-3 uppercase ml-1">Client</Text>
-                    {!selectedClient ? (
-                        <TouchableOpacity
-                            onPress={() => setIsClientModalVisible(true)}
-                            className="bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 items-center justify-center mb-8"
-                        >
-                            <View className="w-14 h-14 bg-orange-50 rounded-full items-center justify-center mb-3">
-                                <UserPlus size={28} color="#F59E0B" />
-                            </View>
-                            <Text className="text-orange-600 font-bold text-lg">Sélectionner un client</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <View className="bg-white p-5 rounded-3xl shadow-sm border border-orange-100 mb-8 flex-row justify-between items-center">
-                            <View className="flex-1">
-                                <View className="flex-row items-center mb-1">
-                                    <User size={16} color="#64748B" className="mr-2" />
-                                    <Text className="text-slate-900 font-bold text-lg">{selectedClient.name}</Text>
+                    {/* Client Section */}
+                    <View className="mb-6">
+                        <Text className="text-slate-500 text-xs font-bold mb-3 uppercase ml-4 tracking-wider">Client Destinataire</Text>
+                        {!selectedClient ? (
+                            <TouchableOpacity
+                                onPress={() => setIsClientModalVisible(true)}
+                                className="bg-white p-6 rounded-3xl border border-dashed border-slate-300 items-center justify-center shadow-sm"
+                            >
+                                <View className="w-16 h-16 bg-blue-50 rounded-full items-center justify-center mb-3 border border-blue-100">
+                                    <UserPlus size={32} color="#1E40AF" />
                                 </View>
-                                <Text className="text-slate-500 text-xs">{selectedClient.email || selectedClient.phone}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setIsClientModalVisible(true)} className="bg-slate-50 p-2.5 rounded-xl">
-                                <Edit3 size={18} color="#F59E0B" />
+                                <Text className="text-blue-800 font-bold text-lg">Sélectionner un client</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity onPress={() => setIsClientModalVisible(true)} className="bg-white p-5 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 flex-row justify-between items-center">
+                                <View className="flex-row items-center flex-1">
+                                    <View className="w-12 h-12 bg-blue-100 rounded-2xl items-center justify-center mr-4">
+                                        <Text className="text-blue-700 font-black text-lg">{selectedClient.name.charAt(0)}</Text>
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-slate-900 font-bold text-lg mb-0.5">{selectedClient.name}</Text>
+                                        <Text className="text-slate-400 text-sm font-medium">{selectedClient.email || selectedClient.phone}</Text>
+                                    </View>
+                                </View>
+                                <View className="bg-slate-50 p-2 rounded-xl">
+                                    <Edit3 size={18} color="#64748B" />
+                                </View>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Items Section */}
+                    <View>
+                        <View className="flex-row justify-between items-center mb-3 px-4">
+                            <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider">Articles & Services</Text>
+                            <TouchableOpacity onPress={() => setIsItemModalVisible(true)} className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-full">
+                                <ShoppingBag size={14} color="#1E40AF" className="mr-1.5" />
+                                <Text className="text-blue-700 text-xs font-bold">Importer</Text>
                             </TouchableOpacity>
                         </View>
-                    )}
 
-                    <Text className="text-slate-500 text-xs font-bold mb-3 uppercase ml-1">Articles</Text>
-                    <View className="mb-32">
-                        {items.map((item) => (
-                            <View key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-50 mb-4">
-                                <View className="flex-row justify-between items-center mb-4">
+                        {items.map((item, index) => (
+                            <View key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-4">
+                                <View className="flex-row justify-between items-start mb-4">
+                                    <View className="bg-slate-50 w-8 h-8 rounded-full items-center justify-center mr-3 mt-1">
+                                        <Text className="text-slate-400 font-bold text-xs">{index + 1}</Text>
+                                    </View>
                                     <TextInput
-                                        className="flex-1 text-slate-900 font-semibold text-base"
-                                        placeholder="Description..."
+                                        className="flex-1 text-slate-900 font-bold text-base bg-slate-50 rounded-xl px-3 py-2 min-h-[40px]"
+                                        placeholder="Description de l'article..."
+                                        placeholderTextColor="#94A3B8"
+                                        multiline
                                         value={item.description}
                                         onChangeText={(text) => updateItem(item.id, 'description', text)}
                                     />
-                                    <TouchableOpacity onPress={() => removeItem(item.id)} className="ml-4">
-                                        <Trash2 size={20} color="#F87171" />
+                                    <TouchableOpacity onPress={() => removeItem(item.id)} className="ml-3 mt-2 bg-red-50 p-2 rounded-xl">
+                                        <Trash2 size={18} color="#EF4444" />
                                     </TouchableOpacity>
                                 </View>
 
-                                <View className="flex-row items-center space-x-4">
-                                    <View className="flex-1 bg-slate-50 rounded-2xl p-3">
+                                <View className="flex-row items-center space-x-3">
+                                    <View className="flex-1 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
                                         <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Qté</Text>
                                         <TextInput
-                                            className="text-slate-900 font-bold text-base"
+                                            className="text-slate-900 font-bold text-lg"
                                             keyboardType="numeric"
                                             value={item.quantity}
                                             onChangeText={(text) => updateItem(item.id, 'quantity', text)}
                                         />
                                     </View>
-                                    <View className="flex-[2] bg-slate-50 rounded-2xl p-3 ml-4">
-                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Prix</Text>
-                                        <TextInput
-                                            className="text-slate-900 font-bold text-base"
-                                            keyboardType="numeric"
-                                            value={item.unit_price}
-                                            onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
-                                        />
+                                    <View className="flex-[1.5] bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
+                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Prix Unit.</Text>
+                                        <View className="flex-row items-center">
+                                            <TextInput
+                                                className="text-slate-900 font-bold text-lg flex-1"
+                                                keyboardType="numeric"
+                                                value={item.unit_price}
+                                                onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
+                                            />
+                                            <Text className="text-slate-400 font-medium text-xs ml-1">{profile?.currency}</Text>
+                                        </View>
                                     </View>
+                                </View>
+                                <View className="mt-3 pt-3 border-t border-slate-50 flex-row justify-end">
+                                    <Text className="text-slate-400 text-xs font-medium mr-2">Sous-total:</Text>
+                                    <Text className="text-slate-900 font-bold">
+                                        {((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)).toLocaleString()} {profile?.currency}
+                                    </Text>
                                 </View>
                             </View>
                         ))}
 
-                        <View className="flex-row mt-2" style={{ gap: 12 }}>
-                            <TouchableOpacity onPress={addItem} className="flex-1 flex-row items-center justify-center p-5 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                                <Plus size={20} color="#F59E0B" className="mr-2" />
-                                <Text className="text-orange-600 font-bold">Vide</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => setIsItemModalVisible(true)} className="flex-1 flex-row items-center justify-center p-5 bg-orange-50 rounded-3xl border-2 border-dashed border-orange-200">
-                                <ShoppingBag size={20} color="#F59E0B" className="mr-2" />
-                                <Text className="text-orange-600 font-bold">Importer</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                            onPress={addItem}
+                            className="flex-row items-center justify-center p-4 bg-slate-100 rounded-2xl border border-dashed border-slate-300 mb-8 active:bg-slate-200"
+                        >
+                            <Plus size={20} color="#475569" className="mr-2" />
+                            <Text className="text-slate-600 font-bold">Ajouter une ligne vide</Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-6 pb-10 shadow-xl">
-                <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-slate-500 font-bold text-lg">Total Estimé</Text>
-                    <Text className="text-3xl font-black text-slate-900">{total.toLocaleString()} {profile?.currency || 'RWF'}</Text>
+            {/* Bottom Action Bar */}
+            <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] border-t border-slate-100 p-6 pt-5 pb-8">
+                <View className="flex-row justify-between items-center mb-5 px-2">
+                    <View>
+                        <Text className="text-slate-400 text-xs font-bold uppercase">Total Estimé</Text>
+                        <Text className="text-3xl font-black text-slate-900 tracking-tight">
+                            {total.toLocaleString()} <Text className="text-lg text-slate-500 font-medium">{profile?.currency || 'RWF'}</Text>
+                        </Text>
+                    </View>
+                    <View className="bg-blue-50 px-3 py-1.5 rounded-full">
+                        <Text className="text-blue-700 text-xs font-bold">{items.length} Articles</Text>
+                    </View>
                 </View>
 
                 <TouchableOpacity
                     onPress={handleSaveEstimate}
                     disabled={saving || total <= 0 || !selectedClient}
-                    className={`w-full h-16 rounded-2xl flex-row items-center justify-center ${total > 0 && selectedClient ? 'bg-orange-500 shadow-lg shadow-orange-200' : 'bg-slate-200'}`}
+                    className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg ${total > 0 && selectedClient ? 'bg-primary shadow-blue-200' : 'bg-slate-200 shadow-transparent'
+                        }`}
                 >
                     {saving ? <ActivityIndicator color="white" /> : (
                         <>
-                            <Save size={20} color="white" className="mr-2" />
-                            <Text className="text-white font-black text-lg uppercase">Enregistrer Devis</Text>
+                            <Text className={`font-black text-lg uppercase mr-2 ${total > 0 && selectedClient ? 'text-white' : 'text-slate-400'}`}>
+                                Enregistrer Devis
+                            </Text>
+                            {total > 0 && selectedClient && <Check size={24} color="white" strokeWidth={3} />}
                         </>
                     )}
                 </TouchableOpacity>
@@ -323,31 +361,43 @@ export default function NewEstimate() {
             <Modal visible={isClientModalVisible} animationType="slide" transparent={true}>
                 <View className="flex-1 bg-slate-900/40 justify-end">
                     <View className="bg-white h-[85%] rounded-t-[40px] overflow-hidden">
-                        <View className="px-6 py-6 border-b border-slate-50 flex-row justify-between items-center">
-                            <Text className="text-2xl font-black text-slate-900">Choisir un client</Text>
-                            <TouchableOpacity onPress={() => setIsClientModalVisible(false)} className="bg-slate-100 p-2 rounded-full">
+                        <View className="px-6 py-5 border-b border-slate-50 flex-row justify-between items-center bg-white z-10">
+                            <View>
+                                <Text className="text-2xl font-black text-slate-900">Choisir un client</Text>
+                                <Text className="text-slate-400 text-sm">À qui est destiné ce devis ?</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setIsClientModalVisible(false)} className="bg-slate-100 p-2.5 rounded-full">
                                 <X size={20} color="#64748B" />
                             </TouchableOpacity>
                         </View>
-                        <View className="p-6">
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-5 h-14">
+                        <View className="p-6 pb-2">
+                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-14">
                                 <Search size={22} color="#94A3B8" />
-                                <TextInput className="flex-1 ml-3 text-base" placeholder="Rechercher..." value={clientSearch} onChangeText={setClientSearch} />
+                                <TextInput
+                                    className="flex-1 ml-3 text-base text-slate-900 font-medium"
+                                    placeholder="Rechercher par nom, email..."
+                                    placeholderTextColor="#CBD5E1"
+                                    value={clientSearch}
+                                    onChangeText={setClientSearch}
+                                    autoFocus
+                                />
                             </View>
                         </View>
                         <FlatList
                             data={filteredClients}
                             keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ padding: 24 }}
+                            contentContainerStyle={{ padding: 24, paddingTop: 10 }}
+                            showsVerticalScrollIndicator={false}
                             renderItem={({ item }) => (
-                                <TouchableOpacity onPress={() => { setSelectedClient(item); setIsClientModalVisible(false); }} className="bg-white border border-slate-100 p-5 rounded-3xl mb-4 flex-row items-center shadow-sm">
-                                    <View className="w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center mr-4">
-                                        <Text className="text-slate-600 font-black text-lg">{item.name.charAt(0)}</Text>
+                                <TouchableOpacity onPress={() => { setSelectedClient(item); setIsClientModalVisible(false); }} className="bg-white border border-slate-100 p-4 rounded-3xl mb-3 flex-row items-center shadow-sm active:bg-slate-50">
+                                    <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center mr-4">
+                                        <Text className="text-blue-600 font-black text-lg">{item.name.charAt(0)}</Text>
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-slate-900 font-bold text-base">{item.name}</Text>
-                                        <Text className="text-slate-400 text-xs">{item.email || item.phone}</Text>
+                                        <Text className="text-slate-900 font-bold text-lg mb-0.5">{item.name}</Text>
+                                        <Text className="text-slate-400 text-sm">{item.email || item.phone}</Text>
                                     </View>
+                                    <ChevronDown size={20} color="#CBD5E1" style={{ transform: [{ rotate: '-90deg' }] }} />
                                 </TouchableOpacity>
                             )}
                         />
@@ -359,34 +409,49 @@ export default function NewEstimate() {
             <Modal visible={isItemModalVisible} animationType="slide" transparent={true}>
                 <View className="flex-1 bg-slate-900/40 justify-end">
                     <View className="bg-white h-[85%] rounded-t-[40px] overflow-hidden">
-                        <View className="px-6 py-6 border-b border-slate-50 flex-row justify-between items-center">
-                            <Text className="text-2xl font-black text-slate-900">Catalogue Items</Text>
-                            <TouchableOpacity onPress={() => setIsItemModalVisible(false)} className="bg-slate-100 p-2 rounded-full">
+                        <View className="px-6 py-5 border-b border-slate-50 flex-row justify-between items-center bg-white z-10">
+                            <View>
+                                <Text className="text-2xl font-black text-slate-900">Catalogue</Text>
+                                <Text className="text-slate-400 text-sm">Sélectionnez un produit ou service</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setIsItemModalVisible(false)} className="bg-slate-100 p-2.5 rounded-full">
                                 <X size={20} color="#64748B" />
                             </TouchableOpacity>
                         </View>
-                        <View className="p-6">
-                            <TextInput className="bg-slate-50 p-4 rounded-2xl border border-slate-100" placeholder="Rechercher..." value={itemSearch} onChangeText={setItemSearch} />
+                        <View className="p-6 pb-2">
+                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-14">
+                                <Search size={22} color="#94A3B8" />
+                                <TextInput
+                                    className="flex-1 ml-3 text-base text-slate-900 font-medium"
+                                    placeholder="Rechercher un article..."
+                                    placeholderTextColor="#CBD5E1"
+                                    value={itemSearch}
+                                    onChangeText={setItemSearch}
+                                    autoFocus
+                                />
+                            </View>
                         </View>
                         <FlatList
                             data={filteredInventoryItems}
                             keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ padding: 24 }}
+                            contentContainerStyle={{ padding: 24, paddingTop: 10 }}
+                            showsVerticalScrollIndicator={false}
                             renderItem={({ item }) => (
-                                <TouchableOpacity onPress={() => importItem(item)} className="bg-white border border-slate-100 p-5 rounded-3xl mb-4 flex-row items-center shadow-sm">
-                                    <View className="w-12 h-12 bg-orange-50 rounded-2xl items-center justify-center mr-4">
-                                        <Package size={22} color="#F59E0B" />
+                                <TouchableOpacity onPress={() => importItem(item)} className="bg-white border border-slate-100 p-4 rounded-3xl mb-3 flex-row items-center shadow-sm active:bg-slate-50">
+                                    <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center mr-4">
+                                        <Package size={22} color="#1E40AF" />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-slate-900 font-bold text-base">{item.name}</Text>
-                                        <Text className="text-slate-900 font-black">{item.unit_price.toLocaleString()} {profile?.currency}</Text>
+                                        <Text className="text-slate-900 font-bold text-lg mb-0.5">{item.name}</Text>
+                                        <Text className="text-slate-900 font-black">{item.unit_price.toLocaleString()} <Text className="text-sm font-normal text-slate-500">{profile?.currency}</Text></Text>
                                     </View>
+                                    <Plus size={24} color="#1E40AF" className="bg-blue-100 rounded-full p-1" />
                                 </TouchableOpacity>
                             )}
                         />
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 }

@@ -2,18 +2,17 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Plus, Search, FileText, ChevronRight, Clock, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Estimate } from '../../types';
 
 const STATUS_CONFIG = {
-    DRAFT: { label: 'BROUILLON', color: 'bg-slate-100 text-slate-700', icon: Clock },
-    SENT: { label: 'ENVOYÉ', color: 'bg-blue-100 text-blue-700', icon: Clock },
-    ACCEPTED: { label: 'ACCEPTÉ', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-    REJECTED: { label: 'REFUSÉ', color: 'bg-red-100 text-red-700', icon: AlertCircle },
-    CONVERTED: { label: 'CONVERTI', color: 'bg-orange-100 text-orange-700', icon: Sparkles },
+    DRAFT: { label: 'BROUILLON', color: 'bg-slate-100/50', textColor: 'text-slate-600', icon: Clock, iconColor: '#64748B' },
+    SENT: { label: 'ENVOYÉ', color: 'bg-blue-50', textColor: 'text-blue-600', icon: Clock, iconColor: '#2563EB' },
+    ACCEPTED: { label: 'ACCEPTÉ', color: 'bg-emerald-50', textColor: 'text-emerald-600', icon: CheckCircle2, iconColor: '#10B981' },
+    REJECTED: { label: 'REFUSÉ', color: 'bg-red-50', textColor: 'text-red-600', icon: AlertCircle, iconColor: '#EF4444' },
+    CONVERTED: { label: 'FACTURÉ', color: 'bg-purple-50', textColor: 'text-purple-600', icon: Sparkles, iconColor: '#9333EA' },
 };
 
 export default function EstimatesList() {
@@ -23,6 +22,7 @@ export default function EstimatesList() {
     const [filteredEstimates, setFilteredEstimates] = useState<Estimate[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
 
     const fetchEstimates = useCallback(async () => {
         if (!user) return;
@@ -44,6 +44,7 @@ export default function EstimatesList() {
             console.error('Error fetching estimates:', error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, [user]);
 
@@ -52,6 +53,11 @@ export default function EstimatesList() {
             fetchEstimates();
         }, [fetchEstimates])
     );
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchEstimates();
+    };
 
     const handleSearch = (text: string) => {
         setSearch(text);
@@ -71,50 +77,86 @@ export default function EstimatesList() {
 
     const currency = profile?.currency || 'RWF';
 
+    const ListHeader = () => (
+        <View className="bg-primary pt-14 pb-12 px-6 rounded-b-[40px] shadow-lg mb-6">
+            <View className="flex-row justify-between items-center mb-6">
+                <View className="flex-row items-center">
+                    <TouchableOpacity
+                        onPress={() => router.replace('/(tabs)')}
+                        className="bg-white/10 p-2.5 rounded-xl border border-white/10 mr-4"
+                    >
+                        <ArrowLeft size={24} color="white" />
+                    </TouchableOpacity>
+                    <View>
+                        <Text className="text-blue-200 font-medium text-base mb-1">Espace Commercial</Text>
+                        <Text className="text-white text-3xl font-black tracking-tight">Mes Devis</Text>
+                    </View>
+                </View>
+                <View className="bg-white/10 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10">
+                    <Text className="text-white font-bold">{estimates.length}</Text>
+                </View>
+            </View>
+
+            {/* Search Bar Floating Overlay */}
+            <View className="bg-white p-2 rounded-2xl flex-row items-center shadow-xl h-14 border border-blue-50/50">
+                <View className="w-10 h-10 items-center justify-center rounded-xl bg-slate-50 ml-1">
+                    <Search size={20} color="#64748B" />
+                </View>
+                <TextInput
+                    className="flex-1 ml-3 text-slate-900 font-medium text-base h-full"
+                    placeholder="Chercher par client ou numéro..."
+                    placeholderTextColor="#94A3B8"
+                    value={search}
+                    onChangeText={handleSearch}
+                    selectionColor="#1E40AF"
+                />
+            </View>
+        </View>
+    );
+
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
-            {/* Header */}
-            <View className="px-6 py-4 bg-white border-b border-slate-100 flex-row items-center">
-                <TouchableOpacity onPress={() => router.replace('/(tabs)')} className="p-2 -ml-2 bg-slate-50 rounded-full mr-4">
-                    <ArrowLeft size={24} color="#1E293B" />
-                </TouchableOpacity>
-                <Text className="text-xl font-black text-slate-900">Mes Devis</Text>
-            </View>
-
-            {/* Search Bar */}
-            <View className="px-6 py-4">
-                <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14 shadow-sm">
-                    <Search size={20} color="#94A3B8" />
-                    <TextInput
-                        className="flex-1 ml-3 text-base text-slate-900 font-medium"
-                        placeholder="Rechercher un devis ou client..."
-                        value={search}
-                        onChangeText={handleSearch}
-                    />
-                </View>
-            </View>
-
-            {loading && estimates.length === 0 ? (
+            {loading ? (
                 <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#F59E0B" />
+                    <ActivityIndicator size="large" color="#1E40AF" />
                 </View>
+            ) : filteredEstimates.length === 0 ? (
+                <>
+                    <ListHeader />
+                    <View className="flex-1 items-center px-10 mt-10">
+                        <View className="bg-white p-8 rounded-[32px] mb-6 shadow-sm border border-slate-100 items-center justify-center">
+                            <View className="bg-orange-50 p-4 rounded-full mb-2">
+                                <FileText size={48} color="#F59E0B" />
+                            </View>
+                        </View>
+                        <Text className="text-slate-900 font-black text-xl mb-3 text-center">
+                            {search ? "Aucun devis trouvé" : "Aucun devis créé"}
+                        </Text>
+                        <Text className="text-slate-500 text-center leading-relaxed text-base">
+                            {search
+                                ? "Essayez une autre recherche ou vérifiez l'orthographe."
+                                : "Commencez à créer des devis professionnels pour vos clients dès maintenant."
+                            }
+                        </Text>
+                    </View>
+                </>
             ) : (
                 <FlatList
                     data={filteredEstimates}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                    ListHeaderComponent={ListHeader}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                    showsVerticalScrollIndicator={false}
                     refreshControl={
-                        <RefreshControl refreshing={loading} onRefresh={fetchEstimates} tintColor="#F59E0B" />
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#1E40AF"
+                            colors={["#1E40AF"]}
+                        />
                     }
-                    ListEmptyComponent={() => (
-                        <View className="items-center justify-center mt-10 p-10 bg-white rounded-[40px] border border-dashed border-slate-200">
-                            <FileText size={48} color="#CBD5E1" strokeWidth={1} />
-                            <Text className="text-slate-400 font-bold mt-4 text-center">Aucun devis</Text>
-                            <Text className="text-slate-300 text-sm text-center mt-2 px-6">Créez votre premier devis pour commencer à vendre.</Text>
-                        </View>
-                    )}
                     renderItem={({ item }) => {
                         const config = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.DRAFT;
                         const StatusIcon = config.icon;
@@ -123,30 +165,42 @@ export default function EstimatesList() {
                         return (
                             <TouchableOpacity
                                 onPress={() => router.push(`/estimates/${item.id}`)}
-                                className="bg-white p-5 rounded-[30px] mb-4 shadow-sm border border-slate-50 transition-all active:scale-[0.98]"
+                                className="bg-white mx-5 mb-4 p-5 rounded-2xl shadow-sm border border-slate-100 flex-col"
+                                activeOpacity={0.7}
                             >
                                 <View className="flex-row justify-between items-start mb-4">
-                                    <View className="flex-1">
-                                        <Text className="text-slate-900 font-bold text-base" numberOfLines={1}>{customerName || 'Client Inconnu'}</Text>
-                                        <Text className="text-slate-400 text-xs mt-0.5">{item.estimate_number}</Text>
+                                    <View className="flex-1 mr-4">
+                                        <Text className="text-slate-900 font-bold text-lg mb-1" numberOfLines={1}>
+                                            {customerName || 'Client Inconnu'}
+                                        </Text>
+                                        <View className="flex-row items-center">
+                                            <Text className="text-slate-400 text-xs font-semibold bg-slate-50 px-2 py-1 rounded-md overflow-hidden">
+                                                #{item.estimate_number}
+                                            </Text>
+                                            <Text className="text-slate-400 text-xs ml-2">
+                                                {new Date(item.created_at).toLocaleDateString()}
+                                            </Text>
+                                        </View>
                                     </View>
-                                    <View className={`px-2.5 py-1 rounded-full flex-row items-center ${config.color.split(' ')[0]}`}>
-                                        <StatusIcon size={12} color={config.color.includes('slate') ? '#64748B' : config.color.includes('blue') ? '#2563EB' : config.color.includes('emerald') ? '#10B981' : config.color.includes('orange') ? '#F59E0B' : '#EF4444'} className="mr-1.5" />
-                                        <Text className={`text-[10px] font-black tracking-wider ${config.color.split(' ')[1]}`}>
+                                    <View className={`px-3 py-1.5 rounded-full flex-row items-center ${config.color}`}>
+                                        <StatusIcon size={12} color={config.iconColor} className="mr-1.5" />
+                                        <Text className={`text-[10px] font-black tracking-wide ${config.textColor}`}>
                                             {config.label}
                                         </Text>
                                     </View>
                                 </View>
 
-                                <View className="flex-row justify-between items-end border-t border-slate-50 pt-3">
+                                <View className="h-[1px] bg-slate-50 mb-3" />
+
+                                <View className="flex-row justify-between items-center">
                                     <View>
-                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-0.5">Montant Total</Text>
-                                        <Text className="text-slate-900 font-black text-lg">
-                                            {item.total_amount.toLocaleString()} {item.currency}
+                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-0.5 tracking-wider">Montant Total</Text>
+                                        <Text className="text-slate-900 font-black text-xl">
+                                            {item.total_amount.toLocaleString()} <Text className="text-sm text-slate-500 font-medium">{item.currency}</Text>
                                         </Text>
                                     </View>
-                                    <View className="bg-orange-50 p-2 rounded-xl">
-                                        <ChevronRight size={18} color="#F59E0B" />
+                                    <View className="bg-slate-50 p-2.5 rounded-full border border-slate-100">
+                                        <ChevronRight size={18} color="#94A3B8" />
                                     </View>
                                 </View>
                             </TouchableOpacity>
@@ -155,14 +209,14 @@ export default function EstimatesList() {
                 />
             )}
 
-            {/* FAB */}
+            {/* Floating Action Button */}
             <TouchableOpacity
                 onPress={() => router.push('/estimates/new')}
-                className="absolute bottom-10 right-8 w-16 h-16 bg-orange-500 rounded-full items-center justify-center shadow-xl shadow-orange-200"
-                style={{ elevation: 8 }}
+                className="absolute bottom-8 right-6 bg-slate-900 w-16 h-16 rounded-full items-center justify-center shadow-2xl shadow-slate-400 z-50"
+                activeOpacity={0.9}
             >
-                <Plus size={32} color="white" strokeWidth={3} />
+                <Plus size={28} color="white" />
             </TouchableOpacity>
-        </SafeAreaView>
+        </View>
     );
 }

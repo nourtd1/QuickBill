@@ -6,7 +6,8 @@ import {
     ScrollView,
     RefreshControl,
     ActivityIndicator,
-    Dimensions
+    Dimensions,
+    Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -20,12 +21,13 @@ import {
     Package,
     User,
     TrendingDown,
-    Wallet
+    Wallet,
+    ArrowRight,
+    MoreHorizontal
 } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { BarChart } from 'react-native-gifted-charts';
-import * as LinearGradient from 'expo-linear-gradient';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useAuth } from '../../context/AuthContext';
 
@@ -61,206 +63,269 @@ function Dashboard() {
 
     if (loading && (!invoices || invoices.length === 0)) {
         return (
-            <View className="flex-1 items-center justify-center bg-background">
-                <ActivityIndicator size="large" color="#2563EB" />
-                <Text className="mt-4 text-slate-400 font-medium">Chargement du dashboard...</Text>
+            <View className="flex-1 items-center justify-center bg-slate-50">
+                <ActivityIndicator size="large" color="#1E40AF" />
+                <Text className="mt-4 text-slate-400 font-medium">Chargement...</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background" style={{ backgroundColor: '#EFF6FF' }} edges={['top']}>
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120 }}
                 refreshControl={
-                    <RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor="#2563EB" />
+                    <RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor="#fff" progressBackgroundColor="#1E40AF" colors={['#fff']} />
                 }
             >
-                <View className="px-6 py-6 flex-row justify-between items-start">
-                    <View>
-                        <Text className="text-slate-500 text-base font-medium">Bonjour, {userName} 👋</Text>
-                        <Text className="text-2xl font-black text-slate-900 mt-1">{profile?.business_name || 'Mon Business'}</Text>
-                    </View>
-                    <TouchableOpacity
-                        onPress={() => router.push('/settings')}
-                        className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"
+                {/* Header Premium Avec Dégradé */}
+                <View className="overflow-hidden rounded-b-[40px] shadow-lg mb-6 bg-primary">
+                    <LinearGradient
+                        colors={['#172554', '#1E40AF']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        className="pt-16 pb-24 px-6 relative"
                     >
-                        <Settings size={24} color="#64748B" />
-                    </TouchableOpacity>
+                        {/* Effets de texture "Glass" */}
+                        <View className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                        <View className="absolute bottom-[-20px] left-[-20px] w-32 h-32 bg-blue-400/10 rounded-full blur-2xl" />
+
+                        <View className="flex-row justify-between items-start mb-6 z-10">
+                            <View>
+                                <Text className="text-blue-200 text-sm font-bold uppercase tracking-wider mb-1">Bonjour, {userName}</Text>
+                                <Text className="text-3xl font-black text-white tracking-tight leading-8" numberOfLines={1}>
+                                    {profile?.business_name || 'Mon Business'}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => router.push('/settings')}
+                                className="bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md active:bg-white/20"
+                            >
+                                <Settings size={22} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    </LinearGradient>
                 </View>
 
-                <View className="flex-row px-6 space-x-4 mb-8" style={{ gap: 16 }}>
-                    <View className="flex-1 bg-emerald-500 p-5 rounded-2xl shadow-sm shadow-emerald-200">
-                        <View className="bg-white/20 self-start p-2 rounded-xl mb-3">
-                            <TrendingUp size={20} color="white" />
-                        </View>
-                        <Text className="text-white/90 text-xs font-bold uppercase tracking-wider">Encaissé</Text>
-                        <Text className="text-white text-xl font-black mt-1" numberOfLines={1}>
-                            {(monthlyRevenue || 0).toLocaleString()} {currency}
-                        </Text>
-                        <Text className="text-emerald-50 text-[10px] mt-2 font-medium">Ce mois-ci</Text>
-                    </View>
+                <View className="px-6 -mt-20">
+                    {/* Carte Bénéfice Net - Style "Carte Bancaire Premium" */}
+                    <LinearGradient
+                        colors={['#0F172A', '#1E293B']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        className="p-6 rounded-[32px] shadow-xl shadow-slate-900/30 mb-8 border border-slate-700/50 relative overflow-hidden"
+                    >
+                        {/* Shine Effect */}
+                        <View className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[100px] -mr-8 -mt-8" />
 
-                    <View className="flex-1 bg-orange-500 p-5 rounded-2xl shadow-sm shadow-orange-200">
-                        <View className="bg-white/20 self-start p-2 rounded-xl mb-3">
-                            <CreditCard size={20} color="white" />
+                        <View className="flex-row justify-between items-start mb-8">
+                            <View>
+                                <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Bénéfice Net</Text>
+                                <Text className="text-white text-4xl font-black tracking-tight">
+                                    {netProfit.toLocaleString()} <Text className="text-xl text-slate-500 font-bold">{currency}</Text>
+                                </Text>
+                            </View>
+                            <View className="bg-white/10 p-3 rounded-2xl border border-white/5">
+                                <Wallet size={24} color="#60A5FA" />
+                            </View>
                         </View>
-                        <Text className="text-white/90 text-xs font-bold uppercase tracking-wider">En attente</Text>
-                        <Text className="text-white text-xl font-black mt-1" numberOfLines={1}>
-                            {(pendingAmount || 0).toLocaleString()} {currency}
-                        </Text>
-                        <Text className="text-orange-50 text-[10px] mt-2 font-medium">Total impayé</Text>
-                    </View>
-                </View>
 
-                {/* Profit Section */}
-                <View className="px-6 mb-8">
-                    <View className="bg-primary p-6 rounded-2xl shadow-lg flex-row items-center justify-between">
-                        <View>
-                            <Text className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Bénéfice Net</Text>
-                            <Text className="text-white text-3xl font-black">
-                                {netProfit.toLocaleString()} <Text className="text-sm font-normal text-white/50">{currency}</Text>
+                        <View className="flex-row items-center justify-between">
+                            <View>
+                                <View className="flex-row items-center mb-1">
+                                    <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                                    <Text className="text-slate-400 text-[10px] font-bold uppercase">Entrées</Text>
+                                </View>
+                                <Text className="text-emerald-400 text-lg font-bold">
+                                    + {(monthlyRevenue || 0).toLocaleString()}
+                                </Text>
+                            </View>
+                            <View className="h-8 w-[1px] bg-white/10" />
+                            <View className="items-end">
+                                <View className="flex-row items-center mb-1">
+                                    <Text className="text-slate-400 text-[10px] font-bold uppercase">Sorties</Text>
+                                    <View className="w-1.5 h-1.5 rounded-full bg-red-500 ml-2 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                                </View>
+                                <Text className="text-red-400 text-lg font-bold">
+                                    - {(monthlyExpenses || 0).toLocaleString()}
+                                </Text>
+                            </View>
+                        </View>
+                    </LinearGradient>
+
+                    {/* Quick Stats Grid */}
+                    <View className="flex-row space-x-4 mb-8" style={{ gap: 16 }}>
+                        <View className="flex-1 bg-white p-5 rounded-[28px] shadow-sm border border-slate-100/80">
+                            <View className="bg-orange-50 self-start p-3 rounded-2xl mb-3 border border-orange-100">
+                                <Clock size={22} color="#F59E0B" />
+                            </View>
+                            <Text className="text-slate-400 text-[10px] font-black uppercase tracking-wider mb-0.5">En attente</Text>
+                            <Text className="text-slate-900 text-xl font-black" numberOfLines={1}>
+                                {(pendingAmount || 0).toLocaleString()}
                             </Text>
                         </View>
-                        <View className="items-end">
-                            <View className="flex-row items-center mb-1">
-                                <TrendingUp size={14} color="#10B981" />
-                                <Text className="text-emerald-400 text-xs font-bold ml-1">{(monthlyRevenue || 0).toLocaleString()}</Text>
+                        <View className="flex-1 bg-white p-5 rounded-[28px] shadow-sm border border-slate-100/80">
+                            <View className="bg-blue-50 self-start p-3 rounded-2xl mb-3 border border-blue-100">
+                                <FileText size={22} color="#2563EB" />
                             </View>
-                            <View className="flex-row items-center">
-                                <TrendingDown size={14} color="#EF4444" />
-                                <Text className="text-red-400 text-xs font-bold ml-1">{(monthlyExpenses || 0).toLocaleString()}</Text>
-                            </View>
+                            <Text className="text-slate-400 text-[10px] font-black uppercase tracking-wider mb-0.5">Factures</Text>
+                            <Text className="text-slate-900 text-xl font-black">
+                                {invoices?.length || 0}
+                            </Text>
                         </View>
                     </View>
-                </View>
 
-                {/* Quick Actions */}
-                <View className="flex-row px-6 mb-8" style={{ gap: 12 }}>
-                    <TouchableOpacity
-                        onPress={() => router.push('/estimates')}
-                        className="flex-1 bg-white p-4 rounded-3xl shadow-sm border border-slate-50 flex-row items-center justify-center"
-                    >
-                        <FileText size={18} color="#F59E0B" />
-                        <Text className="text-slate-900 font-bold ml-2">Devis</Text>
-                    </TouchableOpacity>
+                    {/* Quick Actions - Modern Scroll or Grid */}
+                    <View className="mb-8">
+                        <Text className="text-slate-900 font-bold text-lg mb-4 ml-2">Raccourcis</Text>
+                        <View className="flex-row justify-between" style={{ gap: 12 }}>
+                            {[
+                                { icon: FileText, label: 'Devis', color: '#F59E0B', bg: 'bg-amber-50', border: 'border-amber-100', route: '/estimates' },
+                                { icon: Package, label: 'Services', color: '#2563EB', bg: 'bg-blue-50', border: 'border-blue-100', route: '/items' },
+                                { icon: User, label: 'Clients', color: '#64748B', bg: 'bg-slate-100', border: 'border-slate-200', route: '/(tabs)/clients' },
+                            ].map((action, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    onPress={() => router.push(action.route as any)}
+                                    className="flex-1 bg-white p-4 rounded-[24px] shadow-sm border border-slate-100 items-center justify-between min-h-[110px]"
+                                    activeOpacity={0.7}
+                                >
+                                    <View className={`${action.bg} p-3.5 rounded-2xl mb-3 ${action.border} border`}>
+                                        <action.icon size={24} color={action.color} />
+                                    </View>
+                                    <Text className="text-slate-700 font-bold text-xs text-center">{action.label}</Text>
+                                    <View className="bg-slate-50 p-1 rounded-full mt-2">
+                                        <ArrowRight size={10} color="#94A3B8" />
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
 
-                    <TouchableOpacity
-                        onPress={() => router.push('/items')}
-                        className="flex-1 bg-white p-4 rounded-3xl shadow-sm border border-slate-50 flex-row items-center justify-center"
-                    >
-                        <Package size={18} color="#2563EB" />
-                        <Text className="text-slate-900 font-bold ml-2">Services</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => router.push('/(tabs)/clients')}
-                        className="flex-1 bg-white p-4 rounded-3xl shadow-sm border border-slate-50 flex-row items-center justify-center"
-                    >
-                        <User size={18} color="#64748B" />
-                        <Text className="text-slate-900 font-bold ml-2">Clients</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View className="px-6 mb-8">
-                    <View className="bg-white p-6 rounded-[40px] shadow-sm border border-slate-50">
+                    {/* Growth Chart */}
+                    <View className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-8">
                         <View className="flex-row justify-between items-center mb-6">
-                            <Text className="text-slate-900 font-black text-lg">Évolution du CA</Text>
+                            <View className="flex-row items-center">
+                                <View className="bg-blue-50 p-2 rounded-xl mr-3">
+                                    <TrendingUp size={20} color="#1E40AF" />
+                                </View>
+                                <Text className="text-slate-900 font-bold text-lg">Croissance</Text>
+                            </View>
+
                             {!hasData && (
-                                <View className="bg-slate-100 px-2.5 py-1 rounded-full">
-                                    <Text className="text-slate-400 text-[10px] font-bold">MODE DEMO</Text>
+                                <View className="bg-slate-100 px-3 py-1 rounded-full">
+                                    <Text className="text-slate-500 text-[10px] font-bold tracking-wide">DEMO</Text>
                                 </View>
                             )}
                         </View>
-
-                        <View className="items-center">
+                        <View className="items-center -ml-4 overflow-hidden">
                             <BarChart
                                 data={displayData}
-                                width={SCREEN_WIDTH - 100}
-                                height={180}
-                                barWidth={30}
-                                spacing={20}
+                                width={SCREEN_WIDTH - 80}
+                                height={160}
+                                barWidth={24}
+                                spacing={24}
                                 noOfSections={3}
                                 barBorderRadius={8}
                                 frontColor="#1E40AF"
                                 yAxisThickness={0}
                                 xAxisThickness={0}
                                 hideRules
-                                yAxisTextStyle={{ color: '#94A3B8', fontSize: 10 }}
+                                yAxisTextStyle={{ color: '#94A3B8', fontSize: 10, fontWeight: '500' }}
                                 xAxisLabelTextStyle={{ color: '#64748B', fontSize: 10, fontWeight: 'bold' }}
                                 isAnimated
                             />
                         </View>
                     </View>
-                </View>
 
-                <View className="px-6 pb-24">
-                    <View className="flex-row justify-between items-center mb-4 px-2">
-                        <Text className="text-slate-900 font-black text-xl">Récemment</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/clients')}>
-                            <Text className="text-primary font-bold">Voir tout</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {!invoices || invoices.length === 0 ? (
-                        <View className="bg-white p-8 rounded-[40px] items-center justify-center border border-dashed border-slate-200">
-                            <FileText size={48} color="#CBD5E1" strokeWidth={1} />
-                            <Text className="text-slate-400 font-medium mt-4">Aucune facture récente</Text>
-                        </View>
-                    ) : (
-                        invoices.map((inv) => (
+                    {/* Recent Invoices List */}
+                    <View className="mb-8">
+                        <View className="flex-row justify-between items-center mb-5 px-2">
+                            <Text className="text-slate-900 font-bold text-lg">Activités Récentes</Text>
                             <TouchableOpacity
-                                key={inv.id}
-                                onPress={() => router.push(`/invoice/${inv.id}`)}
-                                className="bg-card p-5 rounded-xl mb-4 flex-row items-center shadow-sm"
+                                onPress={() => router.push('/(tabs)/clients')}
+                                className="bg-slate-100 px-3 py-1.5 rounded-full"
                             >
-                                <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${inv.status === 'PAID' ? 'bg-emerald-50' : 'bg-orange-50'}`}>
-                                    {inv.status === 'PAID' ? <CheckCircle2 size={24} color="#10B981" /> : <Clock size={24} color="#F59E0B" />}
-                                </View>
-
-                                <View className="flex-1">
-                                    <Text className="text-text-main font-bold text-base" numberOfLines={1}>
-                                        {Array.isArray(inv.customer) ? inv.customer[0]?.name : inv.customer?.name || 'Client Inconnu'}
-                                    </Text>
-                                    <Text className="text-text-muted text-xs mt-0.5">{new Date(inv.created_at).toLocaleDateString()}</Text>
-                                </View>
-
-                                <View className="items-end">
-                                    <Text className="text-text-main font-black text-base">{(inv.total_amount || 0).toLocaleString()} {currency}</Text>
-                                    <View className={`mt-1 px-2 py-0.5 rounded-full ${inv.status === 'PAID' ? 'bg-emerald-100' : 'bg-orange-100'}`}>
-                                        <Text className={`text-[10px] font-black tracking-tighter ${inv.status === 'PAID' ? 'text-emerald-700' : 'text-orange-700'}`}>
-                                            {inv.status === 'PAID' ? 'ENCAISSÉ' : 'À PAYER'}
-                                        </Text>
-                                    </View>
-                                </View>
+                                <Text className="text-slate-600 font-bold text-xs">Tout voir</Text>
                             </TouchableOpacity>
-                        ))
-                    )}
-                </View>
+                        </View>
 
+                        {!invoices || invoices.length === 0 ? (
+                            <View className="bg-white p-8 rounded-[32px] items-center justify-center border border-dashed border-slate-200">
+                                <View className="bg-slate-50 p-4 rounded-full mb-3">
+                                    <FileText size={32} color="#94A3B8" />
+                                </View>
+                                <Text className="text-slate-400 font-medium text-center">Aucune activité récente</Text>
+                            </View>
+                        ) : (
+                            <View className="bg-white rounded-[32px] p-2 shadow-sm border border-slate-100">
+                                {invoices.slice(0, 5).map((inv, idx) => (
+                                    <TouchableOpacity
+                                        key={inv.id}
+                                        onPress={() => router.push(`/invoice/${inv.id}`)}
+                                        className={`p-4 flex-row items-center active:bg-slate-50 rounded-2xl transition-all ${idx !== invoices.length - 1 ? 'border-b border-slate-50' : ''}`}
+                                    >
+                                        <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${inv.status === 'PAID' ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'}`}>
+                                            {inv.status === 'PAID' ?
+                                                <CheckCircle2 size={20} color="#10B981" strokeWidth={2.5} /> :
+                                                <Clock size={20} color="#F59E0B" strokeWidth={2.5} />
+                                            }
+                                        </View>
+
+                                        <View className="flex-1 pr-2">
+                                            <Text className="text-slate-900 font-bold text-base mb-0.5" numberOfLines={1}>
+                                                {Array.isArray(inv.customer) ? inv.customer[0]?.name : inv.customer?.name || 'Client Inconnu'}
+                                            </Text>
+                                            <Text className="text-slate-400 text-xs font-semibold">#{inv.invoice_number}</Text>
+                                        </View>
+
+                                        <View className="items-end">
+                                            <Text className="text-slate-900 font-black text-base">
+                                                {(inv.total_amount || 0).toLocaleString()} <Text className="text-xs text-slate-500 font-bold">{currency}</Text>
+                                            </Text>
+                                            <Text className="text-slate-400 text-[10px] font-bold mt-1">
+                                                {new Date(inv.created_at).toLocaleDateString()}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                </View>
             </ScrollView>
 
-            <View className="absolute bottom-10 right-8 items-center" style={{ gap: 16 }}>
-                <TouchableOpacity
-                    onPress={() => router.push('/expenses/add')}
-                    className="w-14 h-14 bg-danger rounded-full items-center justify-center shadow-lg shadow-red-200"
-                    style={{ elevation: 5 }}
-                >
-                    <Wallet size={24} color="white" />
-                </TouchableOpacity>
+            {/* Floating Action Buttons */}
+            <View className="absolute bottom-6 right-6 flex-col items-end pointer-events-box-none" style={{ gap: 12 }}>
 
+                {/* Secondary: New Expense */}
+                <View className="flex-row items-center">
+                    <View className="bg-slate-900/90 px-3 py-1.5 rounded-xl mr-3 shadow-sm backdrop-blur-md">
+                        <Text className="text-white text-xs font-bold">Dépense</Text>
+                    </View>
+                    <TouchableOpacity
+                        onPress={() => router.push('/expenses/add')}
+                        className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-lg shadow-slate-200 border border-slate-100"
+                        activeOpacity={0.8}
+                    >
+                        <Wallet size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Primary: New Invoice */}
                 <TouchableOpacity
                     onPress={() => router.push('/invoice/new')}
-                    className="w-16 h-16 bg-primary rounded-full items-center justify-center shadow-xl shadow-blue-300"
-                    style={{ elevation: 8 }}
+                    className="w-16 h-16 bg-primary rounded-full items-center justify-center shadow-2xl shadow-blue-600/50"
+                    activeOpacity={0.9}
                 >
                     <Plus size={32} color="white" strokeWidth={3} />
                 </TouchableOpacity>
             </View>
-        </SafeAreaView>
+        </View>
     );
 }
 

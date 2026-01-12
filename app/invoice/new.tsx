@@ -13,7 +13,7 @@ import {
     FlatList
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { X, Plus, Trash2, Share, Check, UserPlus, Search, User, MapPin, ChevronRight, Edit3, ShoppingBag, Package } from 'lucide-react-native';
+import { X, Plus, Trash2, Share, Check, UserPlus, Search, User, MapPin, ChevronRight, Edit3, ShoppingBag, Package, ChevronDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -24,7 +24,6 @@ import { validateCustomerName, validateInvoiceItems, validateTotalAmount } from 
 import { showError, showSuccess } from '../../lib/error-handler';
 import { Client, Item } from '../../types';
 import { supabase } from '../../lib/supabase';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface NewInvoiceItem {
     id: string;
@@ -244,16 +243,19 @@ export default function NewInvoice() {
     const isLoading = isSaving || generatingPdf;
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
             {/* Header */}
-            <View className="flex-row justify-between items-center px-6 py-4 bg-white border-b border-slate-100">
-                <TouchableOpacity onPress={() => router.back()} disabled={isLoading} className="p-2 -ml-2">
-                    <X size={24} color="#64748B" />
-                </TouchableOpacity>
-                <Text className="text-xl font-bold text-slate-900">Nouvelle Facture</Text>
-                <View style={{ width: 32 }} />
+            <View className="bg-primary pt-16 pb-8 px-6 rounded-b-[40px] shadow-lg z-10">
+                <View className="flex-row justify-between items-center mb-4">
+                    <TouchableOpacity onPress={() => router.back()} disabled={isLoading} className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                        <X size={24} color="white" />
+                    </TouchableOpacity>
+                    <Text className="text-white text-xl font-black tracking-tight">Nouvelle Facture</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <Text className="text-blue-100 text-center font-medium">Créez une facture professionnelle en quelques secondes.</Text>
             </View>
 
             <KeyboardAvoidingView
@@ -261,64 +263,59 @@ export default function NewInvoice() {
                 className="flex-1"
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <ScrollView className="flex-1 px-4 pt-6">
+                <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
 
                     {/* Section Client - Expert UX */}
-                    <Text className="text-slate-500 text-xs font-bold mb-3 uppercase tracking-wider ml-1">Client de la facture</Text>
+                    <Text className="text-slate-500 text-xs font-bold mb-3 uppercase tracking-wider ml-4">Client à facturer</Text>
 
                     {!selectedClient ? (
                         <TouchableOpacity
                             onPress={() => setIsClientModalVisible(true)}
-                            className="bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 items-center justify-center mb-8"
+                            className="bg-white p-6 rounded-3xl border border-dashed border-slate-300 items-center justify-center mb-8 shadow-sm"
                         >
-                            <View className="w-14 h-14 bg-blue-50 rounded-full items-center justify-center mb-3">
-                                <UserPlus size={28} color="#2563EB" />
+                            <View className="w-16 h-16 bg-blue-50 rounded-full items-center justify-center mb-3 border border-blue-100">
+                                <UserPlus size={32} color="#1E40AF" />
                             </View>
-                            <Text className="text-blue-600 font-bold text-lg">Sélectionner un client</Text>
-                            <Text className="text-slate-400 text-sm mt-1">Recherchez ou créez un nouveau client</Text>
+                            <Text className="text-blue-800 font-bold text-lg">Sélectionner un client</Text>
                         </TouchableOpacity>
                     ) : (
-                        <View className="bg-white p-5 rounded-3xl shadow-sm border border-blue-100 mb-8 relative overflow-hidden">
-                            <View className="absolute top-0 left-0 w-1.5 h-full bg-blue-600" />
-                            <View className="flex-row justify-between items-start">
-                                <View className="flex-1">
-                                    <View className="flex-row items-center mb-1">
-                                        <User size={16} color="#64748B" className="mr-2" />
-                                        <Text className="text-slate-900 font-bold text-lg">{selectedClient.name}</Text>
-                                    </View>
-                                    {selectedClient.address && (
-                                        <View className="flex-row items-start">
-                                            <MapPin size={14} color="#94A3B8" className="mr-2 mt-0.5" />
-                                            <Text className="text-slate-500 text-sm flex-1">{selectedClient.address}</Text>
-                                        </View>
-                                    )}
-                                    <View className="flex-row items-center mt-3">
-                                        <Text className="text-blue-600 font-medium text-xs bg-blue-50 px-2.5 py-1 rounded-full">{selectedClient.email || 'Pas d\'email'}</Text>
-                                        <Text className="text-slate-400 mx-2">•</Text>
-                                        <Text className="text-slate-500 text-xs">{selectedClient.phone || 'Pas de tél'}</Text>
-                                    </View>
+                        <TouchableOpacity onPress={() => setIsClientModalVisible(true)} className="bg-white p-5 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 mb-8 flex-row justify-between items-center">
+                            <View className="flex-row items-center flex-1">
+                                <View className="w-12 h-12 bg-blue-100 rounded-2xl items-center justify-center mr-4">
+                                    <Text className="text-blue-700 font-black text-lg">{selectedClient.name.charAt(0)}</Text>
                                 </View>
-                                <TouchableOpacity
-                                    onPress={() => setIsClientModalVisible(true)}
-                                    className="bg-slate-50 p-2.5 rounded-xl border border-slate-100"
-                                >
-                                    <Edit3 size={18} color="#2563EB" />
-                                </TouchableOpacity>
+                                <View className="flex-1">
+                                    <Text className="text-slate-900 font-bold text-lg mb-0.5">{selectedClient.name}</Text>
+                                    <Text className="text-slate-400 text-sm font-medium">{selectedClient.email || selectedClient.phone || 'Sans Contact'}</Text>
+                                </View>
                             </View>
-                        </View>
+                            <View className="bg-slate-50 p-2 rounded-xl">
+                                <Edit3 size={18} color="#64748B" />
+                            </View>
+                        </TouchableOpacity>
                     )}
 
                     {/* Section Articles */}
-                    <Text className="text-slate-500 text-xs font-bold mb-3 uppercase tracking-wider ml-1">Articles & Services</Text>
+                    <View>
+                        <View className="flex-row justify-between items-center mb-3 px-4">
+                            <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider">Détails de la facture</Text>
+                            <TouchableOpacity onPress={() => setIsItemModalVisible(true)} className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-full">
+                                <ShoppingBag size={14} color="#1E40AF" className="mr-1.5" />
+                                <Text className="text-blue-700 text-xs font-bold">Importer</Text>
+                            </TouchableOpacity>
+                        </View>
 
-                    <View className="mb-32">
-                        {items.map((item) => (
-                            <View key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-50 mb-4 transition-all">
-                                <View className="flex-row justify-between items-center mb-4">
+                        {items.map((item, index) => (
+                            <View key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-4 transition-all">
+                                <View className="flex-row justify-between items-start mb-4">
+                                    <View className="bg-slate-50 w-8 h-8 rounded-full items-center justify-center mr-3 mt-1">
+                                        <Text className="text-slate-400 font-bold text-xs">{index + 1}</Text>
+                                    </View>
                                     <TextInput
-                                        className="flex-1 text-slate-900 font-semibold text-base p-0"
-                                        placeholder="Description du produit ou service"
-                                        placeholderTextColor="#CBD5E1"
+                                        className="flex-1 text-slate-900 font-bold text-base bg-slate-50 rounded-xl px-3 py-2 min-h-[40px]"
+                                        placeholder="Description du service..."
+                                        placeholderTextColor="#94A3B8"
+                                        multiline
                                         value={item.description}
                                         onChangeText={(text) => updateItem(item.id, 'description', text)}
                                         editable={!isLoading}
@@ -326,17 +323,17 @@ export default function NewInvoice() {
                                     <TouchableOpacity
                                         onPress={() => removeItem(item.id)}
                                         disabled={isLoading}
-                                        className="ml-4 p-1"
+                                        className="ml-3 mt-2 bg-red-50 p-2 rounded-xl"
                                     >
-                                        <Trash2 size={20} color={isLoading ? "#E2E8F0" : "#F87171"} />
+                                        <Trash2 size={18} color="#EF4444" />
                                     </TouchableOpacity>
                                 </View>
 
-                                <View className="flex-row items-center space-x-4">
-                                    <View className="flex-1 bg-slate-50 rounded-2xl p-3">
+                                <View className="flex-row items-center space-x-3">
+                                    <View className="flex-1 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
                                         <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Qté</Text>
                                         <TextInput
-                                            className="text-slate-900 font-bold text-base p-0"
+                                            className="text-slate-900 font-bold text-lg"
                                             keyboardType="numeric"
                                             value={item.quantity}
                                             onChangeText={(text) => updateItem(item.id, 'quantity', text)}
@@ -344,25 +341,25 @@ export default function NewInvoice() {
                                         />
                                     </View>
 
-                                    <View className="flex-[2] bg-slate-50 rounded-2xl p-3 ml-4">
-                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Prix Unitaire</Text>
+                                    <View className="flex-[1.5] bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
+                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Prix Unit.</Text>
                                         <View className="flex-row items-center">
                                             <TextInput
-                                                className="flex-1 text-slate-900 font-bold text-base p-0"
+                                                className="text-slate-900 font-bold text-lg flex-1"
                                                 keyboardType="numeric"
-                                                placeholder="0.00"
+                                                placeholder="0"
                                                 placeholderTextColor="#CBD5E1"
                                                 value={item.unit_price}
                                                 onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
                                                 editable={!isLoading}
                                             />
-                                            <Text className="text-slate-400 font-bold text-xs">{profile?.currency || 'RWF'}</Text>
+                                            <Text className="text-slate-400 font-medium text-xs ml-1">{profile?.currency}</Text>
                                         </View>
                                     </View>
                                 </View>
 
-                                <View className="mt-4 pt-3 border-t border-slate-50 flex-row justify-between items-center">
-                                    <Text className="text-slate-400 text-xs font-medium">Sous-total</Text>
+                                <View className="mt-3 pt-3 border-t border-slate-50 flex-row justify-end">
+                                    <Text className="text-slate-400 text-xs font-medium mr-2">Sous-total:</Text>
                                     <Text className="text-slate-900 font-bold">
                                         {((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)).toLocaleString()} {profile?.currency || 'RWF'}
                                     </Text>
@@ -370,48 +367,44 @@ export default function NewInvoice() {
                             </View>
                         ))}
 
-                        <View className="flex-row mt-2" style={{ gap: 12 }}>
-                            <TouchableOpacity
-                                onPress={addItem}
-                                disabled={isLoading}
-                                className="flex-1 flex-row items-center justify-center p-5 bg-white rounded-3xl border-2 border-dashed border-slate-200"
-                            >
-                                <Plus size={20} color={isLoading ? "#CBD5E1" : "#2563EB"} className="mr-2" />
-                                <Text className={`${isLoading ? 'text-slate-300' : 'text-blue-600'} font-bold text-base`}>Vide</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={() => setIsItemModalVisible(true)}
-                                disabled={isLoading}
-                                className="flex-1 flex-row items-center justify-center p-5 bg-blue-50 rounded-3xl border-2 border-dashed border-blue-200"
-                            >
-                                <ShoppingBag size={20} color={isLoading ? "#CBD5E1" : "#2563EB"} className="mr-2" />
-                                <Text className={`${isLoading ? 'text-slate-300' : 'text-blue-600'} font-bold text-base`}>Importer</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                            onPress={addItem}
+                            disabled={isLoading}
+                            className="flex-row items-center justify-center p-4 bg-slate-100 rounded-2xl border border-dashed border-slate-300 mb-8 active:bg-slate-200"
+                        >
+                            <Plus size={20} color="#475569" className="mr-2" />
+                            <Text className="text-slate-600 font-bold">Ajouter une ligne vide</Text>
+                        </TouchableOpacity>
                     </View>
 
                 </ScrollView>
             </KeyboardAvoidingView>
 
             {/* Total Footer Section */}
-            <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-6 pb-10 shadow-xl">
-                <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-slate-500 font-bold text-lg">Total à payer</Text>
-                    <Text className="text-3xl font-black text-slate-900">{total.toLocaleString()} {profile?.currency || 'RWF'}</Text>
+            <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] border-t border-slate-100 p-6 pt-5 pb-8">
+                <View className="flex-row justify-between items-center mb-5 px-2">
+                    <View>
+                        <Text className="text-slate-400 text-xs font-bold uppercase">Total à payer</Text>
+                        <Text className="text-3xl font-black text-slate-900 tracking-tight">
+                            {total.toLocaleString()} <Text className="text-lg text-slate-500 font-medium">{profile?.currency || 'RWF'}</Text>
+                        </Text>
+                    </View>
+                    <View className="bg-blue-50 px-3 py-1.5 rounded-full">
+                        <Text className="text-blue-700 text-xs font-bold">{items.length} Articles</Text>
+                    </View>
                 </View>
 
                 <TouchableOpacity
                     onPress={handleCreateAndShare}
                     disabled={total <= 0 || isLoading || !selectedClient}
-                    className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg ${total > 0 && !isLoading && selectedClient ? 'bg-blue-600 shadow-blue-200' : 'bg-slate-200'}`}
+                    className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg ${total > 0 && !isLoading && selectedClient ? 'bg-primary shadow-blue-200' : 'bg-slate-200 shadow-transparent'}`}
                 >
                     {isLoading ? (
                         <ActivityIndicator color="white" />
                     ) : (
                         <>
-                            <Text className="text-white font-black text-lg mr-2 uppercase tracking-wide">Finaliser la facture</Text>
-                            <Share size={20} color="white" strokeWidth={3} />
+                            <Text className={`font-black text-lg uppercase mr-2 ${total > 0 && selectedClient ? 'text-white' : 'text-slate-400'}`}>Finaliser la facture</Text>
+                            {total > 0 && selectedClient && <Share size={20} color="white" strokeWidth={3} />}
                         </>
                     )}
                 </TouchableOpacity>
@@ -427,11 +420,14 @@ export default function NewInvoice() {
                 <View className="flex-1 bg-slate-900/40 justify-end">
                     <View className="bg-white h-[85%] rounded-t-[40px] overflow-hidden">
                         {/* Modal Header */}
-                        <View className="px-6 py-6 border-b border-slate-50 flex-row justify-between items-center">
-                            <Text className="text-2xl font-black text-slate-900">Choisir un client</Text>
+                        <View className="px-6 py-5 border-b border-slate-50 flex-row justify-between items-center bg-white z-10">
+                            <View>
+                                <Text className="text-2xl font-black text-slate-900">Choisir un client</Text>
+                                <Text className="text-slate-400 text-sm">À qui est destinée cette facture ?</Text>
+                            </View>
                             <TouchableOpacity
                                 onPress={() => setIsClientModalVisible(false)}
-                                className="bg-slate-100 p-2 rounded-full"
+                                className="bg-slate-100 p-2.5 rounded-full"
                             >
                                 <X size={20} color="#64748B" />
                             </TouchableOpacity>
@@ -439,14 +435,15 @@ export default function NewInvoice() {
 
                         {/* Modal Search Bar */}
                         <View className="p-6 pb-2">
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-5 h-14">
+                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-14">
                                 <Search size={22} color="#94A3B8" />
                                 <TextInput
                                     className="flex-1 ml-3 text-base text-slate-900 font-medium"
                                     placeholder="Rechercher par nom, email..."
-                                    placeholderTextColor="#94A3B8"
+                                    placeholderTextColor="#CBD5E1"
                                     value={clientSearch}
                                     onChangeText={setClientSearch}
+                                    autoFocus
                                 />
                             </View>
 
@@ -469,18 +466,18 @@ export default function NewInvoice() {
                         <FlatList
                             data={filteredClients}
                             keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ padding: 24, paddingBottom: 60 }}
+                            contentContainerStyle={{ padding: 24, paddingBottom: 60, paddingTop: 10 }}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
                                     onPress={() => selectClient(item)}
-                                    className="bg-white border border-slate-100 p-5 rounded-3xl mb-4 flex-row items-center shadow-sm"
+                                    className="bg-white border border-slate-100 p-4 rounded-3xl mb-3 flex-row items-center shadow-sm active:bg-slate-50"
                                 >
-                                    <View className="w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center mr-4 border border-slate-100">
-                                        <Text className="text-slate-600 font-black text-lg">{item.name.charAt(0).toUpperCase()}</Text>
+                                    <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center mr-4">
+                                        <Text className="text-blue-600 font-black text-lg">{item.name.charAt(0).toUpperCase()}</Text>
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-slate-900 font-bold text-base">{item.name}</Text>
-                                        <Text className="text-slate-400 text-xs" numberOfLines={1}>{item.email || item.phone || 'Sans coordonnées'}</Text>
+                                        <Text className="text-slate-900 font-bold text-lg mb-0.5">{item.name}</Text>
+                                        <Text className="text-slate-400 text-sm" numberOfLines={1}>{item.email || item.phone || 'Sans coordonnées'}</Text>
                                     </View>
                                     {selectedClient?.id === item.id && (
                                         <View className="bg-emerald-50 p-2 rounded-full">
@@ -507,25 +504,29 @@ export default function NewInvoice() {
             >
                 <View className="flex-1 bg-slate-900/40 justify-end">
                     <View className="bg-white h-[85%] rounded-t-[40px] overflow-hidden">
-                        <View className="px-6 py-6 border-b border-slate-50 flex-row justify-between items-center">
-                            <Text className="text-2xl font-black text-slate-900">Importer un article</Text>
+                        <View className="px-6 py-5 border-b border-slate-50 flex-row justify-between items-center bg-white z-10">
+                            <View>
+                                <Text className="text-2xl font-black text-slate-900">Catalogue</Text>
+                                <Text className="text-slate-400 text-sm">Sélectionnez un produit ou service</Text>
+                            </View>
                             <TouchableOpacity
                                 onPress={() => setIsItemModalVisible(false)}
-                                className="bg-slate-100 p-2 rounded-full"
+                                className="bg-slate-100 p-2.5 rounded-full"
                             >
                                 <X size={20} color="#64748B" />
                             </TouchableOpacity>
                         </View>
 
                         <View className="p-6 pb-2">
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-5 h-14">
+                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-14">
                                 <Search size={22} color="#94A3B8" />
                                 <TextInput
                                     className="flex-1 ml-3 text-base text-slate-900 font-medium"
                                     placeholder="Rechercher un article..."
-                                    placeholderTextColor="#94A3B8"
+                                    placeholderTextColor="#CBD5E1"
                                     value={itemSearch}
                                     onChangeText={setItemSearch}
+                                    autoFocus
                                 />
                             </View>
 
@@ -547,22 +548,23 @@ export default function NewInvoice() {
                         <FlatList
                             data={filteredInventoryItems}
                             keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ padding: 24, paddingBottom: 60 }}
+                            contentContainerStyle={{ padding: 24, paddingBottom: 60, paddingTop: 10 }}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
                                     onPress={() => importItem(item)}
-                                    className="bg-white border border-slate-100 p-5 rounded-3xl mb-4 flex-row items-center shadow-sm"
+                                    className="bg-white border border-slate-100 p-4 rounded-3xl mb-3 flex-row items-center shadow-sm active:bg-slate-50"
                                 >
                                     <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center mr-4 border border-blue-100">
-                                        <Package size={22} color="#2563EB" />
+                                        <Package size={22} color="#1E40AF" />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-slate-900 font-bold text-base">{item.name}</Text>
-                                        <Text className="text-slate-400 text-xs" numberOfLines={1}>{item.description || 'Pas de description'}</Text>
+                                        <Text className="text-slate-900 font-bold text-lg mb-0.5">{item.name}</Text>
+                                        <Text className="text-slate-400 text-sm" numberOfLines={1}>{item.description || 'Pas de description'}</Text>
                                     </View>
                                     <View className="items-end">
-                                        <Text className="text-slate-900 font-black text-base">{item.unit_price.toLocaleString()} {profile?.currency || 'RWF'}</Text>
+                                        <Text className="text-slate-900 font-black text-base">{item.unit_price.toLocaleString()} <Text className="text-sm font-normal text-slate-500">{profile?.currency}</Text></Text>
                                     </View>
+                                    <Plus size={24} color="#1E40AF" className="bg-blue-100 rounded-full p-1 ml-3" />
                                 </TouchableOpacity>
                             )}
                             ListEmptyComponent={() => (
@@ -574,6 +576,6 @@ export default function NewInvoice() {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 }

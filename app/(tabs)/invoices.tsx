@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, RefreshControl, TextInput, Acti
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Plus, Search, FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useOffline } from '../../context/OfflineContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/currencyEngine';
@@ -104,29 +105,34 @@ export default function InvoicesScreen() {
     );
 
     return (
-        <View className="flex-1 bg-slate-50 pt-12 px-4">
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
-            <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-3xl font-black text-slate-900">Factures</Text>
-                <TouchableOpacity
-                    onPress={() => router.push('/invoice/new')}
-                    className="w-10 h-10 bg-primary rounded-full items-center justify-center shadow-lg shadow-blue-500/30"
-                >
-                    <Plus size={24} color="white" />
-                </TouchableOpacity>
-            </View>
+            <LinearGradient
+                colors={['#1E40AF', '#1e3a8a']}
+                className="pt-16 pb-8 px-6 rounded-b-[32px] shadow-lg z-10"
+            >
+                <View className="flex-row justify-between items-center mb-6">
+                    <Text className="text-3xl font-black text-white">Factures</Text>
+                    <TouchableOpacity
+                        onPress={() => router.push('/invoice/new')}
+                        className="w-10 h-10 bg-white/20 rounded-full items-center justify-center border border-white/20"
+                    >
+                        <Plus size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
 
-            <View className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex-row items-center mb-6">
-                <Search size={20} color="#94A3B8" />
-                <TextInput
-                    className="flex-1 ml-3 text-base text-slate-800"
-                    placeholder="Rechercher une facture..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor="#94A3B8"
-                />
-            </View>
+                <View className="bg-white p-3 rounded-2xl flex-row items-center shadow-sm">
+                    <Search size={20} color="#94A3B8" />
+                    <TextInput
+                        className="flex-1 ml-3 text-base text-slate-800 font-medium"
+                        placeholder="Rechercher une facture..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor="#94A3B8"
+                    />
+                </View>
+            </LinearGradient>
 
             {loading ? (
                 <View className="flex-1 items-center justify-center">
@@ -137,7 +143,7 @@ export default function InvoicesScreen() {
                     data={filteredInvoices}
                     keyExtractor={item => item.id}
                     renderItem={renderItem}
-                    contentContainerStyle={{ paddingBottom: 100 }}
+                    contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />

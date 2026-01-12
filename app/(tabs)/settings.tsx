@@ -25,6 +25,7 @@ import {
     TrendingDown,
     Camera,
     Plus,
+    Info
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import TaxReportModal from '../../components/TaxReportModal';
@@ -208,6 +209,14 @@ export default function SettingsScreen() {
                     onPress={() => router.push('/settings/security')}
                     color="#64748B"
                     bgColor="bg-slate-100"
+                />
+                <MenuButton
+                    icon={Info}
+                    title="À propos"
+                    subtitle="Mission & Fonctionnalités"
+                    onPress={() => router.push('/settings/about')}
+                    color="#3B82F6"
+                    bgColor="bg-blue-50"
                 />
 
                 {/* Recent Expenses Widget */}

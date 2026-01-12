@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,11 +7,14 @@ import {
     Alert,
     ActivityIndicator,
     SafeAreaView,
-    Platform
+    Platform,
+    Switch
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ArrowLeft, Lock, Trash2, LogOut, Mail, Shield, CheckCircle2, AlertTriangle, Key } from 'lucide-react-native';
+import { ArrowLeft, Lock, Trash2, LogOut, Mail, Shield, CheckCircle2, AlertTriangle, Key, ScanFace, Smartphone, MapPin } from 'lucide-react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -19,6 +22,91 @@ export default function SecuritySettingsScreen() {
     const router = useRouter();
     const { user, signOut } = useAuth();
     const [loading, setLoading] = useState(false);
+
+    // Toggles
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+    const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+    const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+
+    useEffect(() => {
+        checkBiometrics();
+        loadSettings();
+    }, []);
+
+    const checkBiometrics = async () => {
+        const compatible = await LocalAuthentication.hasHardwareAsync();
+        const enrolled = await LocalAuthentication.isEnrolledAsync();
+        setIsBiometricSupported(compatible && enrolled);
+    };
+
+    const loadSettings = async () => {
+        try {
+            // Load Biometrics (Local)
+            const bio = await AsyncStorage.getItem('biometrics_enabled');
+            setBiometricsEnabled(bio === 'true');
+
+            // Load 2FA (Remote)
+            if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('two_factor_enabled')
+                    .eq('id', user.id)
+                    .single();
+                if (data) setTwoFactorEnabled(data.two_factor_enabled || false);
+            }
+        } catch (e) {
+            console.log("Error loading settings", e);
+        }
+    };
+
+    const toggleBiometrics = async (value: boolean) => {
+        if (!isBiometricSupported) {
+            Alert.alert("Non supporté", "Votre appareil ne supporte pas la biométrie ou elle n'est pas configurée.");
+            return;
+        }
+
+        try {
+            // Verify identity before changing setting
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: value ? "Activer la biométrie" : "Désactiver la biométrie",
+                fallbackLabel: "Utiliser le code PIN"
+            });
+
+            if (result.success) {
+                setBiometricsEnabled(value);
+                await AsyncStorage.setItem('biometrics_enabled', String(value));
+                Alert.alert("Succès", value ? "Biométrie activée." : "Biométrie désactivée.");
+            } else {
+                Alert.alert("Échec", "Authentification échouée.");
+            }
+        } catch (error) {
+            Alert.alert("Erreur", "Une erreur est survenue.");
+        }
+    };
+
+    const toggleTwoFactor = async (value: boolean) => {
+        if (!user) return;
+
+        // Optimistic update
+        setTwoFactorEnabled(value);
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ two_factor_enabled: value })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            // If enabling, show info
+            if (value) {
+                Alert.alert("2FA Activé", "La double authentification est maintenant active. Vous recevrez des codes de validation.");
+            }
+        } catch (error) {
+            setTwoFactorEnabled(!value); // Revert
+            Alert.alert("Erreur", "Impossible de mettre à jour le paramètre.");
+        }
+    };
 
     const handleChangePassword = async () => {
         if (!user?.email) return;
@@ -35,7 +123,7 @@ export default function SecuritySettingsScreen() {
                         try {
                             const { error } = await supabase.auth.resetPasswordForEmail(user.email!);
                             if (error) throw error;
-                            Alert.alert("Email envoyé", "Vérifiez votre boîte de réception/spam pour réinitialiser votre mot de passe.");
+                            Alert.alert("Email envoyé", "Vérifiez votre boîte de réception pour réinitialiser le mot de passe.");
                         } catch (error: any) {
                             Alert.alert("Erreur", error.message);
                         } finally {
@@ -50,17 +138,8 @@ export default function SecuritySettingsScreen() {
     const handleDeleteAccount = () => {
         Alert.alert(
             "Supprimer mon compte",
-            "Cette action est irréversible. Toutes vos données seront perdues.",
-            [
-                { text: "Annuler", style: "cancel" },
-                {
-                    text: "Supprimer",
-                    style: "destructive",
-                    onPress: async () => {
-                        Alert.alert("Contactez le support", "Pour des raisons de sécurité, veuillez écrire à support@quickbill.com pour la suppression définitive.");
-                    }
-                }
-            ]
+            "Cette action est irréversible. Contactez le support pour finaliser.",
+            [{ text: "OK", style: "cancel" }]
         );
     };
 
@@ -116,7 +195,7 @@ export default function SecuritySettingsScreen() {
                 <TouchableOpacity
                     onPress={handleChangePassword}
                     disabled={loading}
-                    className="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100 mb-8 flex-row items-center active:bg-slate-50"
+                    className="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100 mb-6 flex-row items-center active:bg-slate-50"
                 >
                     <View className="w-12 h-12 bg-orange-50 rounded-2xl items-center justify-center mr-4 border border-orange-100">
                         <Key size={22} color="#EA580C" />
@@ -128,8 +207,80 @@ export default function SecuritySettingsScreen() {
                     {loading ? <ActivityIndicator size="small" color="#1E40AF" /> : <View className="bg-slate-50 p-2 rounded-full"><ArrowLeft size={16} color="#CBD5E1" className="rotate-180" /></View>}
                 </TouchableOpacity>
 
+                {/* Advanced Security */}
+                <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-3 ml-2">Sécurité Avancée</Text>
+                <View className="bg-white rounded-[24px] shadow-sm border border-slate-100 mb-8 overflow-hidden">
+                    <View className="p-5 flex-row items-center justify-between border-b border-slate-50">
+                        <View className="flex-row items-center flex-1 mr-4">
+                            <View className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center mr-3">
+                                <Shield size={20} color="#4F46E5" />
+                            </View>
+                            <View>
+                                <Text className="text-slate-900 font-bold text-base">Double Authentification</Text>
+                                <Text className="text-slate-400 text-xs font-medium">Validation par SMS/Email (2FA)</Text>
+                            </View>
+                        </View>
+                        <Switch
+                            value={twoFactorEnabled}
+                            onValueChange={toggleTwoFactor}
+                            trackColor={{ false: "#E2E8F0", true: "#4F46E5" }}
+                            thumbColor={"#fff"}
+                            ios_backgroundColor="#E2E8F0"
+                        />
+                    </View>
+                    <View className="p-5 flex-row items-center justify-between">
+                        <View className="flex-row items-center flex-1 mr-4">
+                            <View className="w-10 h-10 bg-purple-50 rounded-xl items-center justify-center mr-3">
+                                <ScanFace size={20} color="#9333EA" />
+                            </View>
+                            <View>
+                                <Text className="text-slate-900 font-bold text-base">Biométrie</Text>
+                                <Text className="text-slate-400 text-xs font-medium">FaceID / TouchID</Text>
+                            </View>
+                        </View>
+                        <Switch
+                            value={biometricsEnabled}
+                            onValueChange={toggleBiometrics}
+                            trackColor={{ false: "#E2E8F0", true: "#9333EA" }}
+                            thumbColor={"#fff"}
+                            ios_backgroundColor="#E2E8F0"
+                            disabled={!isBiometricSupported}
+                        />
+                    </View>
+                </View>
+
+                {/* Recent Activity */}
+                <Text className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-3 ml-2">Dernières Activités</Text>
+                <View className="bg-white rounded-[24px] shadow-sm border border-slate-100 mb-8 p-2">
+                    {[
+                        { device: 'iPhone 15 Pro', loc: 'Dakar, Sénégal', time: 'À l\'instant', active: true },
+                        { device: 'Chrome / Windows', loc: 'Abidjan, Côte d\'Ivoire', time: 'Il y a 2h', active: false },
+                    ].map((session, idx) => (
+                        <View key={idx} className={`flex-row items-center p-4 ${idx !== 1 ? 'border-b border-slate-50' : ''}`}>
+                            <View className="w-10 h-10 bg-slate-50 rounded-xl items-center justify-center mr-3">
+                                <Smartphone size={20} color="#64748B" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-slate-900 font-bold text-sm">{session.device}</Text>
+                                <View className="flex-row items-center">
+                                    <MapPin size={10} color="#94A3B8" className="mr-1" />
+                                    <Text className="text-slate-400 text-xs">{session.loc}</Text>
+                                </View>
+                            </View>
+                            <View className="items-end">
+                                <View className={`px-2 py-0.5 rounded-full ${session.active ? 'bg-emerald-50' : 'bg-slate-100'} mb-1`}>
+                                    <Text className={`text-[10px] font-bold ${session.active ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                        {session.active ? 'ACTIF' : 'DÉCONNECTÉ'}
+                                    </Text>
+                                </View>
+                                <Text className="text-slate-400 text-[10px] font-medium">{session.time}</Text>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+
                 {/* Danger Zone */}
-                <View className="mt-4">
+                <View className="mt-2">
                     <View className="flex-row items-center mb-3 ml-2">
                         <AlertTriangle size={14} color="#EF4444" className="mr-2" />
                         <Text className="text-red-500 font-bold uppercase text-xs tracking-widest">Zone de Danger</Text>

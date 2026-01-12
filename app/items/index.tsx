@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Plus, Search, Package, ChevronRight, ShoppingBag, Box } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -64,7 +65,10 @@ export default function ItemsList() {
     const currency = profile?.currency || 'RWF';
 
     const ListHeader = () => (
-        <View className="bg-primary pt-14 pb-12 px-6 rounded-b-[40px] shadow-lg mb-6">
+        <LinearGradient
+            colors={['#1E40AF', '#1e3a8a']}
+            className="pt-16 pb-8 px-6 rounded-b-[32px] shadow-lg mb-6"
+        >
             <View className="flex-row justify-between items-center mb-6">
                 <View className="flex-row items-center">
                     <TouchableOpacity
@@ -97,7 +101,7 @@ export default function ItemsList() {
                     selectionColor="#1E40AF"
                 />
             </View>
-        </View>
+        </LinearGradient>
     );
 
     return (
@@ -132,7 +136,7 @@ export default function ItemsList() {
                 <FlatList
                     data={filteredItems}
                     keyExtractor={(item) => item.id}
-                    ListHeaderComponent={ListHeader}
+                    ListHeaderComponent={<ListHeader />}
                     contentContainerStyle={{ paddingBottom: 100 }}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
@@ -178,7 +182,7 @@ export default function ItemsList() {
             {/* Floating Action Button */}
             <TouchableOpacity
                 onPress={() => router.push('/items/form')}
-                className="absolute bottom-8 right-6 bg-slate-900 w-16 h-16 rounded-full items-center justify-center shadow-2xl shadow-slate-400 z-50"
+                className="absolute bottom-8 right-6 bg-blue-700 w-16 h-16 rounded-full items-center justify-center shadow-2xl shadow-blue-400 z-50"
                 activeOpacity={0.9}
             >
                 <Plus size={28} color="white" />

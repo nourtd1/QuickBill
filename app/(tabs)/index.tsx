@@ -69,7 +69,7 @@ function Dashboard() {
 
     return (
         <View className="flex-1 bg-slate-50">
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
 
             <ScrollView
                 className="flex-1"
@@ -80,31 +80,36 @@ function Dashboard() {
                 contentContainerStyle={{ paddingBottom: 100 }}
             >
                 {/* Header Section */}
-                <View className="pt-16 px-6 pb-6 flex-row justify-between items-center bg-white">
-                    <View>
-                        <Text className="text-slate-400 text-sm font-medium">{greeting},</Text>
-                        <Text className="text-slate-900 text-2xl font-black">{profile?.business_name || 'Entrepreneur'}</Text>
+                <LinearGradient
+                    colors={['#1E40AF', '#1e3a8a']}
+                    className="pt-16 pb-8 px-6 rounded-b-[32px] shadow-lg mb-6"
+                >
+                    <View className="flex-row justify-between items-center">
+                        <View>
+                            <Text className="text-blue-200 text-sm font-medium">{greeting},</Text>
+                            <Text className="text-white text-2xl font-black">{profile?.business_name || 'Entrepreneur'}</Text>
+                        </View>
+                        <View className="flex-row gap-3">
+                            <TouchableOpacity
+                                onPress={() => router.push('/notifications')}
+                                className="w-10 h-10 bg-white/10 rounded-full items-center justify-center border border-white/10"
+                            >
+                                <Bell size={20} color="white" />
+                                {/* Badge */}
+                                <View className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => router.push('/settings')}
+                                className="w-10 h-10 bg-white/10 rounded-full items-center justify-center border border-white/10 shadow-sm"
+                            >
+                                {profile?.logo_url ?
+                                    <Image source={{ uri: profile.logo_url }} className="w-full h-full rounded-full" /> :
+                                    <Settings size={20} color="white" />
+                                }
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                    <View className="flex-row gap-3">
-                        <TouchableOpacity
-                            onPress={() => router.push('/notifications')}
-                            className="w-10 h-10 bg-slate-50 rounded-full items-center justify-center border border-slate-100"
-                        >
-                            <Bell size={20} color="#64748B" />
-                            {/* Badge */}
-                            <View className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => router.push('/settings')}
-                            className="w-10 h-10 bg-slate-900 rounded-full items-center justify-center shadow-md shadow-slate-300"
-                        >
-                            {profile?.logo_url ?
-                                <Image source={{ uri: profile.logo_url }} className="w-full h-full rounded-full" /> :
-                                <Settings size={20} color="white" />
-                            }
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                </LinearGradient>
 
                 {/* Main Content */}
                 <View className="px-6">

@@ -21,7 +21,10 @@ import {
     Camera,
     Check,
     MapPin,
-    Save
+    Save,
+    Globe,
+    FileText,
+    Briefcase
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +43,11 @@ export default function BusinessSettingsScreen() {
     const [currency, setCurrency] = useState('');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
+    // New fields
+    const [website, setWebsite] = useState('');
+    const [taxId, setTaxId] = useState(''); // NINEA
+    const [rccm, setRccm] = useState('');
+
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
 
@@ -54,6 +62,11 @@ export default function BusinessSettingsScreen() {
             setAddress(profile.address || '');
             setCurrency(profile.currency || 'RWF');
             setLogoUrl(profile.logo_url || null);
+
+            // New fields
+            setWebsite((profile as any).website || '');
+            setTaxId((profile as any).tax_id || '');
+            setRccm((profile as any).rccm || '');
         }
     }, [profile]);
 
@@ -116,7 +129,11 @@ export default function BusinessSettingsScreen() {
                 address: address.trim() || null,
                 currency: currency.trim().toUpperCase(),
                 logo_url: logoUrl,
-            });
+                // New fields (Using as any to bypass TS for now)
+                website: website.trim() || null,
+                tax_id: taxId.trim() || null,
+                rccm: rccm.trim() || null,
+            } as any);
 
             if (error) {
                 showError(error, "Erreur de mise à jour");
@@ -210,6 +227,9 @@ export default function BusinessSettingsScreen() {
                             />
                         </View>
 
+                        {/* Contact Info Section */}
+                        <Text className="text-slate-900 font-extrabold text-lg mt-2 mb-4">Coordonnées</Text>
+
                         {/* Phone */}
                         <View>
                             <View className="flex-row items-center mb-2.5 ml-1">
@@ -220,7 +240,7 @@ export default function BusinessSettingsScreen() {
                                 className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
                                 value={phone}
                                 onChangeText={setPhone}
-                                placeholder="+123 456 789"
+                                placeholder="+221 77 000 00 00"
                                 placeholderTextColor="#94A3B8"
                                 keyboardType="phone-pad"
                             />
@@ -230,22 +250,77 @@ export default function BusinessSettingsScreen() {
                         <View>
                             <View className="flex-row items-center mb-2.5 ml-1">
                                 <MapPin size={16} color="#475569" className="mr-2" />
-                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Adresse</Text>
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Adresse Physique</Text>
                             </View>
                             <TextInput
                                 className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
                                 value={address}
                                 onChangeText={setAddress}
-                                placeholder="ex: 12 Avenue des Champs, Paris"
+                                placeholder="ex: 12 Avenue des Champs, Dakar"
+                                placeholderTextColor="#94A3B8"
+                                multiline
+                            />
+                        </View>
+
+                        {/* Website (New) */}
+                        <View>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <Globe size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Site Web</Text>
+                            </View>
+                            <TextInput
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
+                                value={website}
+                                onChangeText={setWebsite}
+                                placeholder="www.monactivite.com"
+                                placeholderTextColor="#94A3B8"
+                                autoCapitalize="none"
+                            />
+                        </View>
+
+                        <View className="h-[1px] bg-slate-100 my-2" />
+
+                        {/* Legal Info Section */}
+                        <Text className="text-slate-900 font-extrabold text-lg mb-4">Informations Légales</Text>
+
+                        {/* Tax ID (NINEA) */}
+                        <View>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <FileText size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">NINEA / NIF</Text>
+                            </View>
+                            <TextInput
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
+                                value={taxId}
+                                onChangeText={setTaxId}
+                                placeholder="Identifiant Fiscal"
                                 placeholderTextColor="#94A3B8"
                             />
                         </View>
 
+                        {/* RCCM */}
+                        <View>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <Briefcase size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">RCCM</Text>
+                            </View>
+                            <TextInput
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
+                                value={rccm}
+                                onChangeText={setRccm}
+                                placeholder="Registre de Commerce"
+                                placeholderTextColor="#94A3B8"
+                            />
+                        </View>
+
+                        <View className="h-[1px] bg-slate-100 my-2" />
+
                         {/* Currency */}
+                        <Text className="text-slate-900 font-extrabold text-lg mb-4">Préférences</Text>
                         <View>
                             <View className="flex-row items-center mb-2.5 ml-1">
                                 <Coins size={16} color="#475569" className="mr-2" />
-                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Devise</Text>
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Devise Principale</Text>
                             </View>
                             <TextInput
                                 className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"

@@ -61,7 +61,7 @@ function Dashboard() {
 
     if (loading && (!invoices || invoices.length === 0)) {
         return (
-            <View className="flex-1 items-center justify-center bg-white">
+            <View className="flex-1 items-center justify-center bg-background">
                 <ActivityIndicator size="large" color="#2563EB" />
                 <Text className="mt-4 text-slate-400 font-medium">Chargement du dashboard...</Text>
             </View>
@@ -69,7 +69,7 @@ function Dashboard() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" style={{ backgroundColor: '#EFF6FF' }} edges={['top']}>
             <StatusBar style="dark" />
 
             <ScrollView
@@ -93,32 +93,32 @@ function Dashboard() {
                 </View>
 
                 <View className="flex-row px-6 space-x-4 mb-8" style={{ gap: 16 }}>
-                    <View className="flex-1 bg-emerald-500 p-5 rounded-[32px] shadow-lg shadow-emerald-200">
+                    <View className="flex-1 bg-emerald-500 p-5 rounded-2xl shadow-sm shadow-emerald-200">
                         <View className="bg-white/20 self-start p-2 rounded-xl mb-3">
                             <TrendingUp size={20} color="white" />
                         </View>
-                        <Text className="text-white/80 text-xs font-bold uppercase tracking-wider">Encaissé</Text>
+                        <Text className="text-white/90 text-xs font-bold uppercase tracking-wider">Encaissé</Text>
                         <Text className="text-white text-xl font-black mt-1" numberOfLines={1}>
                             {(monthlyRevenue || 0).toLocaleString()} {currency}
                         </Text>
-                        <Text className="text-emerald-100 text-[10px] mt-2 font-medium">Ce mois-ci</Text>
+                        <Text className="text-emerald-50 text-[10px] mt-2 font-medium">Ce mois-ci</Text>
                     </View>
 
-                    <View className="flex-1 bg-orange-500 p-5 rounded-[32px] shadow-lg shadow-orange-200">
+                    <View className="flex-1 bg-orange-500 p-5 rounded-2xl shadow-sm shadow-orange-200">
                         <View className="bg-white/20 self-start p-2 rounded-xl mb-3">
                             <CreditCard size={20} color="white" />
                         </View>
-                        <Text className="text-white/80 text-xs font-bold uppercase tracking-wider">En attente</Text>
+                        <Text className="text-white/90 text-xs font-bold uppercase tracking-wider">En attente</Text>
                         <Text className="text-white text-xl font-black mt-1" numberOfLines={1}>
                             {(pendingAmount || 0).toLocaleString()} {currency}
                         </Text>
-                        <Text className="text-orange-100 text-[10px] mt-2 font-medium">Total impayé</Text>
+                        <Text className="text-orange-50 text-[10px] mt-2 font-medium">Total impayé</Text>
                     </View>
                 </View>
 
                 {/* Profit Section */}
                 <View className="px-6 mb-8">
-                    <View className="bg-slate-900 p-6 rounded-[32px] shadow-xl flex-row items-center justify-between">
+                    <View className="bg-primary p-6 rounded-2xl shadow-lg flex-row items-center justify-between">
                         <View>
                             <Text className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Bénéfice Net</Text>
                             <Text className="text-white text-3xl font-black">
@@ -185,7 +185,7 @@ function Dashboard() {
                                 spacing={20}
                                 noOfSections={3}
                                 barBorderRadius={8}
-                                frontColor="#2563EB"
+                                frontColor="#1E40AF"
                                 yAxisThickness={0}
                                 xAxisThickness={0}
                                 hideRules
@@ -201,7 +201,7 @@ function Dashboard() {
                     <View className="flex-row justify-between items-center mb-4 px-2">
                         <Text className="text-slate-900 font-black text-xl">Récemment</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/clients')}>
-                            <Text className="text-blue-600 font-bold">Voir tout</Text>
+                            <Text className="text-primary font-bold">Voir tout</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -215,21 +215,21 @@ function Dashboard() {
                             <TouchableOpacity
                                 key={inv.id}
                                 onPress={() => router.push(`/invoice/${inv.id}`)}
-                                className="bg-white p-5 rounded-[30px] mb-4 flex-row items-center border border-slate-50 shadow-sm"
+                                className="bg-card p-5 rounded-xl mb-4 flex-row items-center shadow-sm"
                             >
                                 <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${inv.status === 'PAID' ? 'bg-emerald-50' : 'bg-orange-50'}`}>
                                     {inv.status === 'PAID' ? <CheckCircle2 size={24} color="#10B981" /> : <Clock size={24} color="#F59E0B" />}
                                 </View>
 
                                 <View className="flex-1">
-                                    <Text className="text-slate-900 font-bold text-base" numberOfLines={1}>
+                                    <Text className="text-text-main font-bold text-base" numberOfLines={1}>
                                         {Array.isArray(inv.customer) ? inv.customer[0]?.name : inv.customer?.name || 'Client Inconnu'}
                                     </Text>
-                                    <Text className="text-slate-400 text-xs mt-0.5">{new Date(inv.created_at).toLocaleDateString()}</Text>
+                                    <Text className="text-text-muted text-xs mt-0.5">{new Date(inv.created_at).toLocaleDateString()}</Text>
                                 </View>
 
                                 <View className="items-end">
-                                    <Text className="text-slate-900 font-black text-base">{(inv.total_amount || 0).toLocaleString()} {currency}</Text>
+                                    <Text className="text-text-main font-black text-base">{(inv.total_amount || 0).toLocaleString()} {currency}</Text>
                                     <View className={`mt-1 px-2 py-0.5 rounded-full ${inv.status === 'PAID' ? 'bg-emerald-100' : 'bg-orange-100'}`}>
                                         <Text className={`text-[10px] font-black tracking-tighter ${inv.status === 'PAID' ? 'text-emerald-700' : 'text-orange-700'}`}>
                                             {inv.status === 'PAID' ? 'ENCAISSÉ' : 'À PAYER'}
@@ -246,7 +246,7 @@ function Dashboard() {
             <View className="absolute bottom-10 right-8 items-center" style={{ gap: 16 }}>
                 <TouchableOpacity
                     onPress={() => router.push('/expenses/add')}
-                    className="w-14 h-14 bg-red-500 rounded-full items-center justify-center shadow-lg shadow-red-200"
+                    className="w-14 h-14 bg-danger rounded-full items-center justify-center shadow-lg shadow-red-200"
                     style={{ elevation: 5 }}
                 >
                     <Wallet size={24} color="white" />
@@ -254,7 +254,7 @@ function Dashboard() {
 
                 <TouchableOpacity
                     onPress={() => router.push('/invoice/new')}
-                    className="w-16 h-16 bg-blue-600 rounded-full items-center justify-center shadow-xl shadow-blue-300"
+                    className="w-16 h-16 bg-primary rounded-full items-center justify-center shadow-xl shadow-blue-300"
                     style={{ elevation: 8 }}
                 >
                     <Plus size={32} color="white" strokeWidth={3} />

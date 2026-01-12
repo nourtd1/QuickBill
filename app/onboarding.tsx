@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Zap, Share2, TrendingUp, ChevronRight } from 'lucide-react-native';
+import { usePreferences } from '../context/PreferencesContext';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +34,7 @@ const slides = [
 
 export default function Onboarding() {
     const router = useRouter();
+    const { completeOnboarding } = usePreferences();
     const [currentIndex, setCurrentIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
 
@@ -44,7 +46,7 @@ export default function Onboarding() {
 
     const handleComplete = async () => {
         try {
-            await AsyncStorage.setItem('hasLaunched', 'true');
+            await completeOnboarding();
             router.replace('/auth');
         } catch (error) {
             console.error('Error saving onboarding status:', error);
@@ -61,7 +63,7 @@ export default function Onboarding() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+        <SafeAreaView className="flex-1 bg-background" style={{ backgroundColor: '#EFF6FF' }} edges={['top', 'bottom']}>
             <View className="flex-1">
                 <FlatList
                     ref={flatListRef}

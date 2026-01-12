@@ -11,6 +11,7 @@ import {
     Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProfile } from '../../hooks/useProfile';
 import {
     ArrowLeft,
@@ -18,7 +19,8 @@ import {
     Phone,
     Coins,
     Camera,
-    Check
+    Check,
+    MapPin
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,6 +35,7 @@ export default function BusinessSettingsScreen() {
 
     const [businessName, setBusinessName] = useState('');
     const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
     const [currency, setCurrency] = useState('');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -47,6 +50,7 @@ export default function BusinessSettingsScreen() {
         if (profile) {
             setBusinessName(profile.business_name || '');
             setPhone(profile.phone_contact || '');
+            setAddress(profile.address || '');
             setCurrency(profile.currency || 'RWF');
             setLogoUrl(profile.logo_url || null);
         }
@@ -108,6 +112,7 @@ export default function BusinessSettingsScreen() {
             const { error } = await updateProfile({
                 business_name: businessName.trim(),
                 phone_contact: phone.trim() || null,
+                address: address.trim() || null,
                 currency: currency.trim().toUpperCase(),
                 logo_url: logoUrl,
             });
@@ -134,108 +139,127 @@ export default function BusinessSettingsScreen() {
     }
 
     return (
-        <View className="flex-1 bg-slate-50">
-            <StatusBar style="light" />
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+            <StatusBar style="dark" />
+
+            {/* Header */}
+            <View className="px-6 py-4 bg-white border-b border-slate-100 flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                    <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 bg-slate-50 rounded-full mr-4">
+                        <ArrowLeft size={24} color="#1E293B" />
+                    </TouchableOpacity>
+                    <Text className="text-xl font-black text-text-main">Identité Business</Text>
+                </View>
+                {saving && <ActivityIndicator color="#1E40AF" />}
+            </View>
+
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <LinearGradient
-                    colors={['#1E293B', '#0F172A']}
-                    className="pt-16 pb-20 px-6 rounded-b-[40px] shadow-lg"
-                >
-                    <View className="flex-row justify-between items-center mb-8">
-                        <TouchableOpacity
-                            onPress={() => router.back()}
-                            className="bg-white/10 p-3 rounded-2xl border border-white/10"
-                        >
-                            <ArrowLeft size={24} color="white" />
-                        </TouchableOpacity>
-                        <Text className="text-white text-xl font-black">Identité Business</Text>
-                        <View className="w-12" />
-                    </View>
 
-                    <View className="items-center">
-                        <TouchableOpacity onPress={handlePickImage} className="relative">
-                            <View className="w-24 h-24 rounded-[32px] bg-white items-center justify-center overflow-hidden border-4 border-white/10 shadow-2xl">
-                                {logoUrl ? (
-                                    <Image source={{ uri: logoUrl }} className="w-full h-full" />
-                                ) : (
-                                    <Building2 size={40} color="#94A3B8" />
-                                )}
-                                {uploading && (
-                                    <View className="absolute inset-0 bg-black/30 items-center justify-center">
-                                        <ActivityIndicator color="white" size="small" />
-                                    </View>
-                                )}
-                            </View>
-                            <View className="absolute -bottom-1 -right-1 bg-blue-600 p-2.5 rounded-full border-4 border-[#1E293B] shadow-sm">
-                                <Camera size={14} color="white" />
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-                </LinearGradient>
-
-                <View className="px-6 -mt-8 pb-32">
-                    <View className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-50 mb-8">
-                        <View className="space-y-4">
-                            <View className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex-row items-center">
-                                <Building2 size={20} color="#64748B" className="mr-3" />
-                                <View className="flex-1">
-                                    <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nom commercial</Text>
-                                    <TextInput
-                                        className="text-slate-900 font-bold py-1 text-base"
-                                        value={businessName}
-                                        onChangeText={setBusinessName}
-                                        placeholder="Super Boutique"
-                                    />
+                {/* Logo Section */}
+                <View className="items-center py-8">
+                    <TouchableOpacity onPress={handlePickImage} className="relative">
+                        <View className="w-32 h-32 rounded-full bg-white items-center justify-center overflow-hidden border-4 border-slate-100 shadow-sm">
+                            {logoUrl ? (
+                                <Image source={{ uri: logoUrl }} className="w-full h-full" />
+                            ) : (
+                                <Building2 size={40} color="#94A3B8" />
+                            )}
+                            {uploading && (
+                                <View className="absolute inset-0 bg-black/30 items-center justify-center">
+                                    <ActivityIndicator color="white" size="small" />
                                 </View>
-                            </View>
+                            )}
+                        </View>
+                        <View className="absolute bottom-0 right-0 bg-primary p-2.5 rounded-full border-4 border-white shadow-sm">
+                            <Camera size={16} color="white" />
+                        </View>
+                    </TouchableOpacity>
+                    <Text className="text-text-muted text-sm mt-3 font-medium">Appuyez pour modifier le logo</Text>
+                </View>
 
-                            <View className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex-row items-center mt-4">
-                                <Phone size={20} color="#64748B" className="mr-3" />
-                                <View className="flex-1">
-                                    <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Téléphone professionnel</Text>
-                                    <TextInput
-                                        className="text-slate-900 font-bold py-1 text-base"
-                                        value={phone}
-                                        onChangeText={setPhone}
-                                        placeholder="+250 788 000 000"
-                                        keyboardType="phone-pad"
-                                    />
-                                </View>
-                            </View>
+                <View className="px-6 pb-32">
+                    <View className="bg-card rounded-[24px] p-6 shadow-sm mb-6 space-y-6">
 
-                            <View className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex-row items-center mt-4">
-                                <Coins size={20} color="#64748B" className="mr-3" />
-                                <View className="flex-1">
-                                    <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Devise par défaut</Text>
-                                    <TextInput
-                                        className="text-slate-900 font-bold py-1 text-base"
-                                        value={currency}
-                                        onChangeText={setCurrency}
-                                        placeholder="RWF"
-                                        autoCapitalize="characters"
-                                    />
-                                </View>
+                        {/* Business Name */}
+                        <View>
+                            <View className="flex-row items-center mb-2">
+                                <Building2 size={18} color="#6B7280" className="mr-2" />
+                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Nom commercial</Text>
                             </View>
+                            <TextInput
+                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                value={businessName}
+                                onChangeText={setBusinessName}
+                                placeholder="ex: Ma Super Entreprise"
+                                placeholderTextColor="#9CA3AF"
+                            />
+                        </View>
+
+                        {/* Phone */}
+                        <View>
+                            <View className="flex-row items-center mb-2">
+                                <Phone size={18} color="#6B7280" className="mr-2" />
+                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Téléphone</Text>
+                            </View>
+                            <TextInput
+                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                value={phone}
+                                onChangeText={setPhone}
+                                placeholder="+123 456 789"
+                                placeholderTextColor="#9CA3AF"
+                                keyboardType="phone-pad"
+                            />
+                        </View>
+
+                        {/* Address */}
+                        <View>
+                            <View className="flex-row items-center mb-2">
+                                <MapPin size={18} color="#6B7280" className="mr-2" />
+                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Adresse</Text>
+                            </View>
+                            <TextInput
+                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                value={address}
+                                onChangeText={setAddress}
+                                placeholder="ex: 12 Avenue des Champs, Paris"
+                                placeholderTextColor="#9CA3AF"
+                            />
+                        </View>
+
+                        {/* Currency */}
+                        <View>
+                            <View className="flex-row items-center mb-2">
+                                <Coins size={18} color="#6B7280" className="mr-2" />
+                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Devise</Text>
+                            </View>
+                            <TextInput
+                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                value={currency}
+                                onChangeText={setCurrency}
+                                placeholder="EUR, USD, XOF..."
+                                placeholderTextColor="#9CA3AF"
+                                autoCapitalize="characters"
+                            />
                         </View>
                     </View>
+
 
                     <TouchableOpacity
                         onPress={handleSave}
                         disabled={saving}
-                        className={`w-full py-5 rounded-[24px] flex-row items-center justify-center shadow-lg ${saving ? 'bg-slate-400' : 'bg-slate-900 shadow-slate-200'
+                        className={`w-full py-5 rounded-2xl flex-row items-center justify-center shadow-lg ${saving ? 'bg-primary/70' : 'bg-primary shadow-blue-200'
                             }`}
                     >
                         {saving ? (
                             <ActivityIndicator color="white" />
                         ) : (
                             <>
-                                <Text className="text-white font-black text-lg mr-2">Enregistrer les infos</Text>
-                                <Check size={24} color="white" strokeWidth={3} />
+                                <Text className="text-white font-bold text-lg mr-2">Sauvegarder les modifications</Text>
                             </>
                         )}
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }

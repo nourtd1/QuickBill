@@ -146,7 +146,7 @@ export default function InvoiceDetails() {
 
     if (loading || !invoice) {
         return (
-            <View className="flex-1 items-center justify-center bg-gray-50">
+            <View className="flex-1 items-center justify-center bg-background">
                 <ActivityIndicator size="large" color="#007AFF" />
             </View>
         );
@@ -156,7 +156,7 @@ export default function InvoiceDetails() {
     const currency = profile?.currency || 'RWF';
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1 bg-background">
             <StatusBar style="dark" />
             <SafeAreaView edges={['top']} className="flex-1">
 

@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from 'nativewind';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
 import { validateEnv } from '../lib/env';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -19,27 +20,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 function RootLayoutNav() {
     const { session, profile, loading } = useAuth();
+    const { hasLaunched } = usePreferences();
     const segments = useSegments();
     const router = useRouter();
     const navigationState = useRootNavigationState();
-    const [hasLaunched, setHasLaunched] = useState<boolean | null>(null);
     const [loaded] = useFonts({
         // Add custom fonts here if needed, or leave empty if using system fonts
         // SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     });
-
-    useEffect(() => {
-        async function checkHasLaunched() {
-            try {
-                const launched = await AsyncStorage.getItem('hasLaunched');
-                setHasLaunched(launched === 'true');
-            } catch (error) {
-                console.error('Error reading hasLaunched:', error);
-                setHasLaunched(true); // Default to true if error to avoid loop
-            }
-        }
-        checkHasLaunched();
-    }, []);
 
     // Use a string representation of segments for stable effect dependencies
     const segmentsPath = segments.join('/');
@@ -104,7 +92,12 @@ function RootLayoutNav() {
     }
 
     return (
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#EFF6FF' },
+            headerStyle: { backgroundColor: '#EFF6FF' },
+            headerShadowVisible: false,
+        }}>
             <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -136,7 +129,9 @@ export default function RootLayout() {
     return (
         <SafeAreaProvider>
             <AuthProvider>
-                <RootLayoutNav />
+                <PreferencesProvider>
+                    <RootLayoutNav />
+                </PreferencesProvider>
             </AuthProvider>
         </SafeAreaProvider>
     );

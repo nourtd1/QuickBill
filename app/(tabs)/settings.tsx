@@ -53,29 +53,26 @@ export default function SettingsScreen() {
     const MenuButton = ({ icon: Icon, title, subtitle, onPress, color, bgColor }: any) => (
         <TouchableOpacity
             onPress={onPress}
-            className="bg-white rounded-[32px] p-4 flex-row items-center border border-slate-50 mb-4 shadow-sm active:opacity-70"
+            className="bg-card rounded-[24px] p-4 flex-row items-center mb-4 shadow-sm active:opacity-70"
         >
             <View className={`w-14 h-14 ${bgColor} rounded-2xl items-center justify-center mr-4`}>
                 <Icon size={26} color={color} />
             </View>
             <View className="flex-1">
-                <Text className="text-slate-900 font-black text-base">{title}</Text>
-                <Text className="text-slate-400 text-xs font-medium">{subtitle}</Text>
+                <Text className="text-text-main font-black text-base">{title}</Text>
+                <Text className="text-text-muted text-xs font-medium">{subtitle}</Text>
             </View>
             <ChevronRight size={20} color="#CBD5E1" />
         </TouchableOpacity>
     );
 
     return (
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-background" style={{ backgroundColor: '#EFF6FF' }}>
             <StatusBar style="light" />
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
 
                 {/* Header Profile Section */}
-                <LinearGradient
-                    colors={['#1E293B', '#0F172A']}
-                    className="pt-16 pb-24 px-6 rounded-b-[40px] shadow-lg"
-                >
+                <View className="bg-primary pt-16 pb-24 px-6 rounded-b-[40px] shadow-lg">
                     <View className="flex-row justify-between items-center mb-6">
                         <View>
                             <Text className="text-white/60 text-sm font-medium uppercase tracking-widest">Configuration</Text>
@@ -91,7 +88,7 @@ export default function SettingsScreen() {
 
                     {/* Profile Summary Card */}
                     <View className="bg-white p-5 rounded-[32px] shadow-xl flex-row items-center mt-4">
-                        <View className="w-16 h-16 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border-2 border-slate-50">
+                        <View className="w-16 h-16 rounded-2xl bg-background items-center justify-center overflow-hidden border-2 border-slate-50">
                             {profile?.logo_url ? (
                                 <Image source={{ uri: profile.logo_url }} className="w-full h-full" />
                             ) : (
@@ -100,17 +97,17 @@ export default function SettingsScreen() {
                         </View>
 
                         <View className="ml-4 flex-1">
-                            <Text className="text-slate-900 font-black text-lg leading-tight" numberOfLines={1}>
+                            <Text className="text-text-main font-black text-lg leading-tight" numberOfLines={1}>
                                 {profile?.business_name || 'Mon Business'}
                             </Text>
-                            <Text className="text-slate-400 text-xs font-bold mt-0.5">{user?.email}</Text>
+                            <Text className="text-text-muted text-xs font-bold mt-0.5">{user?.email}</Text>
                         </View>
 
                         <View className="bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200">
                             <Text className="text-emerald-700 text-[9px] font-black uppercase tracking-wider">Premium</Text>
                         </View>
                     </View>
-                </LinearGradient>
+                </View>
 
                 <View className="px-6 -mt-8 pb-32">
 
@@ -172,7 +169,7 @@ export default function SettingsScreen() {
                         icon={ShieldCheck}
                         title="Sécurité"
                         subtitle="Confidentialité et accès"
-                        onPress={() => Alert.alert("Sécurité", "Fonctionnalité de protection par code PIN bientôt disponible.")}
+                        onPress={() => router.push('/settings/security')}
                         color="#64748B"
                         bgColor="bg-slate-100"
                     />

@@ -89,7 +89,7 @@ export default function AuthScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+        <SafeAreaView className="flex-1 bg-background" style={{ backgroundColor: '#EFF6FF' }} edges={['top', 'bottom']}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 className="flex-1"
@@ -114,7 +114,7 @@ export default function AuthScreen() {
                         {isSignUp && (
                             <View>
                                 <Text className="text-slate-700 font-semibold mb-2 ml-1">Nom Complet</Text>
-                                <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 h-16">
+                                <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-16">
                                     <User size={20} color="#94A3B8" />
                                     <TextInput
                                         className="flex-1 ml-3 text-lg text-slate-900"
@@ -132,10 +132,10 @@ export default function AuthScreen() {
                             <Text className="text-slate-700 font-semibold mb-2 ml-1">Email</Text>
                             <View
                                 className={`flex-row items-center border rounded-2xl px-4 h-16 ${email === ''
-                                    ? 'border-slate-100 bg-slate-50'
+                                    ? 'border-slate-100 bg-white'
                                     : isEmailValid
                                         ? 'border-emerald-200 bg-emerald-50/30'
-                                        : 'border-slate-100 bg-slate-50'
+                                        : 'border-slate-100 bg-white'
                                     }`}
                             >
                                 <Mail size={20} color={isEmailValid ? '#10B981' : '#94A3B8'} />
@@ -153,7 +153,7 @@ export default function AuthScreen() {
 
                         <View>
                             <Text className="text-slate-700 font-semibold mb-2 ml-1">Mot de passe</Text>
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 h-16">
+                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-16">
                                 <Lock size={20} color="#94A3B8" />
                                 <TextInput
                                     className="flex-1 ml-3 text-lg text-slate-900"
@@ -176,14 +176,14 @@ export default function AuthScreen() {
 
                         {!isSignUp && (
                             <TouchableOpacity className="self-end py-1">
-                                <Text className="text-blue-600 font-medium">Mot de passe oublié ?</Text>
+                                <Text className="text-primary font-medium">Mot de passe oublié ?</Text>
                             </TouchableOpacity>
                         )}
 
                         <TouchableOpacity
                             onPress={handleAuth}
                             disabled={loading}
-                            className={`bg-blue-600 h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200 mt-4 ${loading ? 'opacity-70' : ''
+                            className={`bg-primary h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200 mt-4 ${loading ? 'opacity-70' : ''
                                 }`}
                         >
                             {loading ? (
@@ -203,7 +203,7 @@ export default function AuthScreen() {
                                 {isSignUp ? 'Déjà un compte ? ' : 'Pas de compte ? '}
                             </Text>
                             <TouchableOpacity onPress={toggleMode}>
-                                <Text className="text-blue-600 text-lg font-bold">
+                                <Text className="text-primary text-lg font-bold">
                                     {isSignUp ? 'Se connecter' : "S'inscrire"}
                                 </Text>
                             </TouchableOpacity>

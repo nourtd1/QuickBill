@@ -244,7 +244,7 @@ export default function NewInvoice() {
     const isLoading = isSaving || generatingPdf;
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
             <StatusBar style="dark" />
 
             {/* Header */}

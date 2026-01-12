@@ -203,7 +203,7 @@ export default function EstimateDetails() {
     const currency = profile?.currency || estimate.currency;
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
             <StatusBar style="dark" />
 
             {/* Header */}

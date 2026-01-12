@@ -206,9 +206,9 @@ export default function NewEstimate() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
             <StatusBar style="dark" />
-            
+
             <View className="flex-row justify-between items-center px-6 py-4 bg-white border-b border-slate-100">
                 <TouchableOpacity onPress={() => router.back()} disabled={saving} className="p-2 -ml-2">
                     <X size={24} color="#64748B" />
@@ -219,7 +219,7 @@ export default function NewEstimate() {
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
                 <ScrollView className="flex-1 px-4 pt-6">
-                    
+
                     <Text className="text-slate-500 text-xs font-bold mb-3 uppercase ml-1">Client</Text>
                     {!selectedClient ? (
                         <TouchableOpacity

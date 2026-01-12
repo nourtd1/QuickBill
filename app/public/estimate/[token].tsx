@@ -107,7 +107,7 @@ export default function PublicEstimatePortal() {
     }
 
     return (
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-background">
             <StatusBar style="dark" />
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* Header */}

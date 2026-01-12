@@ -61,7 +61,7 @@ export default function SetupScreen() {
     if (authLoading) return null;
 
     return (
-        <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+        <SafeAreaView className="flex-1 bg-background" style={{ backgroundColor: '#EFF6FF' }} edges={['top', 'bottom']}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
@@ -80,7 +80,7 @@ export default function SetupScreen() {
                     {/* Business Name */}
                     <View>
                         <Text className="text-slate-700 font-semibold mb-3 ml-1">Nom du Business</Text>
-                        <View className="flex-row items-center border-2 border-slate-100 bg-slate-50 rounded-2xl px-4 h-16">
+                        <View className="flex-row items-center border-2 border-slate-100 bg-white rounded-2xl px-4 h-16">
                             <Building2 size={20} color="#94A3B8" />
                             <TextInput
                                 className="flex-1 ml-3 text-lg text-slate-900"
@@ -102,7 +102,7 @@ export default function SetupScreen() {
                                     onPress={() => setCurrency(curr)}
                                     className={`px-6 py-3 rounded-xl border-2 ${currency === curr
                                         ? 'border-blue-600 bg-blue-50'
-                                        : 'border-slate-100 bg-slate-50'
+                                        : 'border-slate-100 bg-white'
                                         }`}
                                 >
                                     <Text className={`font-bold ${currency === curr ? 'text-blue-600' : 'text-slate-500'

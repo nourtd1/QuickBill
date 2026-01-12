@@ -6,10 +6,13 @@ export default function TabLayout() {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#007AFF',
+                tabBarActiveTintColor: '#1E40AF', // primary
+                tabBarInactiveTintColor: '#9CA3AF', // text-muted equivalent
+                headerStyle: { backgroundColor: '#EFF6FF', elevation: 0, shadowOpacity: 0 },
                 tabBarStyle: {
                     borderTopWidth: 1,
-                    borderTopColor: '#F1F5F9',
+                    borderTopColor: '#E2E8F0', // slate-200
+                    backgroundColor: '#FFFFFF', // card
                     height: 60,
                     paddingBottom: 8,
                 }

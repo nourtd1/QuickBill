@@ -3,6 +3,7 @@ export interface Profile {
     business_name: string;
     logo_url?: string | null;
     phone_contact?: string | null;
+    address?: string | null;
     currency: string;
     is_premium?: boolean;
     signature_url?: string | null;

@@ -67,13 +67,10 @@ export default function WhatsappSettingsScreen() {
     }
 
     return (
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-background">
             <StatusBar style="light" />
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    className="pt-16 pb-20 px-6 rounded-b-[40px] shadow-lg"
-                >
+                <View className="bg-primary pt-16 pb-20 px-6 rounded-b-[40px] shadow-lg">
                     <View className="flex-row justify-between items-center mb-8">
                         <TouchableOpacity
                             onPress={() => router.back()}
@@ -93,19 +90,20 @@ export default function WhatsappSettingsScreen() {
                             Personnalisez le message envoyé à vos clients sur WhatsApp.
                         </Text>
                     </View>
-                </LinearGradient>
+                </View>
 
                 <View className="px-6 -mt-8 pb-32">
-                    <View className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-50 mb-8">
+                    <View className="bg-card rounded-[32px] p-6 shadow-sm mb-8">
                         <View className="relative mb-5">
-                            <View className="absolute -left-1 top-4 w-4 h-4 bg-emerald-50/80 transform rotate-45 z-0" />
+                            <View className="absolute -left-1 top-4 w-4 h-4 bg-background transform rotate-45 z-0" />
                             <TextInput
-                                className="bg-emerald-50/80 p-5 rounded-2xl text-slate-700 font-medium text-sm border border-emerald-100 z-10 min-h-[150px]"
+                                className="bg-background p-5 rounded-2xl text-text-main font-medium text-sm border border-slate-100 z-10 min-h-[150px]"
                                 multiline
                                 textAlignVertical="top"
                                 value={whatsappTemplate}
                                 onChangeText={setWhatsappTemplate}
                                 placeholder="Rédigez votre message ici..."
+                                placeholderTextColor="#9CA3AF"
                             />
                         </View>
 
@@ -127,9 +125,9 @@ export default function WhatsappSettingsScreen() {
                             ))}
                         </View>
 
-                        <View className="p-4 bg-slate-50 rounded-2xl flex-row items-center border border-slate-100">
+                        <View className="p-4 bg-background rounded-2xl flex-row items-center border border-slate-100">
                             <Info size={18} color="#64748B" />
-                            <Text className="text-slate-500 text-xs ml-3 font-medium flex-1">
+                            <Text className="text-text-muted text-xs ml-3 font-medium flex-1">
                                 Touchez une variable pour l'insérer. Elles seront remplacées par les vraies infos lors de l'envoi.
                             </Text>
                         </View>
@@ -138,7 +136,7 @@ export default function WhatsappSettingsScreen() {
                     <TouchableOpacity
                         onPress={handleSave}
                         disabled={saving}
-                        className={`w-full py-5 rounded-[24px] flex-row items-center justify-center shadow-lg ${saving ? 'bg-slate-400' : 'bg-emerald-600 shadow-emerald-100'
+                        className={`w-full py-5 rounded-2xl flex-row items-center justify-center shadow-lg ${saving ? 'bg-primary/70' : 'bg-primary shadow-blue-200'
                             }`}
                     >
                         {saving ? (

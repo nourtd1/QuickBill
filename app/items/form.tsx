@@ -122,7 +122,7 @@ export default function ItemForm() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
             <StatusBar style="dark" />
 
             {/* Header */}
@@ -198,7 +198,7 @@ export default function ItemForm() {
                     <TouchableOpacity
                         onPress={handleSave}
                         disabled={loading}
-                        className="w-full bg-blue-600 h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200"
+                        className="w-full bg-primary h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200"
                     >
                         {loading ? (
                             <ActivityIndicator color="white" />

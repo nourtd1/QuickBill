@@ -63,7 +63,7 @@ export default function ClientsScreen() {
     const renderClientCard = ({ item }: { item: Client }) => (
         <TouchableOpacity
             onPress={() => router.push({ pathname: '/clients/form', params: { id: item.id } })}
-            className="bg-white mx-4 mb-3 p-4 rounded-2xl flex-row items-center shadow-sm border border-slate-50"
+            className="bg-card mx-4 mb-3 p-4 rounded-xl flex-row items-center shadow-sm"
         >
             <View className="w-12 h-12 bg-blue-50 rounded-full items-center justify-center mr-4">
                 <Text className="text-blue-600 font-bold text-lg">
@@ -72,7 +72,7 @@ export default function ClientsScreen() {
             </View>
 
             <View className="flex-1">
-                <Text className="text-slate-900 font-bold text-base mb-1" numberOfLines={1}>
+                <Text className="text-text-main font-bold text-base mb-1" numberOfLines={1}>
                     {item.name}
                 </Text>
                 <View className="flex-row items-center">
@@ -96,7 +96,7 @@ export default function ClientsScreen() {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
             {/* Header & Search */}
             <View className="px-4 py-4 bg-white border-b border-slate-100">
                 <Text className="text-2xl font-bold text-slate-900 mb-4">Mes Clients</Text>
@@ -146,7 +146,7 @@ export default function ClientsScreen() {
             {/* Floating Action Button */}
             <TouchableOpacity
                 onPress={() => router.push('/clients/form')}
-                className="absolute bottom-8 right-6 bg-blue-600 w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-blue-300"
+                className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-blue-300"
                 activeOpacity={0.8}
             >
                 <UserPlus size={28} color="white" />

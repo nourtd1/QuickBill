@@ -137,7 +137,7 @@ export default function ClientFormScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
             {/* Header */}
             <View className="px-4 py-4 flex-row items-center justify-between border-b border-slate-100">
                 <View className="flex-row items-center">
@@ -166,7 +166,7 @@ export default function ClientFormScreen() {
                         {/* Champ : Nom */}
                         <View>
                             <Text className="text-slate-700 font-semibold mb-2 ml-1">Nom du client *</Text>
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 h-14">
+                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14">
                                 <User size={20} color="#94A3B8" />
                                 <TextInput
                                     className="flex-1 ml-3 text-base text-slate-900"
@@ -181,7 +181,7 @@ export default function ClientFormScreen() {
                         {/* Champ : Téléphone */}
                         <View>
                             <Text className="text-slate-700 font-semibold mb-2 ml-1">Téléphone</Text>
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 h-14">
+                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14">
                                 <Phone size={20} color="#94A3B8" />
                                 <TextInput
                                     className="flex-1 ml-3 text-base text-slate-900"
@@ -196,7 +196,7 @@ export default function ClientFormScreen() {
                         {/* Champ : Email */}
                         <View>
                             <Text className="text-slate-700 font-semibold mb-2 ml-1">Email</Text>
-                            <View className="flex-row items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 h-14">
+                            <View className="flex-row items-center bg-white border border-slate-100 rounded-2xl px-4 h-14">
                                 <Mail size={20} color="#94A3B8" />
                                 <TextInput
                                     className="flex-1 ml-3 text-base text-slate-900"
@@ -212,7 +212,7 @@ export default function ClientFormScreen() {
                         {/* Champ : Adresse */}
                         <View>
                             <Text className="text-slate-700 font-semibold mb-2 ml-1">Adresse</Text>
-                            <View className="flex-row items-start bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 min-h-[100]">
+                            <View className="flex-row items-start bg-white border border-slate-100 rounded-2xl px-4 py-3 min-h-[100]">
                                 <MapPin size={20} color="#94A3B8" className="mt-1" />
                                 <TextInput
                                     className="flex-1 ml-3 text-base text-slate-900"

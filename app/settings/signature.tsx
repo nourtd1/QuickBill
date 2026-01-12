@@ -81,16 +81,16 @@ function SignatureSettingScreen() {
     `;
 
     return (
-        <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+        <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
             {/* Header */}
-            <View className="px-6 py-4 flex-row items-center justify-between border-b border-slate-100">
+            <View className="px-6 py-4 flex-row items-center justify-between border-b border-slate-100 bg-white">
                 <View className="flex-row items-center">
                     <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                        <ArrowLeft size={24} color="#334155" />
+                        <ArrowLeft size={24} color="#1E293B" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-bold text-slate-900">Ma Signature</Text>
+                    <Text className="text-xl font-black text-text-main">Ma Signature</Text>
                 </View>
-                {loading && <ActivityIndicator color="#2563EB" />}
+                {loading && <ActivityIndicator color="#1E40AF" />}
             </View>
 
             <View className="flex-1 p-6">
@@ -116,11 +116,11 @@ function SignatureSettingScreen() {
                 </View>
 
                 {/* Boutons d'Action */}
-                <View className="flex-row items-center space-x-4 mt-8">
+                <View className="flex-row items-center space-x-4 mt-8" style={{ gap: 16 }}>
                     <TouchableOpacity
                         onPress={handleClear}
                         disabled={loading}
-                        className="flex-1 bg-slate-100 h-16 rounded-2xl flex-row items-center justify-center"
+                        className="flex-1 bg-white h-16 rounded-2xl flex-row items-center justify-center border border-slate-200"
                     >
                         <Trash2 size={20} color="#64748B" className="mr-2" />
                         <Text className="text-slate-600 font-bold text-lg">Effacer</Text>
@@ -129,7 +129,7 @@ function SignatureSettingScreen() {
                     <TouchableOpacity
                         onPress={() => signatureRef.current?.readSignature()}
                         disabled={loading}
-                        className="flex-1 bg-blue-600 h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200"
+                        className="flex-1 bg-primary h-16 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200"
                     >
                         <Check size={20} color="white" strokeWidth={3} className="mr-2" />
                         <Text className="text-white font-bold text-lg">Valider</Text>

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Settings, Users } from 'lucide-react-native';
+import { Home, Settings, Users, FileText, Package } from 'lucide-react-native';
 
 export default function TabLayout() {
     return (
@@ -25,10 +25,24 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
+                name="invoices"
+                options={{
+                    title: 'Factures',
+                    tabBarIcon: ({ color }) => <FileText size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
                 name="clients/index"
                 options={{
                     title: 'Clients',
                     tabBarIcon: ({ color }) => <Users size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="items"
+                options={{
+                    title: 'Produits',
+                    tabBarIcon: ({ color }) => <Package size={24} color={color} />,
                 }}
             />
             <Tabs.Screen

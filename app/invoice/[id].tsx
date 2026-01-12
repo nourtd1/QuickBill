@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +15,7 @@ import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
 import { generateInvoiceHTML } from '../../lib/generate-html';
 import { showError } from '../../lib/error-handler';
 import QRCode from 'qrcode';
+import ChatModal from '../../components/ChatModal';
 
 export default function InvoiceDetails() {
     const { id } = useLocalSearchParams();
@@ -22,6 +23,7 @@ export default function InvoiceDetails() {
     const { invoice, loading, updating, toggleStatus } = useInvoiceDetails(id as string);
     const { profile, refreshProfile } = useAuth();
     const [sharing, setSharing] = useState(false);
+    const [chatVisible, setChatVisible] = useState(false);
 
     const handleShare = async () => {
         if (!invoice) return;
@@ -249,37 +251,50 @@ export default function InvoiceDetails() {
 
             {/* Bottom Action Bar */}
             <View className="absolute bottom-0 left-0 right-0 bg-white p-5 pt-4 pb-8 border-t border-slate-100 rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                <View className="flex-row gap-3">
+                <View className="flex-row gap-2">
                     <TouchableOpacity
                         onPress={handleWhatsApp}
-                        className="flex-1 bg-emerald-500 h-14 rounded-2xl flex-row items-center justify-center shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
+                        className="w-12 h-14 bg-emerald-500 rounded-2xl items-center justify-center shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
                     >
-                        <MessageCircle size={22} color="white" strokeWidth={2.5} />
+                        <Send size={20} color="white" strokeWidth={2.5} className="-ml-0.5 mt-0.5" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => setChatVisible(true)}
+                        className="w-12 h-14 bg-violet-600 rounded-2xl items-center justify-center shadow-lg shadow-violet-200 active:scale-95 transition-transform"
+                    >
+                        <MessageCircle size={20} color="white" strokeWidth={2.5} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={handleCopyWebLink}
-                        className="flex-1 bg-blue-500 h-14 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+                        className="w-12 h-14 bg-blue-500 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 active:scale-95 transition-transform"
                     >
-                        <Globe size={22} color="white" strokeWidth={2.5} />
+                        <Globe size={20} color="white" strokeWidth={2.5} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={handleShare}
                         disabled={sharing}
-                        className="flex-[2] bg-slate-900 h-14 rounded-2xl flex-row items-center justify-center shadow-lg shadow-slate-300 active:scale-95 transition-transform"
+                        className="flex-1 bg-slate-900 h-14 rounded-2xl flex-row items-center justify-center shadow-lg shadow-slate-300 active:scale-95 transition-transform"
                     >
                         {sharing ? (
                             <ActivityIndicator color="white" />
                         ) : (
                             <>
-                                <Share2 size={22} color="white" strokeWidth={2.5} className="mr-3" />
-                                <Text className="text-white font-bold text-lg tracking-wide">PDF</Text>
+                                <Share2 size={20} color="white" strokeWidth={2.5} className="mr-2" />
+                                <Text className="text-white font-bold text-base tracking-wide">PDF</Text>
                             </>
                         )}
                     </TouchableOpacity>
                 </View>
             </View>
+
+            <ChatModal
+                invoiceId={id as string}
+                visible={chatVisible}
+                onClose={() => setChatVisible(false)}
+            />
         </View>
     );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -13,7 +13,7 @@ import {
     Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
     X,
@@ -25,7 +25,8 @@ import {
     Plus,
     Tag,
     DollarSign,
-    Wallet
+    Wallet,
+    ScanLine
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
@@ -48,6 +49,7 @@ const QUICK_AMOUNTS = [1000, 2000, 5000, 10000];
 
 export default function AddExpenseScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const { user, profile } = useAuth();
     const currency = profile?.currency || 'RWF';
 
@@ -59,6 +61,24 @@ export default function AddExpenseScreen() {
 
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+
+    useEffect(() => {
+        if (params.amount) {
+            setAmount(params.amount.toString());
+        }
+        if (params.merchant) {
+            setDescription(`Achat chez ${params.merchant}`);
+        }
+        if (params.date) {
+            setDate(params.date.toString());
+        }
+        if (params.scanData) {
+            try {
+                const data = JSON.parse(params.scanData as string);
+                // Can process item details here if needed
+            } catch (e) { console.error(e); }
+        }
+    }, [params]);
 
     const handlePickImage = async () => {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -140,6 +160,7 @@ export default function AddExpenseScreen() {
         }
     };
 
+
     return (
         <View className="flex-1 bg-slate-50">
             <StatusBar style="light" />
@@ -162,6 +183,27 @@ export default function AddExpenseScreen() {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
                 <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+
+                    {/* Scan AI Button */}
+                    <TouchableOpacity
+                        onPress={() => router.push('/expenses/scan')}
+                        className="bg-blue-600 p-4 rounded-[24px] shadow-lg shadow-blue-300 mb-6 flex-row items-center justify-between overflow-hidden relative"
+                    >
+                        <View className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10" />
+
+                        <View className="flex-row items-center">
+                            <View className="bg-white/20 p-3 rounded-2xl mr-4 backdrop-blur-sm">
+                                <ScanLine size={24} color="white" />
+                            </View>
+                            <View>
+                                <Text className="text-white font-black text-lg">Scanner un Reçu</Text>
+                                <Text className="text-blue-100 text-xs font-medium">Remplissage auto avec l'IA</Text>
+                            </View>
+                        </View>
+                        <View className="bg-white px-3 py-1 rounded-full">
+                            <Text className="text-blue-600 font-bold text-xs">GO</Text>
+                        </View>
+                    </TouchableOpacity>
 
                     {/* Amount Card */}
                     <View className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 mb-6 items-center justify-center">

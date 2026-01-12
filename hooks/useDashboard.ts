@@ -15,6 +15,7 @@ export function useDashboard() {
     const [monthlyExpenses, setMonthlyExpenses] = useState(0);
     const [pendingAmount, setPendingAmount] = useState(0);
     const [chartData, setChartData] = useState<MonthlyData[]>([]);
+    const [recentExpenses, setRecentExpenses] = useState<any[]>([]); // New State
     const [loading, setLoading] = useState(true);
 
     const fetchDashboardData = useCallback(async () => {
@@ -22,28 +23,32 @@ export function useDashboard() {
         setLoading(true);
 
         try {
-            // OPTIMISATION: Une seule requête RPC pour tout charger
+            // 1. Fetch Main Stats via RPC
             const { data, error } = await supabase
                 .rpc('get_dashboard_stats', { p_user_id: user.id });
-
-            if (error) throw error;
 
             if (data) {
                 setMonthlyRevenue(data.monthlyRevenue || 0);
                 setMonthlyExpenses(data.monthlyExpenses || 0);
                 setPendingAmount(data.pendingAmount || 0);
                 setChartData(data.chartData || []);
-                // Les factures récentes incluent déjà l'objet customer { name: ... } via le SQL
                 setInvoices((data.recentInvoices || []) as any);
             }
 
+            // 2. Fetch Recent Expenses separately (Standard Query)
+            const { data: expensesData, error: expError } = await supabase
+                .from('expenses')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('date', { ascending: false })
+                .limit(5);
+
+            if (expensesData) {
+                setRecentExpenses(expensesData);
+            }
+
         } catch (err) {
-            console.error('Error fetching dashboard via RPC:', err);
-            // Fallback optionnel si la RPC n'existe pas encore (commenté pour forcer l'usage optimal)
-            /* 
-               Si vous voyez cette erreur, assurez-vous d'avoir exécuté le script SQL 
-               disponible dans docs/rpc_migration.sql dans votre projet Supabase.
-            */
+            console.error('Error fetching dashboard:', err);
         } finally {
             setLoading(false);
         }
@@ -56,6 +61,7 @@ export function useDashboard() {
         netProfit: monthlyRevenue - monthlyExpenses,
         pendingAmount,
         chartData,
+        recentExpenses, // Return new data
         loading,
         refresh: fetchDashboardData
     };

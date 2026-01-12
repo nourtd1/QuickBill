@@ -25,6 +25,8 @@ import { useItems } from '../../hooks/useItems';
 import { validateCustomerName, validateInvoiceItems, validateTotalAmount } from '../../lib/validation';
 import { showError, showSuccess } from '../../lib/error-handler';
 import { Client, Item } from '../../types';
+import { SmartPriceSuggestion, AnomalyAlert } from '../../components/AiAssistant';
+import { analyzeInvoiceForAnomalies } from '../../lib/aiAssistantService';
 
 interface NewInvoiceItem {
     id: string;
@@ -59,6 +61,9 @@ export default function NewInvoice() {
     const [isItemModalVisible, setIsItemModalVisible] = useState(false);
     const [itemSearch, setItemSearch] = useState('');
     const [filteredInventoryItems, setFilteredInventoryItems] = useState<Item[]>([]);
+
+    // AI State
+    const [anomalyAlerts, setAnomalyAlerts] = useState<any[]>([]);
 
     useEffect(() => {
         fetchProfile();
@@ -98,7 +103,20 @@ export default function NewInvoice() {
             return sum + (qty * price);
         }, 0);
         setTotal(newTotal);
-    }, [items]);
+
+        // AI Anomaly Check (Debounced)
+        const timer = setTimeout(async () => {
+            if (profile?.id && selectedClient && newTotal > 0) {
+                const alerts = await analyzeInvoiceForAnomalies(profile.id, {
+                    customerId: selectedClient.id,
+                    totalAmount: newTotal,
+                    items
+                });
+                setAnomalyAlerts(alerts);
+            }
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [items, selectedClient, profile?.id]);
 
     const addItem = () => {
         setItems([
@@ -245,6 +263,9 @@ export default function NewInvoice() {
             >
                 <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
 
+                    {/* AI Alerts */}
+                    <AnomalyAlert alerts={anomalyAlerts} />
+
                     {/* Section Client - Expert UX */}
                     <Text className="text-slate-500 text-xs font-bold mb-3 uppercase tracking-wider ml-4">Client à facturer</Text>
 
@@ -291,15 +312,24 @@ export default function NewInvoice() {
                                     <View className="bg-slate-50 w-8 h-8 rounded-full items-center justify-center mr-3 mt-1">
                                         <Text className="text-slate-400 font-bold text-xs">{index + 1}</Text>
                                     </View>
-                                    <TextInput
-                                        className="flex-1 text-slate-900 font-bold text-base bg-slate-50 rounded-xl px-3 py-2 min-h-[40px]"
-                                        placeholder="Description du service..."
-                                        placeholderTextColor="#94A3B8"
-                                        multiline
-                                        value={item.description}
-                                        onChangeText={(text) => updateItem(item.id, 'description', text)}
-                                        editable={!isLoading}
-                                    />
+                                    <View className="flex-1">
+                                        <TextInput
+                                            className="text-slate-900 font-bold text-base bg-slate-50 rounded-xl px-3 py-2 min-h-[40px]"
+                                            placeholder="Description du service..."
+                                            placeholderTextColor="#94A3B8"
+                                            multiline
+                                            value={item.description}
+                                            onChangeText={(text) => updateItem(item.id, 'description', text)}
+                                            editable={!isLoading}
+                                        />
+                                        {/* AI Suggestion - Relative Position */}
+                                        <SmartPriceSuggestion
+                                            itemName={item.description}
+                                            currency={profile?.currency || 'USD'}
+                                            currentPrice={parseFloat(item.unit_price)}
+                                            onAccept={(price) => updateItem(item.id, 'unit_price', price.toString())}
+                                        />
+                                    </View>
                                     <TouchableOpacity
                                         onPress={() => removeItem(item.id)}
                                         disabled={isLoading}

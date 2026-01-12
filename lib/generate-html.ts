@@ -22,10 +22,11 @@ export interface InvoiceData {
 }
 
 export function generateInvoiceHTML(data: InvoiceData): string {
-    const primaryColor = '#1E40AF'; // Royal Blue
+    const primaryColor = '#2E44B1'; // Updated Primary Blue
     const secondaryColor = '#0F172A'; // Slate 900
-    const accentColor = '#3B82F6'; // Blue 500
+    const accentColor = '#3B82F6'; // Blue 500 (kept for gradients)
     const lightBg = '#F8FAFC'; // Slate 50
+    const darkText = '#1A1A1A'; // Deep Black for maximum contrast
 
     return `
 <!DOCTYPE html>
@@ -34,11 +35,11 @@ export function generateInvoiceHTML(data: InvoiceData): string {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap');
         
         body {
             font-family: 'Urbanist', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: ${secondaryColor};
+            color: ${darkText};
             background: #fff;
             margin: 0;
             padding: 0;
@@ -51,7 +52,6 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             background: white;
             position: relative;
             overflow: hidden;
-            /* Removed min-height to avoid forcing 2 pages if content is short */
         }
 
         /* Decorative Sidebar Strip */
@@ -65,7 +65,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         }
 
         .content {
-            padding: 40px 40px 40px 50px; /* Reduced vertical padding */
+            padding: 40px 40px 40px 50px;
             position: relative;
             z-index: 2;
         }
@@ -77,7 +77,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             left: 50%;
             transform: translate(-50%, -50%) rotate(-10deg);
             width: 400px;
-            opacity: 0.04;
+            opacity: 0.02; /* Reduced opacity */
             z-index: 0;
             pointer-events: none;
         }
@@ -113,8 +113,8 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         .company-meta {
             font-size: 13px;
-            color: #334155; /* Darker for better readability */
-            font-weight: 500;
+            color: ${darkText}; /* High contrast */
+            font-weight: 600; /* Slightly bolder */
             line-height: 1.4;
         }
 
@@ -126,14 +126,13 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .doc-title {
             font-size: 32px;
             font-weight: 900;
-            color: ${primaryColor}; /* Primary Blue */
+            color: ${primaryColor};
             text-transform: uppercase;
             line-height: 1;
             margin-bottom: 10px;
         }
 
         .doc-number-box {
-            background: ${secondaryColor}; /* Using dark slate for contrast against blue title if preferred, or keep primary */
             background: ${primaryColor};
             color: white;
             padding: 8px 16px;
@@ -168,24 +167,24 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         .label {
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 800; /* Bolder label */
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #475569; /* Darker label */
+            color: ${darkText}; /* High contrast */
             margin-bottom: 6px;
         }
 
         .recipient-name {
             font-size: 18px;
-            font-weight: 700;
+            font-weight: 800;
             color: ${secondaryColor};
             margin-bottom: 4px;
         }
 
         .recipient-detail {
             font-size: 14px;
-            color: #334155; /* Darker detail */
-            font-weight: 500;
+            color: ${darkText};
+            font-weight: 600;
         }
 
         /* Premium Table */
@@ -207,18 +206,18 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             text-align: left;
             padding: 14px 15px;
             font-size: 12px;
-            font-weight: 800; /* Bolder header */
+            font-weight: 900; /* Extra bold */
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #FFFFFF;
+            color: #FFFFFF; /* Pure White */
         }
 
         td {
             padding: 12px 15px;
             border-bottom: 1px solid #E2E8F0;
             font-size: 13px;
-            color: #1E293B; /* Darker cell text */
-            font-weight: 500;
+            color: ${darkText};
+            font-weight: 600;
         }
 
         tbody tr:nth-child(even) {
@@ -226,13 +225,13 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         }
 
         .text-right { text-align: right; }
-        .font-bold { font-weight: 700; }
+        .font-bold { font-weight: 800; }
 
         /* Summary Section */
         .summary-section {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 30px; /* Reduced margin */
+            margin-bottom: 30px;
         }
 
         .summary-box {
@@ -244,8 +243,9 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             justify-content: space-between;
             padding: 8px 0;
             border-bottom: 1px solid #E2E8F0;
-            color: #64748B;
+            color: ${darkText};
             font-size: 13px;
+            font-weight: 500;
         }
 
         .total-row {
@@ -261,14 +261,14 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         .total-label {
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 800;
             text-transform: uppercase;
             color: ${primaryColor};
         }
 
         .total-amount {
             font-size: 24px;
-            font-weight: 800;
+            font-weight: 900;
             color: ${secondaryColor};
         }
 
@@ -276,7 +276,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .footer-grid {
             display: flex;
             gap: 30px;
-            padding-top: 20px; /* Reduced padding */
+            padding-top: 20px;
             border-top: 2px dashed #E2E8F0;
             align-items: flex-start;
         }
@@ -292,14 +292,14 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         .thank-you {
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 800;
             color: ${primaryColor};
             margin-bottom: 4px;
         }
 
         .payment-info {
             font-size: 11px;
-            color: #64748B;
+            color: ${darkText};
             line-height: 1.5;
             background: #FFF;
             padding: 12px;
@@ -326,8 +326,8 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             border-top: 1px solid #CBD5E1;
             padding-top: 5px;
             font-size: 9px;
-            font-weight: 600;
-            color: #94A3B8;
+            font-weight: 700;
+            color: #64748B;
             text-transform: uppercase;
         }
 
@@ -337,12 +337,12 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             text-align: center;
             font-size: 9px;
             color: #CBD5E1;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
         
-        /* Print optimization to force single page if possible */
+        /* Print optimization */
         @media print {
             .page-container {
                 page-break-inside: avoid;
@@ -391,7 +391,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
                 </div>
                 <div class="info-col" style="text-align: right;">
                     <div class="label">Total à payer</div>
-                    <div style="font-size: 22px; font-weight: 800; color: ${secondaryColor};">
+                    <div style="font-size: 22px; font-weight: 900; color: ${secondaryColor};">
                         ${data.totalAmount.toLocaleString()} ${data.currency}
                     </div>
                 </div>
@@ -442,7 +442,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
                 <div class="notes-col">
                     <div class="thank-you">Merci de votre confiance !</div>
                     <div class="payment-info">
-                        <div style="font-weight: 600; margin-bottom: 2px; color: ${secondaryColor};">Termes & Conditions</div>
+                        <div style="font-weight: 800; margin-bottom: 2px; color: ${darkText};">Termes & Conditions</div>
                         Paiement dû à réception. Nous apprécions votre promptitude.
                         ${data.qrCodeUrl ? `<div style="margin-top: 8px; display: flex; align-items: center; gap: 10px;">
                             <img src="${data.qrCodeUrl}" class="qr-clean" />

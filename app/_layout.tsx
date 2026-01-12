@@ -11,6 +11,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
+import { OfflineProvider } from '../context/OfflineContext';
 import { validateEnv } from '../lib/env';
 import ConfigError from '../components/ConfigError';
 
@@ -147,7 +148,9 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
                 <AuthProvider>
                     <PreferencesProvider>
-                        <RootLayoutNav />
+                        <OfflineProvider>
+                            <RootLayoutNav />
+                        </OfflineProvider>
                     </PreferencesProvider>
                 </AuthProvider>
             </QueryClientProvider>

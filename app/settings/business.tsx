@@ -20,7 +20,8 @@ import {
     Coins,
     Camera,
     Check,
-    MapPin
+    MapPin,
+    Save
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -133,133 +134,150 @@ export default function BusinessSettingsScreen() {
     if (profileLoading && !profile) {
         return (
             <View className="flex-1 items-center justify-center bg-slate-50">
-                <ActivityIndicator size="large" color="#2563EB" />
+                <ActivityIndicator size="large" color="#1E40AF" />
             </View>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-slate-50">
+            <StatusBar style="light" />
 
-            {/* Header */}
-            <View className="px-6 py-4 bg-white border-b border-slate-100 flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 bg-slate-50 rounded-full mr-4">
-                        <ArrowLeft size={24} color="#1E293B" />
+            {/* Header Curve */}
+            <LinearGradient
+                colors={['#1E40AF', '#1e3a8a']}
+                className="absolute top-0 left-0 right-0 h-[180px] rounded-b-[40px]"
+            />
+
+            <SafeAreaView className="flex-1">
+                {/* Header Content */}
+                <View className="flex-row items-center justify-between px-6 py-4 mb-2">
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-10 h-10 bg-white/20 items-center justify-center rounded-full backdrop-blur-md"
+                    >
+                        <ArrowLeft size={20} color="white" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-black text-text-main">Identité Business</Text>
-                </View>
-                {saving && <ActivityIndicator color="#1E40AF" />}
-            </View>
-
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-
-                {/* Logo Section */}
-                <View className="items-center py-8">
-                    <TouchableOpacity onPress={handlePickImage} className="relative">
-                        <View className="w-32 h-32 rounded-full bg-white items-center justify-center overflow-hidden border-4 border-slate-100 shadow-sm">
-                            {logoUrl ? (
-                                <Image source={{ uri: logoUrl }} className="w-full h-full" />
-                            ) : (
-                                <Building2 size={40} color="#94A3B8" />
-                            )}
-                            {uploading && (
-                                <View className="absolute inset-0 bg-black/30 items-center justify-center">
-                                    <ActivityIndicator color="white" size="small" />
-                                </View>
-                            )}
-                        </View>
-                        <View className="absolute bottom-0 right-0 bg-primary p-2.5 rounded-full border-4 border-white shadow-sm">
-                            <Camera size={16} color="white" />
-                        </View>
-                    </TouchableOpacity>
-                    <Text className="text-text-muted text-sm mt-3 font-medium">Appuyez pour modifier le logo</Text>
+                    <Text className="text-xl font-black text-white tracking-tight">Identité Business</Text>
+                    <View style={{ width: 40 }} />
                 </View>
 
-                <View className="px-6 pb-32">
-                    <View className="bg-card rounded-[24px] p-6 shadow-sm mb-6 space-y-6">
+                <ScrollView
+                    className="flex-1 px-6"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 120 }}
+                >
+
+                    {/* Logo Section */}
+                    <View className="items-center mt-4 mb-8">
+                        <TouchableOpacity onPress={handlePickImage} className="relative active:scale-95 transition-transform" activeOpacity={0.8}>
+                            <View className="w-32 h-32 rounded-[24px] bg-white items-center justify-center overflow-hidden shadow-xl shadow-blue-900/20 border-4 border-white">
+                                {logoUrl ? (
+                                    <Image source={{ uri: logoUrl }} className="w-full h-full" resizeMode="cover" />
+                                ) : (
+                                    <Building2 size={40} color="#94A3B8" />
+                                )}
+                                {uploading && (
+                                    <View className="absolute inset-0 bg-black/40 items-center justify-center backdrop-blur-sm">
+                                        <ActivityIndicator color="white" size="small" />
+                                    </View>
+                                )}
+                            </View>
+                            <View className="absolute -bottom-2 -right-2 bg-slate-900 p-2.5 rounded-xl border-[3px] border-slate-50 shadow-sm">
+                                <Camera size={16} color="white" />
+                            </View>
+                        </TouchableOpacity>
+                        <Text className="text-slate-500 text-xs font-semibold mt-4 bg-white/50 px-3 py-1 rounded-full overflow-hidden">
+                            Appuyez pour modifier le logo
+                        </Text>
+                    </View>
+
+                    {/* Form Card */}
+                    <View className="bg-white rounded-[24px] p-6 shadow-xl shadow-slate-200/50 space-y-6">
 
                         {/* Business Name */}
                         <View>
-                            <View className="flex-row items-center mb-2">
-                                <Building2 size={18} color="#6B7280" className="mr-2" />
-                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Nom commercial</Text>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <Building2 size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Nom commercial</Text>
                             </View>
                             <TextInput
-                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
                                 value={businessName}
                                 onChangeText={setBusinessName}
                                 placeholder="ex: Ma Super Entreprise"
-                                placeholderTextColor="#9CA3AF"
+                                placeholderTextColor="#94A3B8"
                             />
                         </View>
 
                         {/* Phone */}
                         <View>
-                            <View className="flex-row items-center mb-2">
-                                <Phone size={18} color="#6B7280" className="mr-2" />
-                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Téléphone</Text>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <Phone size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Téléphone</Text>
                             </View>
                             <TextInput
-                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
                                 value={phone}
                                 onChangeText={setPhone}
                                 placeholder="+123 456 789"
-                                placeholderTextColor="#9CA3AF"
+                                placeholderTextColor="#94A3B8"
                                 keyboardType="phone-pad"
                             />
                         </View>
 
                         {/* Address */}
                         <View>
-                            <View className="flex-row items-center mb-2">
-                                <MapPin size={18} color="#6B7280" className="mr-2" />
-                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Adresse</Text>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <MapPin size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Adresse</Text>
                             </View>
                             <TextInput
-                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
                                 value={address}
                                 onChangeText={setAddress}
                                 placeholder="ex: 12 Avenue des Champs, Paris"
-                                placeholderTextColor="#9CA3AF"
+                                placeholderTextColor="#94A3B8"
                             />
                         </View>
 
                         {/* Currency */}
                         <View>
-                            <View className="flex-row items-center mb-2">
-                                <Coins size={18} color="#6B7280" className="mr-2" />
-                                <Text className="text-text-muted text-xs font-bold uppercase tracking-wider">Devise</Text>
+                            <View className="flex-row items-center mb-2.5 ml-1">
+                                <Coins size={16} color="#475569" className="mr-2" />
+                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest">Devise</Text>
                             </View>
                             <TextInput
-                                className="bg-background border border-slate-100 p-4 rounded-xl text-text-main font-bold text-base"
+                                className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-800 font-bold text-base"
                                 value={currency}
                                 onChangeText={setCurrency}
                                 placeholder="EUR, USD, XOF..."
-                                placeholderTextColor="#9CA3AF"
+                                placeholderTextColor="#94A3B8"
                                 autoCapitalize="characters"
                             />
                         </View>
+
                     </View>
+                </ScrollView>
+            </SafeAreaView>
 
-
-                    <TouchableOpacity
-                        onPress={handleSave}
-                        disabled={saving}
-                        className={`w-full py-5 rounded-2xl flex-row items-center justify-center shadow-lg ${saving ? 'bg-primary/70' : 'bg-primary shadow-blue-200'
-                            }`}
-                    >
-                        {saving ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <>
-                                <Text className="text-white font-bold text-lg mr-2">Sauvegarder les modifications</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+            {/* Bottom Save Button */}
+            <View className="absolute bottom-0 left-0 right-0 bg-white p-5 pt-4 pb-8 border-t border-slate-100 rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                <TouchableOpacity
+                    onPress={handleSave}
+                    disabled={saving}
+                    className="w-full h-16 bg-primary rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-300 active:scale-[0.98] transition-transform"
+                >
+                    {saving ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <>
+                            <Save size={20} color="white" className="mr-2" />
+                            <Text className="text-white font-bold text-lg tracking-wide uppercase">Enregistrer</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 }

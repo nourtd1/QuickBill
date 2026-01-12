@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,7 +12,7 @@ import {
     Modal,
     FlatList
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { X, Plus, Trash2, Share, Check, UserPlus, Search, User, MapPin, ChevronRight, Edit3, ShoppingBag, Package, ChevronDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Print from 'expo-print';
@@ -20,10 +20,11 @@ import * as Sharing from 'expo-sharing';
 import { generateInvoiceHTML } from '../../lib/generate-html';
 import { useProfile } from '../../hooks/useProfile';
 import { useInvoice } from '../../hooks/useInvoice';
+import { useClients } from '../../hooks/useClients';
+import { useItems } from '../../hooks/useItems';
 import { validateCustomerName, validateInvoiceItems, validateTotalAmount } from '../../lib/validation';
 import { showError, showSuccess } from '../../lib/error-handler';
 import { Client, Item } from '../../types';
-import { supabase } from '../../lib/supabase';
 
 interface NewInvoiceItem {
     id: string;
@@ -37,12 +38,15 @@ export default function NewInvoice() {
     const { profile, fetchProfile } = useProfile();
     const { createInvoice, saving: isSaving } = useInvoice();
 
-    // Clients State
+    // Clients Hook (Cached)
+    const { data: allClients } = useClients();
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-    const [allClients, setAllClients] = useState<Client[]>([]);
     const [filteredClients, setFilteredClients] = useState<Client[]>([]);
     const [isClientModalVisible, setIsClientModalVisible] = useState(false);
     const [clientSearch, setClientSearch] = useState('');
+
+    // Items Hook (Cached)
+    const { data: inventoryItems } = useItems();
 
     // Invoice Content State
     const [items, setItems] = useState<NewInvoiceItem[]>([
@@ -54,40 +58,15 @@ export default function NewInvoice() {
     // Inventory Items state
     const [isItemModalVisible, setIsItemModalVisible] = useState(false);
     const [itemSearch, setItemSearch] = useState('');
-    const [inventoryItems, setInventoryItems] = useState<Item[]>([]);
     const [filteredInventoryItems, setFilteredInventoryItems] = useState<Item[]>([]);
 
     useEffect(() => {
         fetchProfile();
-        loadClients();
-        loadInventoryItems();
     }, []);
-
-    // Refresh clients when screen is focused (useful if user creates a client and returns)
-    useFocusEffect(
-        useCallback(() => {
-            loadClients();
-        }, [])
-    );
-
-    const loadClients = async () => {
-        const { data } = await supabase.from('clients').select('*').order('name');
-        if (data) {
-            setAllClients(data);
-            setFilteredClients(data);
-        }
-    };
-
-    const loadInventoryItems = async () => {
-        const { data } = await supabase.from('items').select('*').order('name');
-        if (data) {
-            setInventoryItems(data);
-            setFilteredInventoryItems(data);
-        }
-    };
 
     // Filter clients in modal
     useEffect(() => {
+        if (!allClients) return;
         const result = allClients.filter(c =>
             c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
             c.email?.toLowerCase().includes(clientSearch.toLowerCase()) ||
@@ -98,6 +77,7 @@ export default function NewInvoice() {
 
     // Filter inventory items in modal
     useEffect(() => {
+        if (!inventoryItems) return;
         const result = inventoryItems.filter(item =>
             item.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
             (item.description && item.description.toLowerCase().includes(itemSearch.toLowerCase()))

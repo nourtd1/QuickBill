@@ -51,7 +51,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             background: white;
             position: relative;
             overflow: hidden;
-            min-height: 1100px; /* A4 height approx */
+            /* Removed min-height to avoid forcing 2 pages if content is short */
         }
 
         /* Decorative Sidebar Strip */
@@ -65,7 +65,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         }
 
         .content {
-            padding: 50px 50px 50px 60px; /* Extra left padding for strip */
+            padding: 40px 40px 40px 50px; /* Reduced vertical padding */
             position: relative;
             z-index: 2;
         }
@@ -77,8 +77,8 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             left: 50%;
             transform: translate(-50%, -50%) rotate(-10deg);
             width: 400px;
-            opacity: 0.03;
-            z-index: 1;
+            opacity: 0.04;
+            z-index: 0;
             pointer-events: none;
         }
 
@@ -86,7 +86,9 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 50px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 2;
         }
 
         .brand-section {
@@ -94,70 +96,70 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         }
 
         .logo {
-            height: 70px;
+            height: 120px;
             object-fit: contain;
             margin-bottom: 15px;
             display: block;
         }
 
         .company-name {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 800;
             color: ${primaryColor};
             text-transform: uppercase;
             letter-spacing: -0.5px;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .company-meta {
             font-size: 13px;
-            color: #64748B;
-            line-height: 1.5;
+            color: #334155; /* Darker for better readability */
+            font-weight: 500;
+            line-height: 1.4;
         }
 
         .invoice-box {
             text-align: right;
+            padding-top: 10px;
         }
 
         .doc-title {
-            font-size: 42px;
+            font-size: 32px;
             font-weight: 900;
-            color: #F1F5F9; /* Very light grey for background effect */
+            color: ${primaryColor}; /* Primary Blue */
             text-transform: uppercase;
-            line-height: 0.8;
-            margin-bottom: -20px;
-            position: relative;
-            z-index: -1;
+            line-height: 1;
+            margin-bottom: 10px;
         }
 
         .doc-number-box {
+            background: ${secondaryColor}; /* Using dark slate for contrast against blue title if preferred, or keep primary */
             background: ${primaryColor};
             color: white;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 8px 0 8px 8px;
             display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .doc-number {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
         }
 
         .doc-date {
-            font-size: 12px;
-            margin-top: 5px;
-            opacity: 0.9;
+            font-size: 11px;
+            margin-top: 2px;
+            opacity: 0.95;
         }
 
         /* Billing Info Grid */
         .info-grid {
             display: flex;
             gap: 40px;
-            margin-bottom: 50px;
+            margin-bottom: 30px;
             border-bottom: 2px solid ${lightBg};
-            padding-bottom: 30px;
+            padding-bottom: 20px;
         }
 
         .info-col {
@@ -165,12 +167,12 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         }
 
         .label {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #94A3B8;
-            margin-bottom: 8px;
+            letter-spacing: 1px;
+            color: #475569; /* Darker label */
+            margin-bottom: 6px;
         }
 
         .recipient-name {
@@ -182,14 +184,15 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         .recipient-detail {
             font-size: 14px;
-            color: #64748B;
+            color: #334155; /* Darker detail */
+            font-weight: 500;
         }
 
         /* Premium Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
@@ -202,18 +205,20 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         th {
             text-align: left;
-            padding: 16px 20px;
+            padding: 14px 15px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 800; /* Bolder header */
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            color: #FFFFFF;
         }
 
         td {
-            padding: 16px 20px;
+            padding: 12px 15px;
             border-bottom: 1px solid #E2E8F0;
-            font-size: 14px;
-            color: ${secondaryColor};
+            font-size: 13px;
+            color: #1E293B; /* Darker cell text */
+            font-weight: 500;
         }
 
         tbody tr:nth-child(even) {
@@ -227,42 +232,42 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .summary-section {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 50px;
+            margin-bottom: 30px; /* Reduced margin */
         }
 
         .summary-box {
-            width: 300px;
+            width: 280px;
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 8px 0;
             border-bottom: 1px solid #E2E8F0;
             color: #64748B;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 15px;
-            padding: 20px;
+            margin-top: 10px;
+            padding: 15px;
             background: ${lightBg};
             border-radius: 12px;
             border: 1px solid #E2E8F0;
         }
 
         .total-label {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             color: ${primaryColor};
         }
 
         .total-amount {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 800;
             color: ${secondaryColor};
         }
@@ -271,7 +276,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .footer-grid {
             display: flex;
             gap: 30px;
-            padding-top: 30px;
+            padding-top: 20px; /* Reduced padding */
             border-top: 2px dashed #E2E8F0;
             align-items: flex-start;
         }
@@ -286,41 +291,41 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         }
 
         .thank-you {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             color: ${primaryColor};
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .payment-info {
-            font-size: 12px;
+            font-size: 11px;
             color: #64748B;
-            line-height: 1.6;
+            line-height: 1.5;
             background: #FFF;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
             border: 1px solid #E2E8F0;
         }
 
         .qr-clean {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            border: 4px solid white;
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            border: 3px solid white;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .signature-img {
-            height: 60px;
+            height: 50px;
             object-fit: contain;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .signature-line {
             width: 100%;
             border-top: 1px solid #CBD5E1;
             padding-top: 5px;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
             color: #94A3B8;
             text-transform: uppercase;
@@ -328,13 +333,23 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 
         /* Branding Strip Bottom */
         .bottom-branding {
-            margin-top: 40px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #CBD5E1;
             font-weight: 600;
             letter-spacing: 2px;
             text-transform: uppercase;
+        }
+        
+        /* Print optimization to force single page if possible */
+        @media print {
+            .page-container {
+                page-break-inside: avoid;
+            }
+            tr {
+                page-break-inside: avoid;
+            }
         }
 
     </style>
@@ -376,7 +391,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
                 </div>
                 <div class="info-col" style="text-align: right;">
                     <div class="label">Total à payer</div>
-                    <div style="font-size: 24px; font-weight: 800; color: ${secondaryColor};">
+                    <div style="font-size: 22px; font-weight: 800; color: ${secondaryColor};">
                         ${data.totalAmount.toLocaleString()} ${data.currency}
                     </div>
                 </div>
@@ -427,17 +442,17 @@ export function generateInvoiceHTML(data: InvoiceData): string {
                 <div class="notes-col">
                     <div class="thank-you">Merci de votre confiance !</div>
                     <div class="payment-info">
-                        <div style="font-weight: 600; margin-bottom: 4px; color: ${secondaryColor};">Termes & Conditions</div>
-                        Le paiement est dû à la réception de cette facture. Nous apprécions votre promptitude.
-                        ${data.qrCodeUrl ? `<div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                        <div style="font-weight: 600; margin-bottom: 2px; color: ${secondaryColor};">Termes & Conditions</div>
+                        Paiement dû à réception. Nous apprécions votre promptitude.
+                        ${data.qrCodeUrl ? `<div style="margin-top: 8px; display: flex; align-items: center; gap: 10px;">
                             <img src="${data.qrCodeUrl}" class="qr-clean" />
-                            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${primaryColor};">Scanner pour payer<br>instantanément</div>
+                            <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: ${primaryColor};">Scanner pour<br>payer</div>
                         </div>` : ''}
                     </div>
                 </div>
 
                 <div class="signature-col">
-                    ${data.signatureUrl ? `<img src="${data.signatureUrl}" class="signature-img" />` : '<div style="height: 60px;"></div>'}
+                    ${data.signatureUrl ? `<img src="${data.signatureUrl}" class="signature-img" />` : '<div style="height: 50px;"></div>'}
                     <div class="signature-line">${data.businessName}</div>
                 </div>
             </div>

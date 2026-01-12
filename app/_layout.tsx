@@ -12,6 +12,7 @@ import { useColorScheme } from 'nativewind';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
 import { validateEnv } from '../lib/env';
+import ConfigError from '../components/ConfigError';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -115,24 +116,41 @@ function RootLayoutNav() {
 }
 
 
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../lib/react-query';
+
+// ... (existing imports)
+
 export default function RootLayout() {
+    const [configError, setConfigError] = useState<string | null>(null);
+
     // Validate environment variables on app start
     useEffect(() => {
         try {
             validateEnv();
         } catch (error: any) {
             console.error('❌ Configuration error:', error.message);
-            // In production, you might want to show an error screen instead
+            setConfigError(error.message);
         }
     }, []);
 
+    if (configError) {
+        return (
+            <SafeAreaProvider>
+                <ConfigError error={configError} />
+            </SafeAreaProvider>
+        );
+    }
+
     return (
         <SafeAreaProvider>
-            <AuthProvider>
-                <PreferencesProvider>
-                    <RootLayoutNav />
-                </PreferencesProvider>
-            </AuthProvider>
+            <QueryClientProvider client={queryClient}>
+                <AuthProvider>
+                    <PreferencesProvider>
+                        <RootLayoutNav />
+                    </PreferencesProvider>
+                </AuthProvider>
+            </QueryClientProvider>
         </SafeAreaProvider>
     );
 }

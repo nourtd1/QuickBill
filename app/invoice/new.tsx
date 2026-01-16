@@ -12,7 +12,7 @@ import {
     Modal,
     FlatList
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Plus, Trash2, Share, Check, UserPlus, Search, User, MapPin, ChevronRight, Edit3, ShoppingBag, Package, ChevronDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Print from 'expo-print';
@@ -65,9 +65,41 @@ export default function NewInvoice() {
     // AI State
     const [anomalyAlerts, setAnomalyAlerts] = useState<any[]>([]);
 
+
+    // HANDLE AI AUTO-FILL
+    const params = useLocalSearchParams();
     useEffect(() => {
-        fetchProfile();
-    }, []);
+        if (params.autoParams && allClients) {
+            try {
+                const autoData = JSON.parse(params.autoParams as string);
+
+                // 1. Try to find client
+                if (autoData.customerName) {
+                    const found = allClients.find(c => c.name.toLowerCase().includes(autoData.customerName.toLowerCase()));
+                    if (found) {
+                        setSelectedClient(found);
+                    } else {
+                        // Optional: Show alert that client was not found exactly
+                        Alert.alert("Assistant IA", `Le client "${autoData.customerName}" n'a pas été trouvé dans votre liste. Veuillez le sélectionner ou le créer.`);
+                    }
+                }
+
+                // 2. Fill Item
+                if (autoData.description || autoData.amount) {
+                    setItems([{
+                        id: Date.now().toString(),
+                        description: autoData.description || "Article",
+                        quantity: "1",
+                        unit_price: autoData.amount ? autoData.amount.toString() : "0"
+                    }]);
+                }
+
+            } catch (e) {
+                console.error("AI Auto-Fill Error", e);
+            }
+        }
+    }, [params.autoParams, allClients]);
+
 
     // Filter clients in modal
     useEffect(() => {

@@ -31,12 +31,18 @@ import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+
+import AiVoiceAssistant from '../../components/AiVoiceAssistant';
+import { Sparkles } from 'lucide-react-native';
+
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 function Dashboard() {
     const router = useRouter();
     const { user, profile } = useAuth();
     const { invoices, monthlyRevenue, monthlyExpenses, netProfit, chartData, loading, refresh } = useDashboard();
+
+    const [aiVisible, setAiVisible] = useState(false);
 
     const [greeting, setGreeting] = useState('Bonjour');
 
@@ -270,6 +276,16 @@ function Dashboard() {
 
                 </View>
             </ScrollView>
+
+            {/* AI Assistant FAB */}
+            <TouchableOpacity
+                onPress={() => setAiVisible(true)}
+                className="absolute bottom-6 right-6 w-16 h-16 bg-violet-600 rounded-2xl shadow-xl shadow-violet-400 items-center justify-center z-50 border border-violet-400"
+            >
+                <Sparkles size={28} color="white" fill="white" />
+            </TouchableOpacity>
+
+            <AiVoiceAssistant visible={aiVisible} onClose={() => setAiVisible(false)} />
         </View>
     );
 }

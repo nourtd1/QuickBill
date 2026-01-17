@@ -7,19 +7,35 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-    Image
+    Image,
+    Dimensions
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ArrowLeft, CheckCircle, Smartphone, Search, ScanLine, FileText, Check, Sparkles } from 'lucide-react-native';
+import {
+    ArrowLeft,
+    CheckCircle,
+    Smartphone,
+    Search,
+    ScanLine,
+    FileText,
+    Check,
+    Sparkles,
+    Zap,
+    MessageSquare,
+    ArrowUpRight,
+    ArrowRight,
+    Info
+} from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import { processAudioWithGemini } from '../../lib/gemini'; // Re-use gemini logic if we want, or create text helper
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
 // Helper to ask Gemini to parse Payment SMS
 async function parsePaymentSMSWithGemini(text: string) {
-    // We can reuse the same gemini endpoint but for text
     const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY;
     if (!API_KEY) throw new Error("API Key missing");
 
@@ -49,13 +65,12 @@ async function parsePaymentSMSWithGemini(text: string) {
 
 export default function ReconcilePage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [smsText, setSmsText] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [matchedInvoices, setMatchedInvoices] = useState<any[]>([]);
 
-    // Quick Presets for Demo
     const demoSMS = "Paiement reçu de 150000 RWF de Jean Dupont via MTN Mobile Money. Ref: XJ89230. 16/01/2026.";
 
     const runDemoMatch = () => {
@@ -81,24 +96,20 @@ export default function ReconcilePage() {
         setMatchedInvoices([]);
 
         try {
-            // 1. AI Analysis
             const extracted = await parsePaymentSMSWithGemini(smsText);
             setResult(extracted);
 
             if (extracted?.amount) {
-                // 2. Find matching pending invoices
                 const { data: invoices } = await supabase
                     .from('invoices')
-                    .select('*, customer:customers(*)')
-                    .eq('status', 'PENDING') // Only pending
+                    .select('*, customer:clients(*)')
+                    .eq('status', 'sent')
                     .eq('user_id', user?.id)
                     .order('created_at', { ascending: false });
 
-                // Simple matching logic
                 if (invoices) {
                     const matches = invoices.filter(inv => {
-                        // Check exact amount match
-                        const amountMatch = Math.abs(inv.total_amount - extracted.amount) < 100; // Tolerance
+                        const amountMatch = Math.abs(inv.total_amount - extracted.amount) < 100;
                         return amountMatch;
                     });
                     setMatchedInvoices(matches);
@@ -106,7 +117,6 @@ export default function ReconcilePage() {
             } else {
                 Alert.alert("Echec", "Impossible d'extraire les infos du paiement.");
             }
-
         } catch (e: any) {
             Alert.alert("Erreur", e.message);
         } finally {
@@ -116,7 +126,6 @@ export default function ReconcilePage() {
 
     const confirmReconciliation = async (invoice: any) => {
         try {
-            // Handle Demo Mode
             if (invoice.id === 'demo-id') {
                 Alert.alert("Mode Démo", "Paiement simulé validé avec succès ! ✅");
                 setMatchedInvoices([]);
@@ -127,11 +136,7 @@ export default function ReconcilePage() {
 
             const { error } = await supabase
                 .from('invoices')
-                .update({
-                    status: 'PAID',
-                    // payment_method: result?.provider || 'MOBILE_MONEY', // Add this column to Supabase to enable
-                    // notes: `Réconcilié via SMS Ref: ${result?.ref}`      // Add this column to Supabase to enable
-                })
+                .update({ status: 'paid' })
                 .eq('id', invoice.id);
 
             if (error) throw error;
@@ -145,127 +150,164 @@ export default function ReconcilePage() {
     return (
         <View className="flex-1 bg-slate-50">
             <Stack.Screen options={{ headerShown: false }} />
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
 
-            {/* Header */}
-            <View className="pt-14 pb-4 px-6 bg-white border-b border-slate-100 flex-row items-center justify-between">
-                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-full bg-slate-50">
-                    <ArrowLeft size={24} color="#0F172A" />
-                </TouchableOpacity>
-                <Text className="text-lg font-bold text-slate-900">Réconciliation Mobile Money</Text>
-                <View className="w-10" />
-            </View>
-
-            <ScrollView className="flex-1 px-6 pt-6">
-
-                <Text className="text-slate-500 mb-2 font-medium">Message de confirmation de paiement (SMS)</Text>
-                <View className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
-                    <TextInput
-                        className="text-slate-800 text-base min-h-[100px]"
-                        multiline
-                        placeholder="Collez le SMS ici (ex: Vous avez reçu 50.000 F...)"
-                        value={smsText}
-                        onChangeText={setSmsText}
-                        textAlignVertical="top"
-                    />
-                    {/* Demo Button */}
-                    <TouchableOpacity onPress={runDemoMatch} className="mt-2 self-end">
-                        <Text className="text-blue-600 text-xs font-bold">Voir le résultat</Text>
+            <LinearGradient
+                colors={['#1E40AF', '#1e3a8a']}
+                className="pt-14 pb-10 px-6 rounded-b-[42px] shadow-2xl z-10"
+            >
+                <View className="flex-row justify-between items-center mb-6">
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-10 h-10 bg-white/10 rounded-[14px] items-center justify-center border border-white/20"
+                    >
+                        <ArrowLeft size={20} color="white" strokeWidth={3} />
+                    </TouchableOpacity>
+                    <View className="items-center">
+                        <Text className="text-xl font-black text-white tracking-tight">Vérification</Text>
+                        <Text className="text-blue-200/60 text-[9px] font-black uppercase tracking-[2px] mt-0.5">Mobile Money IA</Text>
+                    </View>
+                    <TouchableOpacity className="w-10 h-10 bg-white/10 rounded-[14px] items-center justify-center border border-white/20">
+                        <Zap size={20} color="white" strokeWidth={2.5} />
                     </TouchableOpacity>
                 </View>
 
-                {/* Main Action Button */}
+                {/* AI Assistant Banner */}
+                <View className="bg-white/10 p-4 rounded-[24px] border border-white/15 backdrop-blur-md flex-row items-center">
+                    <View className="w-10 h-10 bg-indigo-500 rounded-xl items-center justify-center shadow-lg">
+                        <Sparkles size={20} color="white" strokeWidth={2.5} />
+                    </View>
+                    <View className="ml-4 flex-1">
+                        <Text className="text-white font-black text-sm">Assistant Intelligent</Text>
+                        <Text className="text-blue-200/60 text-[8px] font-bold uppercase tracking-widest">Réconciliez vos factures par SMS</Text>
+                    </View>
+                </View>
+            </LinearGradient>
+
+            <ScrollView
+                className="flex-1"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+            >
+                {/* SMS Input Section */}
+                <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Preuve de paiement</Text>
+                <View className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-6">
+                    <View className="flex-row items-center mb-4">
+                        <Smartphone size={20} color="#1E40AF" strokeWidth={2.5} className="mr-3" />
+                        <Text className="text-slate-900 font-black text-base">Message Mobile Money</Text>
+                    </View>
+                    <TextInput
+                        className="text-slate-800 text-base min-h-[120px] bg-slate-50 p-4 rounded-2xl border border-slate-100"
+                        multiline
+                        placeholder="Collez le SMS de confirmation reçu ici..."
+                        value={smsText}
+                        onChangeText={setSmsText}
+                        placeholderTextColor="#CBD5E1"
+                        textAlignVertical="top"
+                    />
+                    <TouchableOpacity onPress={runDemoMatch} className="mt-4 flex-row items-center self-end">
+                        <Text className="text-blue-600 text-[10px] font-black uppercase tracking-widest mr-2">Essayer avec une démo</Text>
+                        <ArrowRight size={12} color="#2563EB" strokeWidth={3} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Analyze Button */}
                 <TouchableOpacity
                     onPress={handleAnalyze}
-                    className="bg-slate-900 rounded-2xl py-4 items-center justify-center shadow-lg shadow-slate-300 mb-8"
+                    className="bg-slate-900 rounded-[28px] py-5 items-center justify-center shadow-xl shadow-slate-300 mb-10 overflow-hidden"
                     disabled={analyzing}
                 >
                     {analyzing ? (
                         <ActivityIndicator color="white" />
                     ) : (
                         <View className="flex-row items-center">
-                            <ContextSearch size={20} color="white" className="mr-2" />
-                            <Text className="text-white font-bold text-lg">Analyser & Trouver la Facture</Text>
+                            <Zap size={20} color="white" strokeWidth={2.5} className="mr-3" />
+                            <Text className="text-white font-black text-lg uppercase tracking-wider">Trouver la Facture</Text>
                         </View>
                     )}
                 </TouchableOpacity>
 
-                {/* Results Area */}
+                {/* Analysis Results */}
                 {result && (
-                    <View className="mb-8">
-                        <Text className="text-slate-900 font-bold text-lg mb-4">Résultat Analyse</Text>
+                    <View className="mt-4">
+                        <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Rapport d'analyse IA</Text>
 
-                        {/* Extracted Data Card */}
-                        <View className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-6 flex-row justify-between items-center">
+                        <LinearGradient
+                            colors={['#3B82F6', '#1E40AF']}
+                            className="p-6 rounded-[32px] shadow-xl shadow-blue-200 mb-8 flex-row justify-between items-center"
+                        >
                             <View>
-                                <Text className="text-blue-500 text-xs font-bold uppercase mb-1">Montant Reçu</Text>
-                                <Text className="text-slate-900 font-black text-2xl">{result.amount?.toLocaleString()} <Text className="text-sm text-slate-500">RWF</Text></Text>
-                                <Text className="text-slate-500 text-xs mt-1">De: {result.sender} • {result.provider}</Text>
+                                <Text className="text-blue-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Montant Détecté</Text>
+                                <Text className="text-white font-black text-3xl">{result.amount?.toLocaleString()} <Text className="text-base text-blue-200/60 font-medium">{profile?.currency || 'RWF'}</Text></Text>
+                                <View className="flex-row items-center mt-2">
+                                    <View className="bg-white/20 px-2 py-0.5 rounded-lg mr-2">
+                                        <Text className="text-white text-[8px] font-black">{result.provider}</Text>
+                                    </View>
+                                    <Text className="text-blue-100 text-[10px] font-bold">Réf: {result.ref}</Text>
+                                </View>
                             </View>
-                            <View className="bg-white p-3 rounded-full shadow-sm">
-                                <CheckCircle size={24} color="#3B82F6" />
+                            <View className="bg-white/20 p-4 rounded-3xl">
+                                <CheckCircle size={32} color="white" strokeWidth={2.5} />
                             </View>
-                        </View>
+                        </LinearGradient>
 
-                        {/* Matches */}
-                        <Text className="text-slate-900 font-bold text-lg mb-4">Factures Correspondantes ({matchedInvoices.length})</Text>
-
+                        <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Correspondances ({matchedInvoices.length})</Text>
 
                         {matchedInvoices.length > 0 ? (
                             matchedInvoices.map((inv) => (
-                                <View key={inv.id} className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-100 mb-6">
-
-                                    {/* AI Message Bubble */}
-                                    <View className="flex-row items-start mb-6">
-                                        <View className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center mr-3">
-                                            <Sparkles size={20} color="#4F46E5" />
+                                <View key={inv.id} className="bg-white p-6 rounded-[32px] border border-indigo-100 shadow-xl shadow-indigo-100/20 mb-6">
+                                    <View className="flex-row items-center mb-6">
+                                        <View className="w-12 h-12 bg-indigo-50 rounded-2xl items-center justify-center mr-4">
+                                            <Sparkles size={24} color="#4F46E5" />
                                         </View>
-                                        <View className="flex-1 bg-slate-50 p-4 rounded-xl rounded-tl-none border border-slate-100">
-                                            <Text className="text-slate-800 text-base leading-6">
-                                                J'ai trouvé une facture qui correspond ! C'est celle de <Text className="font-bold">{inv.customer?.name}</Text> ({inv.total_amount?.toLocaleString()}).
-                                                {"\n\n"}Veux-tu la marquer comme payée ?
+                                        <View className="flex-1">
+                                            <Text className="text-slate-900 font-black text-lg leading-tight">
+                                                Trouvé !
                                             </Text>
+                                            <Text className="text-slate-400 text-xs font-bold">Facture #{inv.invoice_number}</Text>
                                         </View>
                                     </View>
 
-                                    {/* Action Buttons */}
-                                    <View className="flex-row gap-4">
+                                    <View className="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100">
+                                        <View className="flex-row justify-between items-center mb-2">
+                                            <Text className="text-slate-400 text-[8px] font-black uppercase tracking-widest">Client</Text>
+                                            <Text className="text-slate-400 text-[8px] font-black uppercase tracking-widest">Montant</Text>
+                                        </View>
+                                        <View className="flex-row justify-between items-end">
+                                            <Text className="text-slate-900 font-black text-base flex-1 mr-4">{inv.customer?.name}</Text>
+                                            <Text className="text-slate-900 font-black text-xl">{inv.total_amount?.toLocaleString()}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View className="flex-row gap-3">
                                         <TouchableOpacity
                                             onPress={() => confirmReconciliation(inv)}
-                                            className="flex-1 bg-green-500 py-4 rounded-xl items-center shadow-lg shadow-green-200 active:scale-95 transform transition-all"
+                                            className="flex-1 bg-emerald-500 py-4 rounded-2xl items-center shadow-lg shadow-emerald-200 active:scale-95 transition-all"
                                         >
-                                            <Text className="text-white font-black text-lg">OUI</Text>
-                                            <Text className="text-green-100 text-xs font-bold">Confirmer</Text>
+                                            <Text className="text-white font-black text-xs uppercase tracking-widest">Valider le paiement</Text>
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
-                                            className="flex-1 bg-white border-2 border-slate-200 py-4 rounded-xl items-center active:bg-slate-50"
+                                            className="p-4 bg-slate-100 rounded-2xl active:bg-slate-200"
                                             onPress={() => {
-                                                // Just visual feedback for now, or clear match
-                                                Alert.alert("D'accord", "Je continue de chercher...");
+                                                Alert.alert("Ignoré", "Cette facture ne sera pas marquée comme payée.");
                                                 setMatchedInvoices([]);
                                             }}
                                         >
-                                            <Text className="text-slate-400 font-bold text-lg">NON</Text>
-                                            <Text className="text-slate-300 text-xs font-bold">Ignorer</Text>
+                                            <ArrowLeft size={20} color="#64748B" strokeWidth={3} />
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             ))
                         ) : (
-                            <View className="bg-slate-100 p-6 rounded-2xl items-center justify-center border-2 border-dashed border-slate-200">
-                                <Text className="text-slate-500 font-medium text-center">Aucune facture ne correspond à ce montant...</Text>
+                            <View className="bg-white p-10 rounded-[32px] items-center justify-center border border-dashed border-slate-200">
+                                <Info size={40} color="#CBD5E1" strokeWidth={1.5} className="mb-4" />
+                                <Text className="text-slate-400 font-bold text-center">Aucune facture en attente ne correspond à ce montant.</Text>
                             </View>
                         )}
-
                     </View>
                 )}
             </ScrollView>
         </View>
     );
-}
-
-// Icon helper
-function ContextSearch(props: any) {
-    return <Search {...props} />
 }

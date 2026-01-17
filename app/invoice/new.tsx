@@ -10,11 +10,13 @@ import {
     Alert,
     ActivityIndicator,
     Modal,
-    FlatList
+    FlatList,
+    StyleSheet
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, Plus, Trash2, Share, Check, UserPlus, Search, User, MapPin, ChevronRight, Edit3, ShoppingBag, Package, ChevronDown } from 'lucide-react-native';
+import { X, Plus, Trash2, Share, Check, UserPlus, Search, User, MapPin, ChevronRight, Edit3, ShoppingBag, Package, ChevronDown, MessageCircle, Globe, LayoutGrid, Info, FileText } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { generateInvoiceHTML } from '../../lib/generate-html';
@@ -64,6 +66,10 @@ export default function NewInvoice() {
 
     // AI State
     const [anomalyAlerts, setAnomalyAlerts] = useState<any[]>([]);
+
+    // Success Modal State
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [savedInvoice, setSavedInvoice] = useState<any>(null);
 
 
     // HANDLE AI AUTO-FILL
@@ -199,7 +205,6 @@ export default function NewInvoice() {
             return;
         }
 
-        // Prepare and validate items
         const itemsData = items.map(item => ({
             description: item.description || "Article",
             quantity: parseFloat(item.quantity) || 0,
@@ -220,53 +225,51 @@ export default function NewInvoice() {
 
         setGeneratingPdf(true);
         try {
-            console.log("Sauvegarde de la facture en base de données...");
-            const savedInvoice = await createInvoice(selectedClient.name, itemsData, total, selectedClient.id);
+            const result = await createInvoice(selectedClient.name, itemsData, total, selectedClient.id);
+            if (!result) throw new Error("Erreur lors de la sauvegarde");
 
-            if (!savedInvoice) throw new Error("Erreur lors de la sauvegarde");
-
-            console.log("Préparation des données PDF...");
-            const invoiceData = {
-                invoiceNumber: savedInvoice.invoice_number,
-                date: new Date(savedInvoice.created_at).toLocaleDateString(),
-                customerName: selectedClient.name,
-                businessName: profile?.business_name || "Mon Business",
-                businessPhone: profile?.phone_contact || "Contactez-nous",
-                currency: profile?.currency || "RWF",
-                logoUrl: profile?.logo_url,
-                signatureUrl: profile?.signature_url,
-                items: itemsData.map(i => ({ ...i, total: i.quantity * i.unitPrice })),
-                totalAmount: total
-            };
-
-            console.log("Génération du HTML...");
-            const html = generateInvoiceHTML(invoiceData);
-
-            console.log("Impression en PDF...");
-            const { uri } = await Print.printToFileAsync({ html, base64: false });
-            console.log("PDF généré à :", uri);
-
-            const isAvailable = await Sharing.isAvailableAsync();
-            if (isAvailable) {
-                console.log("Ouverture du menu de partage...");
-                await Sharing.shareAsync(uri, {
-                    UTI: '.pdf',
-                    mimeType: 'application/pdf',
-                    dialogTitle: `Facture ${savedInvoice.invoice_number}`
-                });
-                showSuccess("Facture envoyée !", "Succès");
-                router.replace('/(tabs)');
-            } else {
-                console.warn("Le partage n'est pas disponible, affichage de l'URI");
-                Alert.alert("Info", `PDF sauvegardé : ${uri}`);
-                router.replace('/(tabs)');
-            }
-
+            setSavedInvoice(result);
+            setShowSuccessModal(true);
         } catch (error: any) {
-            console.error("Erreur complète lors de la création/partage :", error);
-            showError(error, "Erreur lors de la création");
+            console.error("Erreur creation :", error);
+            showError(error);
         } finally {
             setGeneratingPdf(false);
+        }
+    };
+
+    const handleQuickShare = async (type: 'pdf' | 'chat' | 'portal') => {
+        if (!savedInvoice) return;
+
+        if (type === 'pdf') {
+            setGeneratingPdf(true);
+            try {
+                const invoiceData = {
+                    invoiceNumber: savedInvoice.invoice_number,
+                    date: new Date(savedInvoice.created_at).toLocaleDateString(),
+                    customerName: selectedClient?.name || "Client",
+                    businessName: profile?.business_name || "Mon Business",
+                    businessPhone: profile?.phone_contact || "Contactez-nous",
+                    currency: profile?.currency || "RWF",
+                    logoUrl: profile?.logo_url,
+                    signatureUrl: profile?.signature_url,
+                    items: items.map(i => ({ description: i.description, quantity: parseFloat(i.quantity) || 0, unitPrice: parseFloat(i.unit_price) || 0, total: (parseFloat(i.quantity) || 0) * (parseFloat(i.unit_price) || 0) })),
+                    totalAmount: total
+                };
+                const html = generateInvoiceHTML(invoiceData);
+                const { uri } = await Print.printToFileAsync({ html, base64: false });
+                await Sharing.shareAsync(uri);
+            } catch (e) {
+                showError(e);
+            } finally {
+                setGeneratingPdf(false);
+            }
+        } else if (type === 'chat') {
+            setShowSuccessModal(false);
+            router.push(`/invoice/${savedInvoice.id}?chat=true`);
+        } else if (type === 'portal') {
+            const url = `https://quickbill.app/public/client/${selectedClient?.portal_token}`;
+            await Sharing.shareAsync(url);
         }
     };
 
@@ -276,85 +279,147 @@ export default function NewInvoice() {
         <View className="flex-1 bg-slate-50">
             <StatusBar style="light" />
 
-            {/* Header */}
-            <View className="bg-primary pt-16 pb-8 px-6 rounded-b-[40px] shadow-lg z-10">
-                <View className="flex-row justify-between items-center mb-4">
-                    <TouchableOpacity onPress={() => router.back()} disabled={isLoading} className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+            {/* Header Upgrade */}
+            <LinearGradient
+                colors={['#1E40AF', '#1e3a8a']}
+                className="pt-16 pb-12 px-6 rounded-b-[48px] shadow-2xl z-10"
+            >
+                <View className="flex-row justify-between items-center mb-6">
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        disabled={isLoading}
+                        className="bg-white/20 w-12 h-12 items-center justify-center rounded-2xl border border-white/10 backdrop-blur-md"
+                    >
                         <X size={24} color="white" />
                     </TouchableOpacity>
-                    <Text className="text-white text-xl font-black tracking-tight">Nouvelle Facture</Text>
-                    <View style={{ width: 40 }} />
+                    <View className="items-center">
+                        <Text className="text-white text-2xl font-black tracking-tight">Nouvelle Facture</Text>
+                        <Text className="text-blue-200/80 text-[10px] font-bold uppercase tracking-[2px] mt-1">Édition Professionnelle</Text>
+                    </View>
+                    <View className="w-12 h-12 bg-white/10 items-center justify-center rounded-2xl border border-white/5">
+                        <FileText size={20} color="white" opacity={0.5} />
+                    </View>
                 </View>
-                <Text className="text-blue-100 text-center font-medium">Créez une facture professionnelle en quelques secondes.</Text>
-            </View>
+
+                <View className="bg-white/10 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                    <Text className="text-white/90 text-center font-medium leading-relaxed">
+                        Créez, personnalisez et envoyez votre facture en quelques secondes.
+                    </Text>
+                </View>
+            </LinearGradient>
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
-
+                <ScrollView
+                    className="flex-1 px-4 pt-8"
+                    contentContainerStyle={{ paddingBottom: 180 }}
+                    showsVerticalScrollIndicator={false}
+                >
                     {/* AI Alerts */}
                     <AnomalyAlert alerts={anomalyAlerts} />
 
-                    {/* Section Client - Expert UX */}
-                    <Text className="text-slate-500 text-xs font-bold mb-3 uppercase tracking-wider ml-4">Client à facturer</Text>
+                    {/* Step 1: Client */}
+                    <View className="flex-row items-center mb-4 ml-2">
+                        <View className="w-7 h-7 bg-primary rounded-full items-center justify-center mr-3 shadow-sm shadow-blue-400">
+                            <Text className="text-white font-black text-xs">1</Text>
+                        </View>
+                        <Text className="text-slate-900 text-lg font-black tracking-tight">Client à facturer</Text>
+                    </View>
 
                     {!selectedClient ? (
                         <TouchableOpacity
                             onPress={() => setIsClientModalVisible(true)}
-                            className="bg-white p-6 rounded-3xl border border-dashed border-slate-300 items-center justify-center mb-8 shadow-sm"
+                            className="bg-white p-8 rounded-[32px] border-2 border-dashed border-slate-200 items-center justify-center mb-10 shadow-sm active:scale-[0.98] transition-all bg-slate-50/50"
                         >
-                            <View className="w-16 h-16 bg-blue-50 rounded-full items-center justify-center mb-3 border border-blue-100">
-                                <UserPlus size={32} color="#1E40AF" />
+                            <View className="w-20 h-20 bg-blue-50 rounded-3xl items-center justify-center mb-4 border border-blue-100 shadow-inner">
+                                <UserPlus size={40} color="#1E40AF" strokeWidth={1.5} />
                             </View>
-                            <Text className="text-blue-800 font-bold text-lg">Sélectionner un client</Text>
+                            <Text className="text-slate-900 font-black text-xl mb-1">Qui facturez-vous ?</Text>
+                            <Text className="text-slate-400 text-center text-sm font-medium">Appuyez pour sélectionner un client existant ou en créer un nouveau.</Text>
                         </TouchableOpacity>
                     ) : (
-                        <TouchableOpacity onPress={() => setIsClientModalVisible(true)} className="bg-white p-5 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 mb-8 flex-row justify-between items-center">
+                        <TouchableOpacity
+                            onPress={() => setIsClientModalVisible(true)}
+                            className="bg-white p-6 rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 mb-10 flex-row justify-between items-center active:scale-[0.98]"
+                        >
                             <View className="flex-row items-center flex-1">
-                                <View className="w-12 h-12 bg-blue-100 rounded-2xl items-center justify-center mr-4">
-                                    <Text className="text-blue-700 font-black text-lg">{selectedClient.name.charAt(0)}</Text>
-                                </View>
+                                <LinearGradient
+                                    colors={['#DBEAFE', '#EFF6FF']}
+                                    className="w-14 h-14 rounded-2xl items-center justify-center mr-4 shadow-sm border border-blue-100"
+                                >
+                                    <Text className="text-primary font-black text-2xl">{selectedClient.name.charAt(0).toUpperCase()}</Text>
+                                </LinearGradient>
                                 <View className="flex-1">
-                                    <Text className="text-slate-900 font-bold text-lg mb-0.5">{selectedClient.name}</Text>
-                                    <Text className="text-slate-400 text-sm font-medium">{selectedClient.email || selectedClient.phone || 'Sans Contact'}</Text>
+                                    <Text className="text-slate-900 font-bold text-xl mb-0.5">{selectedClient.name}</Text>
+                                    <View className="flex-row items-center">
+                                        <MapPin size={12} color="#94A3B8" className="mr-1" />
+                                        <Text className="text-slate-400 text-xs font-semibold" numberOfLines={1}>
+                                            {selectedClient.email || selectedClient.address || 'Adresse non spécifiée'}
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
-                            <View className="bg-slate-50 p-2 rounded-xl">
-                                <Edit3 size={18} color="#64748B" />
+                            <View className="bg-slate-50 w-10 h-10 rounded-full items-center justify-center">
+                                <ChevronDown size={20} color="#64748B" />
                             </View>
                         </TouchableOpacity>
                     )}
 
-                    {/* Section Articles */}
-                    <View>
-                        <View className="flex-row justify-between items-center mb-3 px-4">
-                            <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider">Détails de la facture</Text>
-                            <TouchableOpacity onPress={() => setIsItemModalVisible(true)} className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-full">
-                                <ShoppingBag size={14} color="#1E40AF" className="mr-1.5" />
-                                <Text className="text-blue-700 text-xs font-bold">Importer</Text>
+                    {/* Step 2: Articles */}
+                    <View className="flex-row items-center mb-4 ml-2 mt-2">
+                        <View className="w-7 h-7 bg-primary rounded-full items-center justify-center mr-3 shadow-sm shadow-blue-400">
+                            <Text className="text-white font-black text-xs">2</Text>
+                        </View>
+                        <View className="flex-1 flex-row justify-between items-center">
+                            <Text className="text-slate-900 text-lg font-black tracking-tight">Détails de la prestation</Text>
+                            <TouchableOpacity
+                                onPress={() => setIsItemModalVisible(true)}
+                                className="bg-blue-600 px-4 py-2 rounded-xl shadow-lg shadow-blue-200 flex-row items-center active:scale-95"
+                            >
+                                <ShoppingBag size={14} color="white" className="mr-2" />
+                                <Text className="text-white text-xs font-black uppercase tracking-wider">Catalogue</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
 
+                    <View>
                         {items.map((item, index) => (
-                            <View key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-4 transition-all">
-                                <View className="flex-row justify-between items-start mb-4">
-                                    <View className="bg-slate-50 w-8 h-8 rounded-full items-center justify-center mr-3 mt-1">
-                                        <Text className="text-slate-400 font-bold text-xs">{index + 1}</Text>
+                            <View key={item.id} className="bg-white mb-6 rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                                <View className="bg-slate-50/80 px-5 py-3 border-b border-slate-100 flex-row justify-between items-center">
+                                    <View className="flex-row items-center">
+                                        <View className="w-6 h-6 bg-slate-200 rounded-full items-center justify-center mr-2">
+                                            <Text className="text-slate-500 font-bold text-[10px]">{index + 1}</Text>
+                                        </View>
+                                        <Text className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Article</Text>
                                     </View>
-                                    <View className="flex-1">
-                                        <TextInput
-                                            className="text-slate-900 font-bold text-base bg-slate-50 rounded-xl px-3 py-2 min-h-[40px]"
-                                            placeholder="Description du service..."
-                                            placeholderTextColor="#94A3B8"
-                                            multiline
-                                            value={item.description}
-                                            onChangeText={(text) => updateItem(item.id, 'description', text)}
-                                            editable={!isLoading}
-                                        />
-                                        {/* AI Suggestion - Relative Position */}
+                                    <TouchableOpacity
+                                        onPress={() => removeItem(item.id)}
+                                        disabled={isLoading}
+                                        className="p-2 -mr-2"
+                                    >
+                                        <Trash2 size={16} color="#EF4444" opacity={0.6} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View className="p-5">
+                                    {/* Description Input */}
+                                    <View className="mb-5">
+                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-2 ml-1">Désignation du service</Text>
+                                        <View className="bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100 flex-row items-start">
+                                            <Edit3 size={16} color="#94A3B8" className="mr-3 mt-1" />
+                                            <TextInput
+                                                className="flex-1 text-slate-900 font-bold text-base leading-6 p-0"
+                                                placeholder="Que facturez-vous ?"
+                                                placeholderTextColor="#CBD5E1"
+                                                multiline
+                                                value={item.description}
+                                                onChangeText={(text) => updateItem(item.id, 'description', text)}
+                                                editable={!isLoading}
+                                            />
+                                        </View>
                                         <SmartPriceSuggestion
                                             itemName={item.description}
                                             currency={profile?.currency || 'USD'}
@@ -362,49 +427,51 @@ export default function NewInvoice() {
                                             onAccept={(price) => updateItem(item.id, 'unit_price', price.toString())}
                                         />
                                     </View>
-                                    <TouchableOpacity
-                                        onPress={() => removeItem(item.id)}
-                                        disabled={isLoading}
-                                        className="ml-3 mt-2 bg-red-50 p-2 rounded-xl"
-                                    >
-                                        <Trash2 size={18} color="#EF4444" />
-                                    </TouchableOpacity>
-                                </View>
 
-                                <View className="flex-row items-center space-x-3">
-                                    <View className="flex-1 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
-                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Qté</Text>
-                                        <TextInput
-                                            className="text-slate-900 font-bold text-lg"
-                                            keyboardType="numeric"
-                                            value={item.quantity}
-                                            onChangeText={(text) => updateItem(item.id, 'quantity', text)}
-                                            editable={!isLoading}
-                                        />
-                                    </View>
+                                    {/* Values Row */}
+                                    <View className="flex-row items-center space-x-3 gap-3">
+                                        <View className="flex-1 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
+                                            <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Quantité</Text>
+                                            <View className="flex-row items-center">
+                                                <TextInput
+                                                    className="text-slate-900 font-black text-xl flex-1 p-0"
+                                                    keyboardType="numeric"
+                                                    value={item.quantity}
+                                                    onChangeText={(text) => updateItem(item.id, 'quantity', text)}
+                                                    editable={!isLoading}
+                                                />
+                                            </View>
+                                        </View>
 
-                                    <View className="flex-[1.5] bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
-                                        <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Prix Unit.</Text>
-                                        <View className="flex-row items-center">
-                                            <TextInput
-                                                className="text-slate-900 font-bold text-lg flex-1"
-                                                keyboardType="numeric"
-                                                placeholder="0"
-                                                placeholderTextColor="#CBD5E1"
-                                                value={item.unit_price}
-                                                onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
-                                                editable={!isLoading}
-                                            />
-                                            <Text className="text-slate-400 font-medium text-xs ml-1">{profile?.currency}</Text>
+                                        <View className="flex-[1.5] bg-slate-50 rounded-2xl px-4 py-3 border border-slate-200/50 ring-1 ring-blue-500/10">
+                                            <Text className="text-primary text-[10px] font-black uppercase mb-1">Prix Unitaire</Text>
+                                            <View className="flex-row items-center">
+                                                <Text className="text-blue-400 font-bold text-sm mr-1.5">{profile?.currency}</Text>
+                                                <TextInput
+                                                    className="text-slate-900 font-black text-xl flex-1 p-0"
+                                                    keyboardType="numeric"
+                                                    placeholder="0"
+                                                    placeholderTextColor="#CBD5E1"
+                                                    value={item.unit_price}
+                                                    onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
+                                                    editable={!isLoading}
+                                                />
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
 
-                                <View className="mt-3 pt-3 border-t border-slate-50 flex-row justify-end">
-                                    <Text className="text-slate-400 text-xs font-medium mr-2">Sous-total:</Text>
-                                    <Text className="text-slate-900 font-bold">
-                                        {((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)).toLocaleString()} {profile?.currency || 'RWF'}
-                                    </Text>
+                                    {/* Line Total Highlight */}
+                                    <View className="mt-5 pt-4 border-t border-slate-50 flex-row justify-between items-center">
+                                        <View className="flex-row items-center">
+                                            <Info size={12} color="#94A3B8" className="mr-1.5" />
+                                            <Text className="text-slate-400 text-[10px] font-medium tracking-wide">Calcul automatique</Text>
+                                        </View>
+                                        <View className="bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
+                                            <Text className="text-primary font-black text-base">
+                                                {((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)).toLocaleString()} <Text className="text-[10px] font-bold">{profile?.currency}</Text>
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </View>
                             </View>
                         ))}
@@ -412,43 +479,58 @@ export default function NewInvoice() {
                         <TouchableOpacity
                             onPress={addItem}
                             disabled={isLoading}
-                            className="flex-row items-center justify-center p-4 bg-slate-100 rounded-2xl border border-dashed border-slate-300 mb-8 active:bg-slate-200"
+                            className="bg-white p-5 rounded-[24px] border border-dashed border-slate-300 flex-row items-center justify-center mb-12 shadow-sm active:bg-slate-50 active:scale-[0.98]"
                         >
-                            <Plus size={20} color="#475569" className="mr-2" />
-                            <Text className="text-slate-600 font-bold">Ajouter une ligne vide</Text>
+                            <View className="bg-slate-100 p-2 rounded-xl mr-3">
+                                <Plus size={20} color="#64748B" strokeWidth={3} />
+                            </View>
+                            <Text className="text-slate-600 font-black text-base">Ajouter une autre prestation</Text>
                         </TouchableOpacity>
                     </View>
-
                 </ScrollView>
             </KeyboardAvoidingView>
 
             {/* Total Footer Section */}
-            <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] border-t border-slate-100 p-6 pt-5 pb-8">
-                <View className="flex-row justify-between items-center mb-5 px-2">
+            <View className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl rounded-t-[48px] shadow-2xl border-t border-slate-100 p-6 pt-5 pb-10">
+                <View className="flex-row justify-between items-center mb-6 px-4">
                     <View>
-                        <Text className="text-slate-400 text-xs font-bold uppercase">Total à payer</Text>
-                        <Text className="text-3xl font-black text-slate-900 tracking-tight">
-                            {total.toLocaleString()} <Text className="text-lg text-slate-500 font-medium">{profile?.currency || 'RWF'}</Text>
+                        <View className="flex-row items-center mb-1">
+                            <Text className="text-slate-400 text-[10px] font-black uppercase tracking-widest mr-2">Total Facturé</Text>
+                            <LayoutGrid size={12} color="#94A3B8" />
+                        </View>
+                        <Text className="text-4xl font-black text-slate-900 tracking-tight">
+                            {total.toLocaleString()} <Text className="text-xl text-primary font-bold">{profile?.currency}</Text>
                         </Text>
                     </View>
-                    <View className="bg-blue-50 px-3 py-1.5 rounded-full">
-                        <Text className="text-blue-700 text-xs font-bold">{items.length} Articles</Text>
+                    <View className="bg-primary/10 px-5 py-3 rounded-2xl items-end border border-primary/10">
+                        <Text className="text-primary font-black text-xl">{items.length}</Text>
+                        <Text className="text-primary/60 text-[8px] font-black uppercase tracking-tighter">Lignes</Text>
                     </View>
                 </View>
 
                 <TouchableOpacity
                     onPress={handleCreateAndShare}
                     disabled={total <= 0 || isLoading || !selectedClient}
-                    className={`w-full h-16 rounded-2xl flex-row items-center justify-center shadow-lg ${total > 0 && !isLoading && selectedClient ? 'bg-primary shadow-blue-200' : 'bg-slate-200 shadow-transparent'}`}
+                    className={`w-full h-18 rounded-[24px] overflow-hidden shadow-2xl ${total > 0 && !isLoading && selectedClient ? 'shadow-blue-300' : 'shadow-transparent'}`}
+                    activeOpacity={0.8}
                 >
-                    {isLoading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <>
-                            <Text className={`font-black text-lg uppercase mr-2 ${total > 0 && selectedClient ? 'text-white' : 'text-slate-400'}`}>Finaliser la facture</Text>
-                            {total > 0 && selectedClient && <Share size={20} color="white" strokeWidth={3} />}
-                        </>
-                    )}
+                    <LinearGradient
+                        colors={total > 0 && !isLoading && selectedClient ? ['#1E40AF', '#1e3a8a'] : ['#E2E8F0', '#CBD5E1']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        className="w-full h-16 items-center justify-center flex-row"
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Text className={`font-black text-lg uppercase tracking-wider mr-3 ${total > 0 && selectedClient ? 'text-white' : 'text-slate-400'}`}>
+                                    Finaliser la facture
+                                </Text>
+                                <Share size={20} color={total > 0 && selectedClient ? 'white' : '#94A3B8'} strokeWidth={3} />
+                            </>
+                        )}
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
@@ -537,7 +619,8 @@ export default function NewInvoice() {
                     </View>
                 </View>
             </Modal>
-            {/* Modal de Sélection Article (Inventaire) */}
+
+            {/* Modal de Sélection Article (Catalogue) */}
             <Modal
                 visible={isItemModalVisible}
                 animationType="slide"
@@ -615,6 +698,74 @@ export default function NewInvoice() {
                                 </View>
                             )}
                         />
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal de Succès & Envoi */}
+            <Modal
+                visible={showSuccessModal}
+                animationType="fade"
+                transparent={true}
+            >
+                <View className="flex-1 bg-slate-900/60 justify-center items-center px-6">
+                    <View className="bg-white w-full rounded-[40px] p-8 items-center shadow-2xl">
+                        <View className="bg-emerald-100 w-20 h-20 rounded-full items-center justify-center mb-6">
+                            <Check size={40} color="#059669" strokeWidth={3} />
+                        </View>
+
+                        <Text className="text-2xl font-black text-slate-900 text-center mb-2">Facture Prête !</Text>
+                        <Text className="text-slate-500 text-center mb-8 px-4">
+                            La facture <Text className="font-bold text-primary">#{savedInvoice?.invoice_number}</Text> a été créée. Comment souhaitez-vous l'envoyer ?
+                        </Text>
+
+                        <View className="w-full space-y-4">
+                            <TouchableOpacity
+                                onPress={() => handleQuickShare('pdf')}
+                                className="bg-slate-900 h-16 rounded-2xl flex-row items-center px-6 mb-4"
+                            >
+                                <View className="bg-white/10 p-2 rounded-lg mr-4">
+                                    <Share size={20} color="white" />
+                                </View>
+                                <Text className="text-white font-bold text-lg">Partager le PDF</Text>
+                                <ChevronRight size={20} color="#94A3B8" className="ml-auto" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => handleQuickShare('chat')}
+                                className="bg-violet-600 h-16 rounded-2xl flex-row items-center px-6 mb-4"
+                            >
+                                <View className="bg-white/10 p-2 rounded-lg mr-4">
+                                    <MessageCircle size={20} color="white" />
+                                </View>
+                                <View>
+                                    <Text className="text-white font-bold text-lg">Discuter avec le client</Text>
+                                    <Text className="text-violet-200 text-[10px] font-medium">Assistant Chat Intégré</Text>
+                                </View>
+                                <ChevronRight size={20} color="#C4B5FD" className="ml-auto" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => handleQuickShare('portal')}
+                                className="bg-blue-600 h-16 rounded-2xl flex-row items-center px-6"
+                            >
+                                <View className="bg-white/10 p-2 rounded-lg mr-4">
+                                    <Globe size={20} color="white" />
+                                </View>
+                                <Text className="text-white font-bold text-lg">Lien Portail Client</Text>
+                                <ChevronRight size={20} color="#BFDBFE" className="ml-auto" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setShowSuccessModal(false);
+                                router.replace('/(tabs)');
+                            }}
+                            className="mt-8 p-4 w-full items-center"
+                        >
+                            <Text className="text-slate-400 font-bold">Retour à l'accueil</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>

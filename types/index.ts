@@ -8,8 +8,15 @@ export interface Profile {
     is_premium?: boolean;
     signature_url?: string | null;
     whatsapp_template?: string;
-    payment_method?: string;
-    payment_details?: string;
+    payment_method?: string | null;
+    payment_details?: string | null;
+    // New fields
+    website?: string | null;
+    tax_id?: string | null;
+    rccm?: string | null;
+    bank_name?: string | null;
+    bank_iban?: string | null;
+    bank_swift?: string | null;
 }
 
 export interface Customer {
@@ -26,6 +33,7 @@ export interface Client {
     email?: string | null;
     phone?: string | null;
     address?: string | null;
+    portal_token?: string | null;
     created_at: string;
 }
 

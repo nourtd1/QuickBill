@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send } from 'lucide-react-native';
@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../../lib/supabase';
 
 import { useAuth } from '../../context/AuthContext';
 import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
@@ -24,6 +25,46 @@ export default function InvoiceDetails() {
     const { profile, refreshProfile } = useAuth();
     const [sharing, setSharing] = useState(false);
     const [chatVisible, setChatVisible] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const { chat } = useLocalSearchParams();
+
+    useEffect(() => {
+        if (chat === 'true') {
+            setChatVisible(true);
+        }
+    }, [chat]);
+
+    const fetchUnreadCount = async () => {
+        if (!id) return;
+        const { count, error } = await supabase
+            .from('invoice_messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('invoice_id', id)
+            .eq('sender_type', 'client')
+            .is('read_at', null);
+
+        if (!error) setUnreadCount(count || 0);
+    };
+
+    useEffect(() => {
+        fetchUnreadCount();
+
+        // Subscription for real-time unread updates on this invoice
+        const channel = supabase
+            .channel(`unread:${id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'invoice_messages',
+                filter: `invoice_id=eq.${id}`
+            }, () => {
+                fetchUnreadCount();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [id]);
 
     const handleShare = async () => {
         if (!invoice) return;
@@ -261,9 +302,14 @@ export default function InvoiceDetails() {
 
                     <TouchableOpacity
                         onPress={() => setChatVisible(true)}
-                        className="w-12 h-14 bg-violet-600 rounded-2xl items-center justify-center shadow-lg shadow-violet-200 active:scale-95 transition-transform"
+                        className="w-12 h-14 bg-violet-600 rounded-2xl items-center justify-center shadow-lg shadow-violet-200 active:scale-95 transition-transform relative"
                     >
                         <MessageCircle size={20} color="white" strokeWidth={2.5} />
+                        {unreadCount > 0 && (
+                            <View className="absolute -top-1 -right-1 bg-red-500 w-5 h-5 rounded-full items-center justify-center border-2 border-violet-600">
+                                <Text className="text-white text-[8px] font-bold">{unreadCount}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
 
                     <TouchableOpacity

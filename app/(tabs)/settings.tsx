@@ -25,9 +25,15 @@ import {
     TrendingDown,
     Camera,
     Plus,
-    Info
+    Info,
+    Settings,
+    CreditCard,
+    Bell,
+    Globe,
+    HelpCircle
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import TaxReportModal from '../../components/TaxReportModal';
 import TeamSettings from '../../components/TeamSettings';
 import ActivityLogList from '../../components/ActivityLogList';
@@ -55,7 +61,7 @@ export default function SettingsScreen() {
             .select('*')
             .eq('user_id', user.id)
             .order('date', { ascending: false })
-            .limit(5);
+            .limit(3);
         if (data) setRecentExpenses(data);
     };
 
@@ -73,200 +79,170 @@ export default function SettingsScreen() {
     const MenuButton = ({ icon: Icon, title, subtitle, onPress, color, bgColor }: any) => (
         <TouchableOpacity
             onPress={onPress}
-            className="bg-zinc-50 rounded-[24px] p-4 flex-row items-center mb-4 shadow-sm active:opacity-70 border border-slate-100"
+            className="bg-white rounded-[28px] p-4 flex-row items-center mb-4 shadow-sm border border-slate-100 active:bg-slate-50 transition-all"
         >
-            <View className={`w-14 h-14 ${bgColor} rounded-2xl items-center justify-center mr-4`}>
-                <Icon size={26} color={color} />
+            <View className={`w-12 h-12 ${bgColor} rounded-2xl items-center justify-center mr-4 border border-white/10`}>
+                <Icon size={22} color={color} strokeWidth={2.5} />
             </View>
             <View className="flex-1">
                 <Text className="text-slate-900 font-black text-base">{title}</Text>
-                <Text className="text-slate-500 text-xs font-medium">{subtitle}</Text>
+                <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-tight">{subtitle}</Text>
             </View>
-            <ChevronRight size={20} color="#CBD5E1" />
+            <View className="bg-slate-50 p-2 rounded-xl">
+                <ChevronRight size={16} color="#CBD5E1" strokeWidth={3} />
+            </View>
         </TouchableOpacity>
     );
 
     return (
-        <View className="flex-1 bg-white">
+        <View className="flex-1 bg-slate-50">
             <StatusBar style="light" />
 
-            <View className="bg-blue-600 pt-16 pb-12 px-6 rounded-b-[40px] shadow-lg mb-8">
+            <LinearGradient
+                colors={['#1E40AF', '#1e3a8a']}
+                className="pt-14 pb-10 px-6 rounded-b-[42px] shadow-2xl z-10"
+            >
                 <View className="flex-row justify-between items-center mb-6">
                     <View>
-                        <Text className="text-blue-100 text-sm font-bold uppercase tracking-widest">Compte</Text>
-                        <Text className="text-white text-3xl font-black">Paramètres</Text>
+                        <Text className="text-3xl font-black text-white tracking-tight">Paramètres</Text>
+                        <Text className="text-blue-200/60 text-[10px] font-bold uppercase tracking-[1.5px] mt-0.5">Configuration & Compte</Text>
                     </View>
                     <TouchableOpacity
                         onPress={handleSignOut}
-                        className="bg-white/20 p-3 rounded-2xl"
+                        className="bg-red-500/20 w-12 h-12 items-center justify-center rounded-[18px] border border-red-500/20 shadow-lg"
                     >
-                        <LogOut size={22} color="white" />
+                        <LogOut size={22} color="#F87171" strokeWidth={2.5} />
                     </TouchableOpacity>
                 </View>
 
-                {/* Profile Card */}
-                <View className="bg-white p-4 rounded-3xl flex-row items-center shadow-lg shadow-blue-900/20">
-                    <View className="w-16 h-16 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border border-slate-100">
+                {/* Profile Card Glassmorphism */}
+                <TouchableOpacity
+                    onPress={() => router.push('/settings/business')}
+                    className="bg-white/10 p-5 rounded-[32px] flex-row items-center border border-white/20 backdrop-blur-md"
+                >
+                    <View className="w-16 h-16 rounded-[22px] bg-white items-center justify-center overflow-hidden shadow-lg border border-white/10">
                         {profile?.logo_url ? (
                             <Image source={{ uri: profile.logo_url }} className="w-full h-full" />
                         ) : (
-                            <Building2 size={28} color="#94A3B8" />
+                            <Building2 size={32} color="#1E40AF" />
                         )}
                     </View>
                     <View className="ml-4 flex-1">
-                        <Text className="text-slate-900 font-black text-lg" numberOfLines={1}>
+                        <Text className="text-white font-black text-xl leading-tight" numberOfLines={1}>
                             {profile?.business_name || 'Mon Business'}
                         </Text>
-                        <Text className="text-slate-500 text-xs font-bold">{user?.email}</Text>
+                        <View className="bg-white/20 self-start px-2 py-0.5 rounded-lg mt-1">
+                            <Text className="text-blue-100 text-[9px] font-black uppercase tracking-widest">{user?.email}</Text>
+                        </View>
                     </View>
-                </View>
-            </View>
+                    <View className="bg-white/15 p-2 rounded-full">
+                        <PenTool size={16} color="white" />
+                    </View>
+                </TouchableOpacity>
+            </LinearGradient>
 
-            <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-
-                {/* Section: Entreprise */}
-                <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Mon Entreprise</Text>
-                <MenuButton
-                    icon={Building2}
-                    title="Profil Business"
-                    subtitle="Identité, Logo et Coordonnées"
-                    onPress={() => router.push('/settings/business')}
-                    color="#2563EB"
-                    bgColor="bg-blue-50"
-                />
-                <MenuButton
-                    icon={PenTool}
-                    title="Signature Documents"
-                    subtitle="Personnaliser votre signature"
-                    onPress={() => router.push('/settings/signature')}
-                    color="#7C3AED"
-                    bgColor="bg-purple-50"
-                />
-                <MenuButton
-                    icon={Users}
-                    title="Gestion d'Équipe"
-                    subtitle="Inviter des collaborateurs (RBAC)"
-                    onPress={() => setTeamModalVisible(true)}
-                    color="#22C55E"
-                    bgColor="bg-green-50"
-                />
-
-                {/* Section: Commercial */}
-                <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mt-6 mb-4 ml-2">Commercial</Text>
-                <MenuButton
-                    icon={FileText}
-                    title="Mes Devis"
-                    subtitle="Gérer et convertir les devis"
-                    onPress={() => router.push('/estimates')}
-                    color="#F59E0B"
-                    bgColor="bg-amber-50"
-                />
-                <MenuButton
-                    icon={Package}
-                    title="Catalogue Produits"
-                    subtitle="Services et Articles récurrents"
-                    onPress={() => router.push('/items')}
-                    color="#EC4899"
-                    bgColor="bg-pink-50"
-                />
-
-                {/* Section: Dépenses */}
-                <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mt-6 mb-4 ml-2">Dépenses & Achats</Text>
-                <MenuButton
-                    icon={Camera}
-                    title="Scanner Intelligent (IA)"
-                    subtitle="Numériser un reçu automatiquement"
-                    onPress={() => router.push('/expenses/scan')}
-                    color="#8B5CF6"
-                    bgColor="bg-violet-50"
-                />
-                <MenuButton
-                    icon={Plus}
-                    title="Saisir une Dépense"
-                    subtitle="Ajout manuel rapide"
-                    onPress={() => router.push('/expenses/add')}
-                    color="#EF4444"
-                    bgColor="bg-red-50"
-                />
-
-                {/* Section: Fiscalité */}
-                <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mt-6 mb-4 ml-2">Fiscalité</Text>
-                <MenuButton
-                    icon={FileText}
-                    title="Rapports Fiscaux"
-                    subtitle="TVA, EBM et Exports"
-                    onPress={() => setTaxModalVisible(true)}
-                    color="#0F172A"
-                    bgColor="bg-slate-200"
-                />
-
-                {/* Section: Système */}
-                <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mt-6 mb-4 ml-2">Système</Text>
-                <MenuButton
-                    icon={ShieldCheck}
-                    title="Sécurité"
-                    subtitle="Mot de passe et accès"
-                    onPress={() => router.push('/settings/security')}
-                    color="#64748B"
-                    bgColor="bg-slate-100"
-                />
-                <MenuButton
-                    icon={Info}
-                    title="À propos"
-                    subtitle="Mission & Fonctionnalités"
-                    onPress={() => router.push('/settings/about')}
-                    color="#3B82F6"
-                    bgColor="bg-blue-50"
-                />
-
-                {/* Recent Expenses Widget */}
-                <View className="mb-6 mt-8">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Dernières Dépenses</Text>
-                    {recentExpenses.length === 0 ? (
-                        <View className="p-6 items-center bg-slate-50 rounded-[24px] border border-dashed border-slate-200">
-                            <Text className="text-slate-400 text-xs font-medium">Aucune dépense récente</Text>
-                        </View>
-                    ) : (
-                        <View className="bg-white rounded-[24px] p-2 shadow-sm border border-slate-100">
-                            {recentExpenses.map((exp: any, idx: number) => (
-                                <View
-                                    key={exp.id || idx}
-                                    className={`p-4 flex-row items-center ${idx !== recentExpenses.length - 1 ? 'border-b border-slate-50' : ''}`}
-                                >
-                                    <View className="w-10 h-10 rounded-2xl items-center justify-center mr-4 bg-red-50 border border-red-100">
-                                        <TrendingDown size={18} color="#EF4444" strokeWidth={2.5} />
-                                    </View>
-
-                                    <View className="flex-1 pr-2">
-                                        <Text className="text-slate-900 font-bold text-sm mb-0.5" numberOfLines={1}>
-                                            {exp.category || 'Dépense'}
-                                        </Text>
-                                        <Text className="text-slate-400 text-[10px] font-semibold" numberOfLines={1}>{exp.description || 'Sans description'}</Text>
-                                    </View>
-
-                                    <View className="items-end">
-                                        <Text className="text-slate-900 font-black text-sm">
-                                            -{(exp.amount || 0).toLocaleString()} <Text className="text-[10px] text-slate-500 font-bold">{profile?.currency || 'RWF'}</Text>
-                                        </Text>
-                                        <Text className="text-slate-400 text-[10px] font-bold mt-0.5">
-                                            {exp.date}
-                                        </Text>
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                    )}
+            <ScrollView
+                className="flex-1"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120, paddingTop: 24 }}
+            >
+                {/* Section: Business */}
+                <View className="px-6">
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Mon Entreprise</Text>
+                    <MenuButton
+                        icon={Building2}
+                        title="Profil Business"
+                        subtitle="Identité & Coordonnées"
+                        onPress={() => router.push('/settings/business')}
+                        color="#2563EB"
+                        bgColor="bg-blue-50"
+                    />
+                    <MenuButton
+                        icon={PenTool}
+                        title="Signature"
+                        subtitle="Personnaliser vos documents"
+                        onPress={() => router.push('/settings/signature')}
+                        color="#7C3AED"
+                        bgColor="bg-purple-50"
+                    />
+                    <MenuButton
+                        icon={Users}
+                        title="Gestion d'Équipe"
+                        subtitle="Inviter des collaborateurs"
+                        onPress={() => setTeamModalVisible(true)}
+                        color="#10B981"
+                        bgColor="bg-emerald-50"
+                    />
                 </View>
 
-                {/* Activity Logs */}
-                <View className="mb-8">
-                    <ActivityLogList />
+                {/* Section: Finance & Tax */}
+                <View className="px-6 mt-8">
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Finances & Coordonnées</Text>
+                    <MenuButton
+                        icon={CreditCard}
+                        title="Paiements & RIB"
+                        subtitle="Coordonnées bancaires & QR Code"
+                        onPress={() => router.push('/settings/payment')}
+                        color="#2563EB"
+                        bgColor="bg-blue-50"
+                    />
+                    <MenuButton
+                        icon={FileText}
+                        title="Rapports Fiscaux"
+                        subtitle="TVA, EBM et Exports"
+                        onPress={() => setTaxModalVisible(true)}
+                        color="#0F172A"
+                        bgColor="bg-slate-200"
+                    />
+                    <MenuButton
+                        icon={TrendingDown}
+                        title="Abonnement"
+                        subtitle="Gérer votre plan Pro"
+                        onPress={() => router.push('/settings/subscription')}
+                        color="#F59E0B"
+                        bgColor="bg-amber-50"
+                    />
+                </View>
+
+                {/* Section: App Settings */}
+                <View className="px-6 mt-8">
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Application</Text>
+                    <MenuButton
+                        icon={ShieldCheck}
+                        title="Sécurité"
+                        subtitle="Mot de passe et accès"
+                        onPress={() => router.push('/settings/security')}
+                        color="#64748B"
+                        bgColor="bg-slate-100"
+                    />
+                    <MenuButton
+                        icon={Info}
+                        title="À propos"
+                        subtitle="Version & Aide"
+                        onPress={() => router.push('/settings/about')}
+                        color="#3B82F6"
+                        bgColor="bg-blue-50"
+                    />
+                </View>
+
+                {/* Recent Activities Widget */}
+                <View className="px-6 mt-8">
+                    <View className="flex-row justify-between items-center mb-4 ml-2">
+                        <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px]">Activité Récente</Text>
+                    </View>
+                    <View className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100">
+                        <ActivityLogList />
+                    </View>
                 </View>
 
                 {/* Version Footer */}
-                <View className="py-8 items-center">
-                    <Text className="text-slate-300 text-[10px] font-black uppercase tracking-widest">
-                        QuickBill v2.2 - Compliance Ready
+                <View className="py-12 items-center">
+                    <View className="flex-row items-center mb-2">
+                        <View className="w-1 h-1 rounded-full bg-emerald-500 mr-2" />
+                        <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Connecté en mode sécurisé</Text>
+                    </View>
+                    <Text className="text-slate-300 text-[9px] font-black uppercase tracking-[3px]">
+                        QuickBill Premium v2.5
                     </Text>
                 </View>
             </ScrollView>

@@ -24,7 +24,10 @@ import {
     Save,
     Globe,
     FileText,
-    Briefcase
+    Briefcase,
+    CreditCard,
+    ChevronRight,
+    CheckCircle
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -332,6 +335,21 @@ export default function BusinessSettingsScreen() {
                             />
                         </View>
 
+                        <TouchableOpacity
+                            onPress={() => router.push('/settings/payment')}
+                            className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex-row items-center justify-between"
+                        >
+                            <View className="flex-row items-center">
+                                <View className="bg-white p-3 rounded-2xl mr-4 shadow-sm">
+                                    <CreditCard size={20} color="#1E40AF" />
+                                </View>
+                                <View>
+                                    <Text className="text-slate-900 font-black text-sm">Coordonnées Bancaires</Text>
+                                    <Text className="text-blue-600/60 text-[10px] font-bold uppercase tracking-widest">Configurer mon RIB</Text>
+                                </View>
+                            </View>
+                            <ChevronRight size={16} color="#1E40AF" />
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -348,7 +366,7 @@ export default function BusinessSettingsScreen() {
                     ) : (
                         <>
                             <Save size={20} color="white" className="mr-2" />
-                            <Text className="text-white font-bold text-lg tracking-wide uppercase">Enregistrer</Text>
+                            <Text className="text-white font-bold text-lg tracking-wide uppercase">Enregistrer les infos</Text>
                         </>
                     )}
                 </TouchableOpacity>

@@ -19,11 +19,17 @@ const PRE_WRITTEN_MESSAGES = [
 ];
 
 export default function ChatModal({ invoiceId, visible, onClose, userType = 'owner' }: Props) {
-    const { messages, sendMessage, loading } = useChat(invoiceId, userType);
+    const { messages, sendMessage, loading, markAsRead } = useChat(invoiceId, userType);
     const { user } = useAuth();
     const [inputText, setInputText] = useState('');
     const listRef = useRef<FlatList>(null);
     const [showTemplates, setShowTemplates] = useState(false);
+
+    useEffect(() => {
+        if (visible) {
+            markAsRead();
+        }
+    }, [visible, messages]);
 
     useEffect(() => {
         if (messages.length > 0) {
@@ -52,8 +58,8 @@ export default function ChatModal({ invoiceId, visible, onClose, userType = 'own
                 )}
                 <View
                     className={`px-4 py-2.5 rounded-2xl max-w-[75%] ${isMe
-                            ? 'bg-blue-600 rounded-br-none'
-                            : 'bg-slate-100 rounded-bl-none'
+                        ? 'bg-blue-600 rounded-br-none'
+                        : 'bg-slate-100 rounded-bl-none'
                         }`}
                 >
                     <Text className={`text-sm ${isMe ? 'text-white' : 'text-slate-800'}`}>

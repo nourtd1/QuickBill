@@ -35,7 +35,7 @@ export const processAudioWithGemini = async (uri: string): Promise<any> => {
             }
         };
 
-        // 3. Call Gemini API (Using the standard alias for latest stable flash model)
+        // 3. Call Gemini API
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
@@ -60,6 +60,57 @@ export const processAudioWithGemini = async (uri: string): Promise<any> => {
 
     } catch (error) {
         console.error('Gemini Processing Error:', error);
+        throw error;
+    }
+};
+
+export const processReceiptWithGemini = async (base64Image: string, mimeType: string = "image/jpeg"): Promise<any> => {
+    if (!API_KEY) {
+        throw new Error("Missing API Key (EXPO_PUBLIC_GEMINI_API_KEY or EXPO_PUBLIC_OPENAI_API_KEY)");
+    }
+
+    try {
+        const requestBody = {
+            contents: [{
+                parts: [
+                    {
+                        text: "Analyse ce ticket de caisse ou cette facture. Extrais les informations suivantes au format JSON uniquement (sans markdown) : { \"merchant\": string, \"date\": string (YYYY-MM-DD), \"amount\": number, \"currency\": string (ex: RWF, EUR, USD), \"tax\": number (null si absent), \"items\": [{ \"description\": string, \"amount\": number }] }. Si une info est illisible, mets null (ou devine logiquement le total)."
+                    },
+                    {
+                        inline_data: {
+                            mime_type: mimeType,
+                            data: base64Image
+                        }
+                    }
+                ]
+            }],
+            generationConfig: {
+                response_mime_type: "application/json"
+            }
+        };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            console.error("Gemini API Error:", data.error);
+            throw new Error(data.error.message || "Erreur Gemini API");
+        }
+
+        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textResponse) throw new Error("Réponse vide de Gemini");
+
+        return JSON.parse(textResponse);
+
+    } catch (error) {
+        console.error('Gemini Receipt Error:', error);
         throw error;
     }
 };

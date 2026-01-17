@@ -3,21 +3,21 @@ import * as SQLite from 'expo-sqlite';
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
 export const getDBConnection = async (): Promise<SQLite.SQLiteDatabase> => {
-    if (dbInstance) {
-        return dbInstance;
-    }
-    dbInstance = await SQLite.openDatabaseAsync('quickbill.db');
+  if (dbInstance) {
     return dbInstance;
+  }
+  dbInstance = await SQLite.openDatabaseAsync('quickbill.db');
+  return dbInstance;
 };
 
 export const initDatabase = async () => {
-    const db = await getDBConnection();
+  const db = await getDBConnection();
 
-    // Enable Foreign Keys
-    await db.execAsync('PRAGMA foreign_keys = ON;');
+  // Enable Foreign Keys
+  await db.execAsync('PRAGMA foreign_keys = ON;');
 
-    // 1. PROFILES
-    await db.execAsync(`
+  // 1. PROFILES
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS profiles (
       id TEXT PRIMARY KEY NOT NULL,
       business_name TEXT,
@@ -31,8 +31,8 @@ export const initDatabase = async () => {
     );
   `);
 
-    // 2. CUSTOMERS
-    await db.execAsync(`
+  // 2. CUSTOMERS
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
@@ -41,14 +41,15 @@ export const initDatabase = async () => {
       phone TEXT,
       address TEXT,
       total_spent NUMERIC DEFAULT 0,
+      portal_token TEXT,
       sync_status TEXT DEFAULT 'pending',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-    // 3. INVOICES
-    await db.execAsync(`
+  // 3. INVOICES
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS invoices (
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
@@ -69,8 +70,8 @@ export const initDatabase = async () => {
     );
   `);
 
-    // 4. INVOICE ITEMS
-    await db.execAsync(`
+  // 4. INVOICE ITEMS
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS invoice_items (
       id TEXT PRIMARY KEY NOT NULL,
       invoice_id TEXT NOT NULL,
@@ -85,8 +86,8 @@ export const initDatabase = async () => {
     );
   `);
 
-    // 5. PAYMENTS
-    await db.execAsync(`
+  // 5. PAYMENTS
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY NOT NULL,
       invoice_id TEXT NOT NULL,
@@ -100,5 +101,5 @@ export const initDatabase = async () => {
     );
   `);
 
-    console.log('Local SQLite Database Initialized');
+  console.log('Local SQLite Database Initialized');
 };

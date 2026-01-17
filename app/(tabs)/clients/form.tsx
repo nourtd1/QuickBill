@@ -16,6 +16,8 @@ import { ArrowLeft, Check, User, Phone, Mail, MapPin, Trash2 } from 'lucide-reac
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { StatusBar } from 'expo-status-bar';
+import * as ExpoCrypto from 'expo-crypto';
+import * as Clipboard from 'expo-clipboard';
 
 export default function ClientFormScreen() {
     const router = useRouter();
@@ -29,6 +31,7 @@ export default function ClientFormScreen() {
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
+    const [portalToken, setPortalToken] = useState<string | null>(null);
 
     useEffect(() => {
         if (isEditing) {
@@ -50,6 +53,7 @@ export default function ClientFormScreen() {
                 setEmail(data.email || '');
                 setPhone(data.phone || '');
                 setAddress(data.address || '');
+                setPortalToken(data.portal_token || null);
             }
         } catch (error) {
             console.error('Erreur lors du chargement des détails:', error);
@@ -86,7 +90,8 @@ export default function ClientFormScreen() {
                     .from('clients')
                     .insert([{
                         ...clientData,
-                        user_id: user?.id
+                        user_id: user?.id,
+                        portal_token: ExpoCrypto.randomUUID()
                     }]);
                 if (error) throw error;
             }
@@ -222,25 +227,36 @@ export default function ClientFormScreen() {
                                     </View>
                                 </View>
 
-                                {/* Address Input */}
-                                <View>
-                                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Localisation</Text>
-                                    <View className="flex-row items-start bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 min-h-[120]">
-                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3 mt-1">
-                                            <MapPin size={20} color="#64748B" />
+                                {/* Portal Link (If exists) */}
+                                {isEditing && (
+                                    <View>
+                                        <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Lien du Portail Client</Text>
+                                        <View className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex-row items-center border-dashed">
+                                            <View className="flex-1">
+                                                <Text className="text-blue-800 font-bold text-xs" numberOfLines={1}>
+                                                    {`https://quickbill.app/public/client/${portalToken || 'Généré au prochain enregistrement'}`}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                onPress={async () => {
+                                                    if (portalToken) {
+                                                        const url = `https://quickbill.app/public/client/${portalToken}`;
+                                                        await Clipboard.setStringAsync(url);
+                                                        Alert.alert('Copié', 'Lien du portail copié !');
+                                                    } else {
+                                                        Alert.alert('Infos', 'Le lien sera disponible après le premier enregistrement.');
+                                                    }
+                                                }}
+                                                className="bg-primary px-3 py-1.5 rounded-lg ml-2"
+                                            >
+                                                <Text className="text-white text-[10px] font-bold uppercase">Copier</Text>
+                                            </TouchableOpacity>
                                         </View>
-                                        <TextInput
-                                            className="flex-1 text-base text-slate-900 font-medium pt-3"
-                                            placeholder="Adresse postale complète..."
-                                            placeholderTextColor="#94A3B8"
-                                            value={address}
-                                            onChangeText={setAddress}
-                                            multiline
-                                            numberOfLines={3}
-                                            textAlignVertical="top"
-                                        />
+                                        <Text className="text-slate-400 text-[10px] mt-2 ml-1 italic">
+                                            Ce lien permet au client de voir tout son historique (factures et devis).
+                                        </Text>
                                     </View>
-                                </View>
+                                )}
                             </View>
                         </View>
 

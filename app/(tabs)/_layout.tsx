@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router';
 import { Home, Settings, Users, FileText, Package } from 'lucide-react-native';
+import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 
 export default function TabLayout() {
+    const unreadCount = useUnreadMessages();
+
     return (
         <Tabs
             screenOptions={{
@@ -29,6 +32,8 @@ export default function TabLayout() {
                 options={{
                     title: 'Factures',
                     tabBarIcon: ({ color }) => <FileText size={24} color={color} />,
+                    tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+                    tabBarBadgeStyle: { backgroundColor: '#EF4444' }
                 }}
             />
             <Tabs.Screen

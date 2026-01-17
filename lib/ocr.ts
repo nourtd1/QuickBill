@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
+import { processReceiptWithGemini } from './gemini';
 
 export interface ExtractedReceiptData {
     merchant: string | null;
@@ -9,53 +10,6 @@ export interface ExtractedReceiptData {
     currency: string | null;
     items: Array<{ description: string; amount: number }>;
     tax: number | null;
-}
-
-/**
- * Génère des données réalistes aléatoires pour la démo
- * (Utilisé quand l'IA n'est pas disponible ou échoue)
- */
-function generateSmartMockData(): ExtractedReceiptData {
-    const merchants = [
-        "Supermarché Simba", "Sawa City", "Carrefour Market", "Station Engen",
-        "Chez Lando", "Camellia Tea House", "Canal+ Rwanda", "Ikea", "Decathlon"
-    ];
-
-    const itemsList = [
-        { desc: "Lait Inyange", price: 1200 },
-        { desc: "Pain", price: 1500 },
-        { desc: "Eau", price: 500 },
-        { desc: "Riz 1kg", price: 2500 },
-        { desc: "Fruits", price: 5000 },
-        { desc: "Service", price: 10000 },
-        { desc: "Transport", price: 2000 }
-    ];
-
-    const randomMerchant = merchants[Math.floor(Math.random() * merchants.length)];
-    const randomItemCount = Math.floor(Math.random() * 4) + 1;
-
-    let total = 0;
-    const items = [];
-
-    for (let i = 0; i < randomItemCount; i++) {
-        const item = itemsList[Math.floor(Math.random() * itemsList.length)];
-        // Add some variance to price
-        const price = item.price + (Math.floor(Math.random() * 5) * 100);
-        items.push({ description: item.desc, amount: price });
-        total += price;
-    }
-
-    // Sometimes add a random large amount for "General" purchase
-    if (Math.random() > 0.7) total += Math.floor(Math.random() * 50000);
-
-    return {
-        merchant: randomMerchant,
-        date: new Date().toISOString().split('T')[0],
-        amount: total,
-        currency: "RWF",
-        items: items,
-        tax: Math.floor(total * 0.18) // 18% VAT simulation
-    };
 }
 
 /**
@@ -82,41 +36,34 @@ async function uploadReceiptImage(uri: string): Promise<string> {
 }
 
 /**
- * Scans a receipt using AI (Edge Function)
- * Fallback to Smart Mock Data if backend is not reachable.
+ * Scans a receipt using user's Gemini API Key (Client Side)
+ * ensuring Real Data is extracted.
  */
 export async function scanReceipt(imageUri: string): Promise<ExtractedReceiptData> {
+    console.log("Starts scanning:", imageUri);
+
     try {
-        console.log("Starts scanning:", imageUri);
+        // 1. Convert Image to Base64
+        const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: 'base64' });
 
-        // 1. Upload (Try best effort)
-        let publicUrl = "https://via.placeholder.com/receipt.jpg";
-        try {
-            publicUrl = await uploadReceiptImage(imageUri);
-            console.log("Image uploaded:", publicUrl);
-        } catch (e) {
-            console.warn("Skipping upload (using mock URL).");
-        }
+        // Detect Mime Type
+        const ext = imageUri.split('.').pop()?.toLowerCase();
+        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+        // support webp or others? Gemini supports: image/png, image/jpeg, image/webp, image/heic, image/heif
 
-        // 2. Call AI Edge Function
-        // This is the real call. If you deploy the backend, it will work for real.
-        const { data, error } = await supabase.functions.invoke('ocr-receipt', {
-            body: { image_url: publicUrl }
-        });
+        // 2. Call Gemini AI
+        console.log("Calling Gemini for analysis...");
+        const aiData = await processReceiptWithGemini(base64, mimeType);
 
-        if (error || !data) {
-            console.log("Edge Function unreachable, switching to simulation.");
-            throw new Error("Backend unavailable");
-        }
+        // 3. Upload Background (Best Effort) - Non-blocking if possible or after
+        // We do it after success to ensure we don't save garbage, or parallel?
+        // Parallel is better for speed.
+        uploadReceiptImage(imageUri).catch(e => console.warn("Upload failed but OCR succeeded", e));
 
-        return data.data;
+        return aiData;
 
     } catch (error: any) {
-        // 3. Fallback: Smart Simulation
-        // We generate RANDOMIZED data so the user feels the "scan" did something new.
-        console.log("ℹ️ Mode Simulation Activé (Randomized)");
-        // Add a small artificial delay to simulate "thinking"
-        await new Promise(r => setTimeout(r, 1500));
-        return generateSmartMockData();
+        console.error("Scan Error:", error);
+        throw new Error("Impossible d'analyser le reçu. Veuillez réessayer.");
     }
 }

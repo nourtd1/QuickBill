@@ -78,9 +78,25 @@ export const useChat = (invoiceId: string, userType: 'owner' | 'client') => {
         }
     };
 
+    const markAsRead = async () => {
+        if (!invoiceId || userType !== 'owner') return;
+
+        const { error } = await supabase
+            .from('invoice_messages')
+            .update({ read_at: new Date().toISOString() })
+            .eq('invoice_id', invoiceId)
+            .eq('sender_type', 'client')
+            .is('read_at', null);
+
+        if (error) {
+            console.error('Error marking messages as read:', error);
+        }
+    };
+
     return {
         messages,
         loading,
-        sendMessage
+        sendMessage,
+        markAsRead
     };
 };

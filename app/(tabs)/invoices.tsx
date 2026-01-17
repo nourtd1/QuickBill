@@ -1,13 +1,40 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, TextInput, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+    View,
+    Text,
+    FlatList,
+    ScrollView,
+    TouchableOpacity,
+    RefreshControl,
+    TextInput,
+    ActivityIndicator,
+    Dimensions
+} from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Plus, Search, FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react-native';
+import {
+    Plus,
+    Search,
+    FileText,
+    CheckCircle2,
+    Clock,
+    AlertCircle,
+    ChevronRight,
+    Filter,
+    ArrowUpRight,
+    MessageSquare,
+    Calendar,
+    ArrowRight
+} from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOffline } from '../../context/OfflineContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/currencyEngine';
 import { supabase } from '../../lib/supabase';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft';
 
 export default function InvoicesScreen() {
     const router = useRouter();
@@ -17,19 +44,38 @@ export default function InvoicesScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeFilter, setActiveFilter] = useState<InvoiceStatus | 'all'>('all');
 
     const fetchInvoices = useCallback(async () => {
         try {
             setLoading(true);
             if (!isOffline && profile?.id) {
-                const { data, error } = await supabase
+                const { data: allInvoices, error: allErr } = await supabase
                     .from('invoices')
                     .select('*, customer:clients(*)')
                     .eq('user_id', profile.id)
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
-                if (data) setInvoices(data);
+                if (allErr) throw allErr;
+
+                // Fetch unread counts
+                const { data: unreadCounts, error: unreadErr } = await supabase
+                    .from('invoice_messages')
+                    .select('invoice_id')
+                    .eq('sender_type', 'client')
+                    .is('read_at', null);
+
+                const unreadMap = (unreadCounts || []).reduce((acc: any, curr: any) => {
+                    acc[curr.invoice_id] = (acc[curr.invoice_id] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const enrichedInvoices = (allInvoices || []).map(inv => ({
+                    ...inv,
+                    unread_count: unreadMap[inv.id] || 0
+                }));
+
+                setInvoices(enrichedInvoices);
             } else {
                 const data = await getInvoices(profile?.id || '');
                 setInvoices(data);
@@ -55,54 +101,76 @@ export default function InvoicesScreen() {
         fetchInvoices();
     };
 
-    const filteredInvoices = invoices.filter(inv =>
-        inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (inv.customer?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const stats = useMemo(() => {
+        const total = invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
+        const paidCount = invoices.filter(inv => inv.status === 'paid').length;
+        const pendingCount = invoices.filter(inv => inv.status !== 'paid').length;
+        return { total, paidCount, pendingCount };
+    }, [invoices]);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'paid': return 'bg-emerald-100 text-emerald-700';
-            case 'sent': return 'bg-blue-100 text-blue-700';
-            case 'overdue': return 'bg-red-100 text-red-700';
-            default: return 'bg-slate-100 text-slate-600';
+    const filteredInvoices = useMemo(() => {
+        return invoices.filter(inv => {
+            const matchesSearch = inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (inv.customer?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesFilter = activeFilter === 'all' || inv.status === activeFilter;
+            return matchesSearch && matchesFilter;
+        });
+    }, [invoices, searchQuery, activeFilter]);
+
+    const getStatusStyle = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'paid': return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: <CheckCircle2 size={12} color="#059669" /> };
+            case 'sent': return { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700', icon: <Clock size={12} color="#2563EB" /> };
+            case 'overdue': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-700', icon: <AlertCircle size={12} color="#DC2626" /> };
+            default: return { bg: 'bg-slate-50', border: 'border-slate-100', text: 'text-slate-600', icon: <FileText size={12} color="#475569" /> };
         }
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'paid': return <CheckCircle2 size={16} color="#059669" />;
-            case 'sent': return <Clock size={16} color="#2563EB" />;
-            case 'overdue': return <AlertCircle size={16} color="#DC2626" />;
-            default: return <FileText size={16} color="#475569" />;
-        }
-    };
+    const renderItem = ({ item }: { item: any }) => {
+        const statusStyle = getStatusStyle(item.status);
+        const customerName = item.customer?.name || 'Client Inconnu';
+        const date = new Date(item.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
-    const renderItem = ({ item }: { item: any }) => (
-        <TouchableOpacity
-            onPress={() => router.push(`/invoice/${item.id}`)}
-            className="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-slate-100 flex-row items-center"
-        >
-            <View className={`w-12 h-12 rounded-xl items-center justify-center mr-4 bg-slate-50`}>
-                <FileText size={20} color="#64748B" />
-            </View>
-            <View className="flex-1">
-                <View className="flex-row justify-between mb-1">
-                    <Text className="font-bold text-slate-900 text-base">{item.customer?.name || 'Client Inconnu'}</Text>
-                    <Text className="font-bold text-slate-900 text-base">{formatCurrency(item.total_amount, item.currency || 'USD')}</Text>
-                </View>
-                <View className="flex-row justify-between items-center">
-                    <Text className="text-slate-400 text-xs">#{item.invoice_number} • {new Date(item.created_at).toLocaleDateString()}</Text>
-                    <View className={`flex-row items-center px-2 py-1 rounded-full ${getStatusColor(item.status).split(' ')[0]}`}>
-                        {getStatusIcon(item.status)}
-                        <Text className={`text-xs font-bold ml-1.5 capitalize ${getStatusColor(item.status).split(' ')[1]}`}>
-                            {item.status}
+        return (
+            <TouchableOpacity
+                onPress={() => router.push(`/invoice/${item.id}`)}
+                className="bg-white p-5 rounded-[32px] mb-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all"
+            >
+                <View className="flex-row items-center mb-4">
+                    <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 border ${item.status === 'paid' ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
+                        <Text className={`font-black text-lg ${item.status === 'paid' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {customerName.charAt(0).toUpperCase()}
                         </Text>
                     </View>
+                    <View className="flex-1">
+                        <Text className="text-slate-900 font-black text-lg mb-0.5" numberOfLines={1}>{customerName}</Text>
+                        <View className="flex-row items-center">
+                            <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mr-2">#{item.invoice_number}</Text>
+                            <View className="w-1 h-1 bg-slate-300 rounded-full mr-2" />
+                            <Text className="text-slate-400 text-[10px] font-bold uppercase">{date}</Text>
+                        </View>
+                    </View>
+                    <View className="items-end">
+                        <Text className="text-slate-900 font-black text-lg">{formatCurrency(item.total_amount, item.currency || profile?.currency || 'USD')}</Text>
+                        <View className={`mt-1 flex-row items-center px-2 py-0.5 rounded-md border ${statusStyle.bg} ${statusStyle.border}`}>
+                            {statusStyle.icon}
+                            <Text className={`text-[9px] font-black ml-1 uppercase ${statusStyle.text}`}>{item.status}</Text>
+                        </View>
+                    </View>
                 </View>
-            </View>
-        </TouchableOpacity>
-    );
+
+                {(item.unread_count > 0) && (
+                    <View className="bg-blue-50 border border-blue-100 p-3 rounded-2xl flex-row items-center justify-between">
+                        <View className="flex-row items-center">
+                            <MessageSquare size={14} color="#2563EB" className="mr-2" />
+                            <Text className="text-blue-700 text-xs font-bold">{item.unread_count} nouveau(x) message(s)</Text>
+                        </View>
+                        <ArrowRight size={14} color="#2563EB" />
+                    </View>
+                )}
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <View className="flex-1 bg-slate-50">
@@ -110,50 +178,113 @@ export default function InvoicesScreen() {
 
             <LinearGradient
                 colors={['#1E40AF', '#1e3a8a']}
-                className="pt-16 pb-8 px-6 rounded-b-[32px] shadow-lg z-10"
+                className="pt-16 pb-12 px-6 rounded-b-[48px] shadow-2xl z-10"
             >
-                <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-3xl font-black text-white">Factures</Text>
+                <View className="flex-row justify-between items-center mb-8">
+                    <View>
+                        <Text className="text-4xl font-black text-white tracking-tight">Factures</Text>
+                        <Text className="text-blue-200/60 text-xs font-bold uppercase tracking-[2px] mt-1">Gérer vos revenus</Text>
+                    </View>
                     <TouchableOpacity
                         onPress={() => router.push('/invoice/new')}
-                        className="w-10 h-10 bg-white/20 rounded-full items-center justify-center border border-white/20"
+                        className="bg-white/20 w-14 h-14 items-center justify-center rounded-[22px] border border-white/20 shadow-lg"
                     >
-                        <Plus size={24} color="white" />
+                        <Plus size={28} color="white" strokeWidth={3} />
                     </TouchableOpacity>
                 </View>
 
-                <View className="bg-white p-3 rounded-2xl flex-row items-center shadow-sm">
-                    <Search size={20} color="#94A3B8" />
-                    <TextInput
-                        className="flex-1 ml-3 text-base text-slate-800 font-medium"
-                        placeholder="Rechercher une facture..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor="#94A3B8"
-                    />
+                {/* Search Bar Upgrade */}
+                <View className="bg-white/10 p-1.5 rounded-[24px] flex-row items-center border border-white/20 backdrop-blur-md mb-6">
+                    <View className="bg-white flex-1 flex-row items-center px-4 h-12 rounded-[20px] shadow-sm">
+                        <Search size={20} color="#94A3B8" />
+                        <TextInput
+                            className="flex-1 ml-3 text-base text-slate-800 font-bold"
+                            placeholder="Rechercher..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            placeholderTextColor="#CBD5E1"
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <AlertCircle size={18} color="#CBD5E1" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <TouchableOpacity className="w-12 h-12 items-center justify-center">
+                        <Filter size={20} color="white" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Mini Stats Grid */}
+                <View className="flex-row gap-3">
+                    <View className="flex-1 bg-white/10 rounded-2xl p-3 border border-white/10">
+                        <Text className="text-blue-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Total CA</Text>
+                        <Text className="text-white font-black text-sm" numberOfLines={1}>{stats.total.toLocaleString()} <Text className="text-[10px] opacity-60">{profile?.currency}</Text></Text>
+                    </View>
+                    <View className="flex-1 bg-emerald-400/10 rounded-2xl p-3 border border-emerald-400/20">
+                        <Text className="text-emerald-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Payées</Text>
+                        <Text className="text-white font-black text-sm">{stats.paidCount} Factures</Text>
+                    </View>
+                    <View className="flex-1 bg-amber-400/10 rounded-2xl p-3 border border-amber-400/20">
+                        <Text className="text-amber-100/60 text-[8px] font-black uppercase tracking-widest mb-1">En attente</Text>
+                        <Text className="text-white font-black text-sm">{stats.pendingCount} Factures</Text>
+                    </View>
                 </View>
             </LinearGradient>
 
+            {/* Filter Chips Overlay */}
+            <View className="px-6 -mt-6 z-20">
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingVertical: 10 }}
+                    className="flex-row"
+                >
+                    {(['all', 'paid', 'sent', 'overdue'] as const).map((filter) => (
+                        <TouchableOpacity
+                            key={filter}
+                            onPress={() => setActiveFilter(filter)}
+                            className={`mr-3 px-6 py-3 rounded-full border shadow-sm ${activeFilter === filter
+                                    ? 'bg-slate-900 border-slate-900'
+                                    : 'bg-white border-slate-100'
+                                }`}
+                        >
+                            <Text className={`font-black text-xs uppercase tracking-widest ${activeFilter === filter ? 'text-white' : 'text-slate-500'
+                                }`}>
+                                {filter === 'all' ? 'Toutes' : filter}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+
             {loading ? (
-                <View className="flex-1 items-center justify-center">
+                <View className="flex-1 items-center justify-center mt-10">
                     <ActivityIndicator size="large" color="#1E40AF" />
+                    <Text className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Chargement des factures...</Text>
                 </View>
             ) : (
                 <FlatList
                     data={filteredInvoices}
                     keyExtractor={item => item.id}
                     renderItem={renderItem}
-                    contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                    contentContainerStyle={{ padding: 24, paddingBottom: 120, paddingTop: 10 }}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />
                     }
                     ListEmptyComponent={
-                        <View className="items-center justify-center py-20">
-                            <FileText size={48} color="#CBD5E1" />
-                            <Text className="text-slate-400 mt-4 text-center font-medium">Aucune facture trouvée</Text>
-                            <TouchableOpacity onPress={() => router.push('/invoice/new')} className="mt-4">
-                                <Text className="text-primary font-bold">Créer une facture</Text>
+                        <View className="items-center justify-center py-24 bg-white rounded-[40px] border border-dashed border-slate-200 shadow-inner">
+                            <View className="bg-slate-50 p-6 rounded-full mb-4">
+                                <FileText size={48} color="#CBD5E1" strokeWidth={1.5} />
+                            </View>
+                            <Text className="text-slate-900 font-black text-xl mb-1">Aucune facture</Text>
+                            <Text className="text-slate-400 text-center px-12 mb-8 font-medium">Vous n'avez pas encore de factures {activeFilter !== 'all' ? `avec le statut "${activeFilter}"` : ''}.</Text>
+                            <TouchableOpacity
+                                onPress={() => router.push('/invoice/new')}
+                                className="bg-blue-600 px-8 py-4 rounded-2xl shadow-xl shadow-blue-200"
+                            >
+                                <Text className="text-white font-black uppercase tracking-wider">Créer une facture</Text>
                             </TouchableOpacity>
                         </View>
                     }

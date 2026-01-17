@@ -18,6 +18,7 @@ import {
     Wallet,
     ScanLine,
     FileText,
+    DollarSign,
     Users,
     TrendingUp,
     ChevronRight,
@@ -183,6 +184,17 @@ function Dashboard() {
                                 <ScanLine size={24} color="#7C3AED" />
                             </View>
                             <Text className="text-slate-900 font-bold text-lg leading-6">Scanner{'\n'}Reçu IA</Text>
+                        </TouchableOpacity>
+
+                        {/* Reconcile (Mobile Money) */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/finance/reconcile')}
+                            className="w-[48%] bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm flex-col items-start justify-between h-32"
+                        >
+                            <View className="bg-green-50 p-2 rounded-xl mb-2">
+                                <DollarSign size={24} color="#16A34A" />
+                            </View>
+                            <Text className="text-slate-900 font-bold text-lg leading-6">Check{'\n'}Paiement</Text>
                         </TouchableOpacity>
 
                         {/* New Estimate */}

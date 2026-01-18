@@ -45,7 +45,7 @@ export interface InvoiceItem {
     unit_price: number;
 }
 
-export type InvoiceStatus = 'PAID' | 'UNPAID';
+export type InvoiceStatus = 'PAID' | 'UNPAID' | 'PENDING_APPROVAL' | 'REJECTED';
 
 export interface Invoice {
     id: string; // uuid

@@ -34,12 +34,15 @@ import { supabase } from '../../lib/supabase';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft';
+type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft' | 'pending_approval' | 'rejected';
+
+import { useTeamRole } from '../../hooks/useTeamRole';
 
 export default function InvoicesScreen() {
     const router = useRouter();
     const { getInvoices, isOffline } = useOffline();
     const { profile } = useAuth();
+    const { role, isOwner, isAdmin } = useTeamRole();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -103,25 +106,35 @@ export default function InvoicesScreen() {
 
     const stats = useMemo(() => {
         const total = invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
-        const paidCount = invoices.filter(inv => inv.status === 'paid').length;
-        const pendingCount = invoices.filter(inv => inv.status !== 'paid').length;
-        return { total, paidCount, pendingCount };
+        const paidCount = invoices.filter(inv => inv.status === 'paid' || inv.status === 'PAID').length;
+        const pendingApprovalCount = invoices.filter(inv => inv.status === 'PENDING_APPROVAL').length;
+        const pendingCount = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'PAID').length;
+        return { total, paidCount, pendingCount, pendingApprovalCount };
     }, [invoices]);
 
     const filteredInvoices = useMemo(() => {
         return invoices.filter(inv => {
             const matchesSearch = inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (inv.customer?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesFilter = activeFilter === 'all' || inv.status === activeFilter;
-            return matchesSearch && matchesFilter;
+
+            if (activeFilter === 'all') return matchesSearch;
+
+            const status = inv.status.toUpperCase();
+
+            if (activeFilter === 'pending_approval') return matchesSearch && status === 'PENDING_APPROVAL';
+            if (activeFilter === 'rejected') return matchesSearch && status === 'REJECTED';
+
+            return matchesSearch && status === activeFilter.toUpperCase();
         });
     }, [invoices, searchQuery, activeFilter]);
 
     const getStatusStyle = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid': return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: <CheckCircle2 size={12} color="#059669" /> };
-            case 'sent': return { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700', icon: <Clock size={12} color="#2563EB" /> };
-            case 'overdue': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-700', icon: <AlertCircle size={12} color="#DC2626" /> };
+        switch (status?.toUpperCase()) {
+            case 'PAID': return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: <CheckCircle2 size={12} color="#059669" /> };
+            case 'SENT': return { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700', icon: <Clock size={12} color="#2563EB" /> };
+            case 'OVERDUE': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-700', icon: <AlertCircle size={12} color="#DC2626" /> };
+            case 'PENDING_APPROVAL': return { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', icon: <AlertCircle size={12} color="#D97706" /> };
+            case 'REJECTED': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-700', icon: <AlertCircle size={12} color="#DC2626" /> };
             default: return { bg: 'bg-slate-50', border: 'border-slate-100', text: 'text-slate-600', icon: <FileText size={12} color="#475569" /> };
         }
     };
@@ -137,8 +150,8 @@ export default function InvoicesScreen() {
                 className="bg-white p-5 rounded-[32px] mb-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all"
             >
                 <View className="flex-row items-center mb-4">
-                    <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 border ${item.status === 'paid' ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-                        <Text className={`font-black text-lg ${item.status === 'paid' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 border ${item.status === 'paid' || item.status === 'PAID' ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
+                        <Text className={`font-black text-lg ${item.status === 'paid' || item.status === 'PAID' ? 'text-emerald-600' : 'text-slate-400'}`}>
                             {customerName.charAt(0).toUpperCase()}
                         </Text>
                     </View>
@@ -154,7 +167,9 @@ export default function InvoicesScreen() {
                         <Text className="text-slate-900 font-black text-lg">{formatCurrency(item.total_amount, item.currency || profile?.currency || 'USD')}</Text>
                         <View className={`mt-1 flex-row items-center px-2 py-0.5 rounded-md border ${statusStyle.bg} ${statusStyle.border}`}>
                             {statusStyle.icon}
-                            <Text className={`text-[9px] font-black ml-1 uppercase ${statusStyle.text}`}>{item.status}</Text>
+                            <Text className={`text-[9px] font-black ml-1 uppercase ${statusStyle.text}`}>
+                                {item.status === 'PENDING_APPROVAL' ? 'Validation' : item.status}
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -221,11 +236,25 @@ export default function InvoicesScreen() {
                         <Text className="text-blue-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Total CA</Text>
                         <Text className="text-white font-black text-sm" numberOfLines={1}>{stats.total.toLocaleString()} <Text className="text-[10px] opacity-60">{profile?.currency}</Text></Text>
                     </View>
-                    <View className="flex-1 bg-emerald-400/10 rounded-2xl p-3 border border-emerald-400/20">
-                        <Text className="text-emerald-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Payées</Text>
-                        <Text className="text-white font-black text-sm">{stats.paidCount} Factures</Text>
-                    </View>
+                    {(isAdmin || isOwner) && stats.pendingApprovalCount > 0 ? (
+                        <TouchableOpacity
+                            onPress={() => setActiveFilter('pending_approval')}
+                            className={`flex-1 rounded-2xl p-3 border ${activeFilter === 'pending_approval' ? 'bg-amber-500 border-amber-400' : 'bg-amber-400/20 border-amber-400/30'}`}
+                        >
+                            <Text className={`${activeFilter === 'pending_approval' ? 'text-white' : 'text-amber-100'} text-[8px] font-black uppercase tracking-widest mb-1 flex-row items-center`}>
+                                À Valider <View className="w-2 h-2 rounded-full bg-red-500 ml-1" />
+                            </Text>
+                            <Text className="text-white font-black text-sm">{stats.pendingApprovalCount} Factures</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <View className="flex-1 bg-emerald-400/10 rounded-2xl p-3 border border-emerald-400/20">
+                            <Text className="text-emerald-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Payées</Text>
+                            <Text className="text-white font-black text-sm">{stats.paidCount} Factures</Text>
+                        </View>
+                    )}
+
                     <View className="flex-1 bg-amber-400/10 rounded-2xl p-3 border border-amber-400/20">
+                        {/* Reuse pending count for general stats */}
                         <Text className="text-amber-100/60 text-[8px] font-black uppercase tracking-widest mb-1">En attente</Text>
                         <Text className="text-white font-black text-sm">{stats.pendingCount} Factures</Text>
                     </View>
@@ -240,21 +269,37 @@ export default function InvoicesScreen() {
                     contentContainerStyle={{ paddingVertical: 10 }}
                     className="flex-row"
                 >
-                    {(['all', 'paid', 'sent', 'overdue'] as const).map((filter) => (
-                        <TouchableOpacity
-                            key={filter}
-                            onPress={() => setActiveFilter(filter)}
-                            className={`mr-3 px-6 py-3 rounded-full border shadow-sm ${activeFilter === filter
+                    {(['all', 'pending_approval', 'paid', 'sent', 'overdue'] as const).map((filter) => {
+                        const labels: any = {
+                            all: 'Toutes',
+                            pending_approval: 'À Valider',
+                            paid: 'Payées',
+                            sent: 'Envoyées',
+                            overdue: 'Retard',
+                            rejected: 'Rejetées'
+                        };
+
+                        return (
+                            <TouchableOpacity
+                                key={filter}
+                                onPress={() => setActiveFilter(filter)}
+                                className={`mr-3 px-6 py-3 rounded-full border shadow-sm ${activeFilter === filter
                                     ? 'bg-slate-900 border-slate-900'
                                     : 'bg-white border-slate-100'
-                                }`}
-                        >
-                            <Text className={`font-black text-xs uppercase tracking-widest ${activeFilter === filter ? 'text-white' : 'text-slate-500'
-                                }`}>
-                                {filter === 'all' ? 'Toutes' : filter}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                                    }`}
+                            >
+                                <View className="flex-row items-center">
+                                    {filter === 'pending_approval' && stats.pendingApprovalCount > 0 && activeFilter !== filter && (
+                                        <View className="w-2 h-2 rounded-full bg-amber-500 mr-2" />
+                                    )}
+                                    <Text className={`font-black text-xs uppercase tracking-widest ${activeFilter === filter ? 'text-white' : 'text-slate-500'
+                                        }`}>
+                                        {labels[filter] || filter}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        )
+                    })}
                 </ScrollView>
             </View>
 

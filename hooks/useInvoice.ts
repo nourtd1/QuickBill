@@ -11,7 +11,8 @@ export function useInvoice() {
         customerName: string,
         items: { description: string; quantity: number; unitPrice: number }[],
         totalAmount: number,
-        clientId?: string // Optionnel: si le client est déjà sélectionné
+        clientId?: string, // Optionnel: si le client est déjà sélectionné
+        initialStatus: string = 'UNPAID' // Default status
     ) => {
         if (!user) throw new Error('Utilisateur non connecté');
 
@@ -60,7 +61,7 @@ export function useInvoice() {
                     user_id: user.id,
                     customer_id: selectedClientId, // On réutilise le champ customer_id pour pointer vers 'clients'
                     invoice_number: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                    status: 'UNPAID',
+                    status: initialStatus,
                     total_amount: totalAmount,
                     created_at: new Date().toISOString()
                 })

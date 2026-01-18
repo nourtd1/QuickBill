@@ -7,7 +7,7 @@ export interface TeamMember {
     id: string;
     owner_id: string;
     member_id: string | null;
-    email: string;
+    member_email: string; // Changed from email to match DB
     role: TeamRole;
     status: TeamMemberStatus;
     created_at: string;
@@ -34,7 +34,7 @@ export async function inviteMember(email: string, role: TeamRole) {
         .from('team_members')
         .select('id')
         .eq('owner_id', user.id)
-        .eq('email', email)
+        .eq('member_email', email) // Check member_email
         .single();
 
     if (existing) throw new Error("Ce membre est déjà invité.");
@@ -44,18 +44,22 @@ export async function inviteMember(email: string, role: TeamRole) {
         .from('team_members')
         .insert({
             owner_id: user.id,
-            email,
+            member_email: email, // Insert into member_email
             role,
             status: 'invited'
-            // member_id is null until they accept/signup
         })
         .select()
         .single();
 
     if (error) throw error;
 
-    // TODO: Send Email via Edge Function (simplified here)
-    // await sendInviteEmail(email, data.id);
+    // Send Email via Edge Function
+    try {
+        await sendInviteEmail(email, role, user.email || 'Admin');
+    } catch (err) {
+        console.error("Failed to send email invite:", err);
+        // Don't block flow, UI handles success
+    }
 
     // Log Activity
     await logActivity({
@@ -64,6 +68,18 @@ export async function inviteMember(email: string, role: TeamRole) {
         details: { email, role }
     });
 
+    return data;
+}
+
+/**
+ * Trigger the Edge Function to send email
+ */
+async function sendInviteEmail(email: string, role: string, inviterEmail: string) {
+    const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: { email, role, inviterEmail }
+    });
+
+    if (error) throw error;
     return data;
 }
 

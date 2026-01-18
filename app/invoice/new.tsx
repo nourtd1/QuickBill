@@ -29,6 +29,7 @@ import { showError, showSuccess } from '../../lib/error-handler';
 import { Client, Item } from '../../types';
 import { SmartPriceSuggestion, AnomalyAlert } from '../../components/AiAssistant';
 import { analyzeInvoiceForAnomalies } from '../../lib/aiAssistantService';
+import { useTeamRole } from '../../hooks/useTeamRole';
 
 interface NewInvoiceItem {
     id: string;
@@ -199,6 +200,8 @@ export default function NewInvoice() {
         }));
     };
 
+    const { role } = useTeamRole();
+
     const handleCreateAndShare = async () => {
         if (!selectedClient) {
             Alert.alert('Client requis', 'Veuillez sélectionner un client pour cette facture.');
@@ -225,7 +228,12 @@ export default function NewInvoice() {
 
         setGeneratingPdf(true);
         try {
-            const result = await createInvoice(selectedClient.name, itemsData, total, selectedClient.id);
+            // Determine status based on role
+            // If seller -> PENDING_APPROVAL
+            // Else -> UNPAID (Standard)
+            const initialStatus = role === 'seller' ? 'PENDING_APPROVAL' : 'UNPAID';
+
+            const result = await createInvoice(selectedClient.name, itemsData, total, selectedClient.id, initialStatus);
             if (!result) throw new Error("Erreur lors de la sauvegarde");
 
             setSavedInvoice(result);
@@ -714,47 +722,56 @@ export default function NewInvoice() {
                             <Check size={40} color="#059669" strokeWidth={3} />
                         </View>
 
-                        <Text className="text-2xl font-black text-slate-900 text-center mb-2">Facture Prête !</Text>
+                        <Text className="text-2xl font-black text-slate-900 text-center mb-2">
+                            {savedInvoice?.status === 'PENDING_APPROVAL' ? 'Soumis pour validation' : 'Facture Prête !'}
+                        </Text>
                         <Text className="text-slate-500 text-center mb-8 px-4">
-                            La facture <Text className="font-bold text-primary">#{savedInvoice?.invoice_number}</Text> a été créée. Comment souhaitez-vous l'envoyer ?
+                            {savedInvoice?.status === 'PENDING_APPROVAL'
+                                ? "La facture a été envoyée à votre manager pour approbation. Vous serez notifié une fois validée."
+                                : <Text>La facture <Text className="font-bold text-primary">#{savedInvoice?.invoice_number}</Text> a été créée. Comment souhaitez-vous l'envoyer ?</Text>
+                            }
                         </Text>
 
                         <View className="w-full space-y-4">
-                            <TouchableOpacity
-                                onPress={() => handleQuickShare('pdf')}
-                                className="bg-slate-900 h-16 rounded-2xl flex-row items-center px-6 mb-4"
-                            >
-                                <View className="bg-white/10 p-2 rounded-lg mr-4">
-                                    <Share size={20} color="white" />
-                                </View>
-                                <Text className="text-white font-bold text-lg">Partager le PDF</Text>
-                                <ChevronRight size={20} color="#94A3B8" className="ml-auto" />
-                            </TouchableOpacity>
+                            {savedInvoice?.status !== 'PENDING_APPROVAL' && (
+                                <>
+                                    <TouchableOpacity
+                                        onPress={() => handleQuickShare('pdf')}
+                                        className="bg-slate-900 h-16 rounded-2xl flex-row items-center px-6 mb-4"
+                                    >
+                                        <View className="bg-white/10 p-2 rounded-lg mr-4">
+                                            <Share size={20} color="white" />
+                                        </View>
+                                        <Text className="text-white font-bold text-lg">Partager le PDF</Text>
+                                        <ChevronRight size={20} color="#94A3B8" className="ml-auto" />
+                                    </TouchableOpacity>
 
-                            <TouchableOpacity
-                                onPress={() => handleQuickShare('chat')}
-                                className="bg-violet-600 h-16 rounded-2xl flex-row items-center px-6 mb-4"
-                            >
-                                <View className="bg-white/10 p-2 rounded-lg mr-4">
-                                    <MessageCircle size={20} color="white" />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold text-lg">Discuter avec le client</Text>
-                                    <Text className="text-violet-200 text-[10px] font-medium">Assistant Chat Intégré</Text>
-                                </View>
-                                <ChevronRight size={20} color="#C4B5FD" className="ml-auto" />
-                            </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => handleQuickShare('chat')}
+                                        className="bg-violet-600 h-16 rounded-2xl flex-row items-center px-6 mb-4"
+                                    >
+                                        <View className="bg-white/10 p-2 rounded-lg mr-4">
+                                            <MessageCircle size={20} color="white" />
+                                        </View>
+                                        <View>
+                                            <Text className="text-white font-bold text-lg">Discuter avec le client</Text>
+                                            <Text className="text-violet-200 text-[10px] font-medium">Assistant Chat Intégré</Text>
+                                        </View>
+                                        <ChevronRight size={20} color="#C4B5FD" className="ml-auto" />
+                                    </TouchableOpacity>
 
-                            <TouchableOpacity
-                                onPress={() => handleQuickShare('portal')}
-                                className="bg-blue-600 h-16 rounded-2xl flex-row items-center px-6"
-                            >
-                                <View className="bg-white/10 p-2 rounded-lg mr-4">
-                                    <Globe size={20} color="white" />
-                                </View>
-                                <Text className="text-white font-bold text-lg">Lien Portail Client</Text>
-                                <ChevronRight size={20} color="#BFDBFE" className="ml-auto" />
-                            </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => handleQuickShare('portal')}
+                                        className="bg-blue-600 h-16 rounded-2xl flex-row items-center px-6"
+                                    >
+                                        <View className="bg-white/10 p-2 rounded-lg mr-4">
+                                            <Globe size={20} color="white" />
+                                        </View>
+                                        <Text className="text-white font-bold text-lg">Lien Portail Client</Text>
+                                        <ChevronRight size={20} color="#BFDBFE" className="ml-auto" />
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </View>
 
                         <TouchableOpacity

@@ -12,6 +12,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
+import ActivityLogList from '../../components/ActivityLogList';
+import { supabase } from '../../lib/supabase';
 import {
     LogOut,
     Building2,
@@ -35,10 +37,6 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import TaxReportModal from '../../components/TaxReportModal';
-import TeamSettings from '../../components/TeamSettings';
-import ActivityLogList from '../../components/ActivityLogList';
-import { supabase } from '../../lib/supabase';
-
 const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
@@ -46,7 +44,6 @@ export default function SettingsScreen() {
     const { signOut, user } = useAuth();
     const { profile, fetchProfile } = useProfile();
     const [taxModalVisible, setTaxModalVisible] = useState(false);
-    const [teamModalVisible, setTeamModalVisible] = useState(false);
     const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
 
     useEffect(() => {
@@ -169,7 +166,7 @@ export default function SettingsScreen() {
                         icon={Users}
                         title="Gestion d'Équipe"
                         subtitle="Inviter des collaborateurs"
-                        onPress={() => setTeamModalVisible(true)}
+                        onPress={() => router.push('/settings/team')}
                         color="#10B981"
                         bgColor="bg-emerald-50"
                     />
@@ -248,19 +245,6 @@ export default function SettingsScreen() {
             </ScrollView>
 
             <TaxReportModal visible={taxModalVisible} onClose={() => setTaxModalVisible(false)} />
-
-            {/* Team Modal */}
-            <Modal visible={teamModalVisible} animationType="slide" presentationStyle="pageSheet">
-                <View className="flex-1 bg-slate-50">
-                    <View className="flex-row justify-between items-center p-6 bg-white border-b border-slate-100">
-                        <Text className="text-xl font-black text-slate-900">Mon Équipe</Text>
-                        <TouchableOpacity onPress={() => setTeamModalVisible(false)} className="p-2 bg-slate-100 rounded-full">
-                            <X size={24} color="#64748B" />
-                        </TouchableOpacity>
-                    </View>
-                    <TeamSettings />
-                </View>
-            </Modal>
-        </View >
+        </View>
     );
 }

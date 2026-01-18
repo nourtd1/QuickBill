@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send, AlertCircle } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 
 import { useAuth } from '../../context/AuthContext';
+import { useTeamRole } from '../../hooks/useTeamRole';
 import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
 import { generateInvoiceHTML } from '../../lib/generate-html';
 import { showError } from '../../lib/error-handler';
@@ -23,6 +24,7 @@ export default function InvoiceDetails() {
     const router = useRouter();
     const { invoice, loading, updating, toggleStatus } = useInvoiceDetails(id as string);
     const { profile, refreshProfile } = useAuth();
+    const { role, isOwner, isAdmin } = useTeamRole();
     const [sharing, setSharing] = useState(false);
     const [chatVisible, setChatVisible] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -206,34 +208,81 @@ export default function InvoiceDetails() {
                     </View>
 
                     {/* Status Card */}
-                    <View className="bg-white p-5 rounded-3xl shadow-lg shadow-blue-900/10 mb-6 border border-slate-100">
-                        <View className="flex-row items-center justify-between">
-                            <View className="flex-row items-center flex-1">
-                                <View className={`w-12 h-12 rounded-2xl items-center justify-center ${isPaid ? 'bg-emerald-100' : 'bg-amber-100'} mr-4`}>
-                                    {isPaid ? (
-                                        <CheckCircle size={24} color="#059669" />
-                                    ) : (
-                                        <Clock size={24} color="#d97706" />
-                                    )}
+                    {(invoice.status !== 'PENDING_APPROVAL' && invoice.status !== 'REJECTED') && (
+                        <View className="bg-white p-5 rounded-3xl shadow-lg shadow-blue-900/10 mb-6 border border-slate-100">
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center flex-1">
+                                    <View className={`w-12 h-12 rounded-2xl items-center justify-center ${isPaid ? 'bg-emerald-100' : 'bg-amber-100'} mr-4`}>
+                                        {isPaid ? (
+                                            <CheckCircle size={24} color="#059669" />
+                                        ) : (
+                                            <Clock size={24} color="#d97706" />
+                                        )}
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+                                            État du paiement
+                                        </Text>
+                                        <Text className={`text-lg font-bold ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                            {isPaid ? 'Payée' : 'En attente'}
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View className="flex-1">
-                                    <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
-                                        État du paiement
-                                    </Text>
-                                    <Text className={`text-lg font-bold ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                        {isPaid ? 'Payée' : 'En attente'}
-                                    </Text>
-                                </View>
+                                <Switch
+                                    value={isPaid}
+                                    onValueChange={toggleStatus}
+                                    trackColor={{ false: "#fed7aa", true: "#bbf7d0" }}
+                                    thumbColor={isPaid ? "#16a34a" : "#ea580c"}
+                                    style={{ transform: [{ scale: 0.9 }] }}
+                                />
                             </View>
-                            <Switch
-                                value={isPaid}
-                                onValueChange={toggleStatus}
-                                trackColor={{ false: "#fed7aa", true: "#bbf7d0" }}
-                                thumbColor={isPaid ? "#16a34a" : "#ea580c"}
-                                style={{ transform: [{ scale: 0.9 }] }}
-                            />
                         </View>
-                    </View>
+                    )}
+
+                    {/* Approval Workflow Block */}
+                    {invoice.status === 'PENDING_APPROVAL' && (isAdmin || isOwner) && (
+                        <View className="bg-amber-50 p-5 rounded-3xl border border-amber-100 mb-6">
+                            <View className="flex-row items-center mb-3">
+                                <AlertCircle size={20} color="#D97706" />
+                                <Text className="text-amber-900 font-black text-lg ml-2">Approbation Requise</Text>
+                            </View>
+                            <Text className="text-amber-700/80 text-sm font-medium mb-4">
+                                Cette facture a été créée par un vendeur et nécessite votre validation avant d'être envoyée.
+                            </Text>
+                            <View className="flex-row gap-3">
+                                <TouchableOpacity
+                                    onPress={async () => {
+                                        const { error } = await supabase.from('invoices').update({ status: 'UNPAID' }).eq('id', id);
+                                        if (error) showError(error);
+                                        else {
+                                            Alert.alert("Validée", "La facture est prête à être envoyée.");
+                                            router.replace('/(tabs)/invoices'); // Refresh by navigating or just let realtime/hook handle it? Hook might not listen real time.
+                                        }
+                                    }}
+                                    className="flex-1 bg-emerald-500 py-3 rounded-xl items-center shadow-lg shadow-emerald-200"
+                                >
+                                    <Text className="text-white font-black uppercase tracking-wider text-xs">Valider</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={async () => {
+                                        const { error } = await supabase.from('invoices').update({ status: 'REJECTED' }).eq('id', id);
+                                        if (error) showError(error);
+                                        else Alert.alert("Rejetée", "La facture a été rejetée.");
+                                    }}
+                                    className="flex-1 bg-white border border-red-200 py-3 rounded-xl items-center"
+                                >
+                                    <Text className="text-red-500 font-black uppercase tracking-wider text-xs">Rejeter</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
+                    {invoice.status === 'PENDING_APPROVAL' && !isAdmin && !isOwner && (
+                        <View className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-6 flex-row items-center">
+                            <Clock size={20} color="#2563EB" />
+                            <Text className="text-blue-800 font-bold ml-3 flex-1">En attente de validation par un manager.</Text>
+                        </View>
+                    )}
 
                     {/* Main Details Card */}
                     <View className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden mb-6">

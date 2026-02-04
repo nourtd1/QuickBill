@@ -34,6 +34,7 @@ export interface Client {
     phone?: string | null;
     address?: string | null;
     portal_token?: string | null;
+    notes?: string | null;
     created_at: string;
 }
 

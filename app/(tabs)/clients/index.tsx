@@ -25,8 +25,17 @@ import {
     ArrowRight,
     Star,
     LayoutGrid,
-    MoreVertical
+    MoreVertical,
+    Megaphone,
+    CheckCircle2,
+    AlertCircle,
+    X,
+    MessageSquare,
+    Mail as MailIcon,
+    CheckSquare,
+    Square
 } from 'lucide-react-native';
+import { Linking, Modal, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../../lib/supabase';
@@ -41,6 +50,10 @@ export default function ClientsScreen() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [refreshing, setRefreshing] = useState(false);
+    const [statsMap, setStatsMap] = useState<Record<string, { total: number; unpaid: number; count: number }>>({});
+    const [showMarketing, setShowMarketing] = useState(false);
+    const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+    const [marketingMode, setMarketingMode] = useState<string | null>(null); // 'email' | 'sms'
 
     const fetchClients = async () => {
         try {
@@ -52,7 +65,27 @@ export default function ClientsScreen() {
 
             if (error) throw error;
             setClients(data || []);
+            if (error) throw error;
+            setClients(data || []);
             setFilteredClients(data || []);
+
+            // Fetch Invoices for Stats
+            const { data: invoices } = await supabase
+                .from('invoices')
+                .select('customer_id, status, total_amount');
+
+            if (invoices) {
+                const map: Record<string, { total: number; unpaid: number; count: number }> = {};
+                invoices.forEach(inv => {
+                    if (!map[inv.customer_id]) map[inv.customer_id] = { total: 0, unpaid: 0, count: 0 };
+                    map[inv.customer_id].count++;
+                    map[inv.customer_id].total += inv.total_amount || 0;
+                    if (inv.status === 'UNPAID' || inv.status === 'PENDING_APPROVAL') {
+                        map[inv.customer_id].unpaid += inv.total_amount || 0;
+                    }
+                });
+                setStatsMap(map);
+            }
         } catch (error) {
             console.error('Erreur lors de la récupération des clients:', error);
         } finally {
@@ -127,7 +160,29 @@ export default function ClientsScreen() {
                 </View>
             </View>
 
-            <View className="bg-slate-50 p-2 rounded-xl">
+            <View className="bg-slate-50 p-2 rounded-xl items-end justify-center">
+                {/* Health Score Indicator */}
+                {(() => {
+                    const s = statsMap[item.id];
+                    if (!s || s.count === 0) return (
+                        <View className="flex-row items-center bg-blue-100 px-2 py-1 rounded-full mb-1">
+                            <Star size={10} color="#3B82F6" className="mr-1" />
+                            <Text className="text-blue-700 text-[8px] font-black uppercase">Nouveau</Text>
+                        </View>
+                    );
+                    if (s.unpaid > 0) return (
+                        <View className="flex-row items-center bg-red-100 px-2 py-1 rounded-full mb-1">
+                            <AlertCircle size={10} color="#EF4444" className="mr-1" />
+                            <Text className="text-red-700 text-[8px] font-black uppercase">Risque</Text>
+                        </View>
+                    );
+                    return (
+                        <View className="flex-row items-center bg-emerald-100 px-2 py-1 rounded-full mb-1">
+                            <CheckCircle2 size={10} color="#10B981" className="mr-1" />
+                            <Text className="text-emerald-700 text-[8px] font-black uppercase">Bon Payeur</Text>
+                        </View>
+                    );
+                })()}
                 <ChevronRight size={18} color="#CBD5E1" strokeWidth={3} />
             </View>
         </TouchableOpacity>
@@ -186,17 +241,21 @@ export default function ClientsScreen() {
                 </View>
             </LinearGradient>
 
-            {/* Quick Actions / Filters Row */}
             <View className="px-6 mt-8 mb-6">
                 <View className="flex-row justify-between items-end">
                     <View>
                         <Text className="text-slate-900 font-black text-2xl tracking-tight">Liste des Clients</Text>
                         <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Tous vos contacts</Text>
                     </View>
-                    <TouchableOpacity className="flex-row items-center bg-slate-100 px-4 py-2 rounded-full">
-                        <LayoutGrid size={14} color="#64748B" className="mr-2" />
-                        <Text className="text-slate-600 font-black text-xs uppercase">Vue Grille</Text>
-                    </TouchableOpacity>
+                    <View className="flex-row gap-2">
+                        <TouchableOpacity
+                            className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-full border border-indigo-200"
+                            onPress={() => setShowMarketing(true)}
+                        >
+                            <Megaphone size={14} color="#4338ca" className="mr-2" />
+                            <Text className="text-indigo-800 font-black text-xs uppercase">Campagnes</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </View>
@@ -245,19 +304,96 @@ export default function ClientsScreen() {
                 />
             )}
 
-            {/* Floating Action Button Upgrade */}
+            {/* Floating Action Button */}
             <TouchableOpacity
                 onPress={() => router.push('/clients/form')}
                 activeOpacity={0.9}
-                className="absolute bottom-10 right-8 w-20 h-20 items-center justify-center z-50 overflow-hidden rounded-[30px]"
+                className="absolute bottom-10 right-8 w-16 h-16 items-center justify-center z-50 overflow-hidden rounded-[24px]"
             >
                 <LinearGradient
                     colors={['#1E40AF', '#1e3a8a']}
                     className="w-full h-full items-center justify-center shadow-2xl shadow-blue-500"
                 >
-                    <UserPlus size={32} color="white" strokeWidth={2.5} />
+                    <UserPlus size={28} color="white" strokeWidth={2.5} />
                 </LinearGradient>
             </TouchableOpacity>
+
+            {/* Marketing Modal */}
+            <Modal
+                visible={showMarketing}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowMarketing(false)}
+            >
+                <View className="flex-1 bg-slate-50">
+                    <View className="bg-white px-6 py-4 border-b border-slate-100 flex-row justify-between items-center">
+                        <Text className="text-slate-900 font-black text-xl">Marketing & Relances</Text>
+                        <TouchableOpacity onPress={() => setShowMarketing(false)} className="bg-slate-100 p-2 rounded-full">
+                            <X size={20} color="#64748B" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View className="p-6">
+                        <Text className="text-slate-500 font-bold mb-4">Sélectionnez les clients cibles :</Text>
+
+                        <View className="bg-white rounded-2xl border border-slate-200 h-2/3 mb-6">
+                            <FlatList
+                                data={clients}
+                                keyExtractor={item => item.id}
+                                renderItem={({ item }) => {
+                                    const isSelected = selectedClients.has(item.id);
+                                    return (
+                                        <TouchableOpacity
+                                            className={`flex-row items-center p-4 border-b border-slate-100 ${isSelected ? 'bg-blue-50' : ''}`}
+                                            onPress={() => {
+                                                const newSet = new Set(selectedClients);
+                                                if (newSet.has(item.id)) newSet.delete(item.id);
+                                                else newSet.add(item.id);
+                                                setSelectedClients(newSet);
+                                            }}
+                                        >
+                                            {isSelected ?
+                                                <CheckSquare size={20} color="#1E40AF" className="mr-3" /> :
+                                                <Square size={20} color="#CBD5E1" className="mr-3" />
+                                            }
+                                            <View>
+                                                <Text className="font-bold text-slate-800">{item.name}</Text>
+                                                <Text className="text-xs text-slate-400">{item.phone || item.email || 'Pas de contact'}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                }}
+                            />
+                        </View>
+
+                        <View className="flex-row gap-4">
+                            <TouchableOpacity
+                                className="flex-1 bg-blue-600 p-4 rounded-xl flex-row items-center justify-center shadow-lg shadow-blue-200"
+                                onPress={() => {
+                                    const targets = clients.filter(c => selectedClients.has(c.id)).map(c => c.email).filter(Boolean);
+                                    if (targets.length === 0) return Alert.alert('Erreur', 'Aucun email trouvé');
+                                    Linking.openURL(`mailto:?bcc=${targets.join(',')}`);
+                                }}
+                            >
+                                <MailIcon size={20} color="white" className="mr-2" />
+                                <Text className="text-white font-bold">Email Groupé</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                className="flex-1 bg-indigo-600 p-4 rounded-xl flex-row items-center justify-center shadow-lg shadow-indigo-200"
+                                onPress={() => {
+                                    const targets = clients.filter(c => selectedClients.has(c.id)).map(c => c.phone).filter(Boolean);
+                                    if (targets.length === 0) return Alert.alert('Erreur', 'Aucun numéro trouvé');
+                                    Linking.openURL(`sms:${Platform.OS === 'ios' ? '&' : '?'}addresses=${targets.join(',')}`);
+                                }}
+                            >
+                                <MessageSquare size={20} color="white" className="mr-2" />
+                                <Text className="text-white font-bold">SMS Groupé</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

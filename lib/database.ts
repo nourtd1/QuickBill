@@ -31,9 +31,9 @@ export const initDatabase = async () => {
     );
   `);
 
-  // 2. CUSTOMERS
+  // 2. CLIENTS (Aligned with Supabase table 'clients')
   await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS customers (
+    CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -53,7 +53,7 @@ export const initDatabase = async () => {
     CREATE TABLE IF NOT EXISTS invoices (
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
-      customer_id TEXT,
+      customer_id TEXT, -- Maps to clients.id
       invoice_number TEXT NOT NULL,
       status TEXT DEFAULT 'draft',
       currency TEXT DEFAULT 'USD',
@@ -66,7 +66,7 @@ export const initDatabase = async () => {
       sync_status TEXT DEFAULT 'pending',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+      FOREIGN KEY (customer_id) REFERENCES clients(id) ON DELETE SET NULL
     );
   `);
 
@@ -101,5 +101,21 @@ export const initDatabase = async () => {
     );
   `);
 
-  console.log('Local SQLite Database Initialized');
+  // 6. EXPENSES
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      amount NUMERIC NOT NULL,
+      category TEXT,
+      description TEXT,
+      date TEXT,
+      receipt_url TEXT,
+      sync_status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  console.log('Local SQLite Database Initialized (Schema V2)');
 };

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getDashboardStatsLocal } from '../lib/localServices';
 import { useAuth } from '../context/AuthContext';
 import { Invoice } from '../types';
 
@@ -23,29 +24,16 @@ export function useDashboard() {
         setLoading(true);
 
         try {
-            // 1. Fetch Main Stats via RPC
-            const { data, error } = await supabase
-                .rpc('get_dashboard_stats', { p_user_id: user.id });
+            // Fetch Stats from Local Database (Offline First Strategy)
+            // The sync service keeps this local DB up to date with cloud
+            const data = await getDashboardStatsLocal(user.id);
 
-            if (data) {
-                setMonthlyRevenue(data.monthlyRevenue || 0);
-                setMonthlyExpenses(data.monthlyExpenses || 0);
-                setPendingAmount(data.pendingAmount || 0);
-                setChartData(data.chartData || []);
-                setInvoices((data.recentInvoices || []) as any);
-            }
-
-            // 2. Fetch Recent Expenses separately (Standard Query)
-            const { data: expensesData, error: expError } = await supabase
-                .from('expenses')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('date', { ascending: false })
-                .limit(5);
-
-            if (expensesData) {
-                setRecentExpenses(expensesData);
-            }
+            setMonthlyRevenue(data.monthlyRevenue || 0);
+            setMonthlyExpenses(data.monthlyExpenses || 0);
+            setPendingAmount(data.pendingAmount || 0);
+            setChartData(data.chartData || []);
+            setInvoices((data.recentInvoices || []) as any);
+            setRecentExpenses(data.recentExpenses || []);
 
         } catch (err) {
             console.error('Error fetching dashboard:', err);

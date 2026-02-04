@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Invoice, InvoiceItem } from '../types';
+import { saveClientLocally, saveInvoiceLocally, findClientByNameLocally, LocalInvoice, LocalInvoiceItem, generateUUID } from '../lib/localServices';
+import { runSynchronization } from '../lib/syncService';
+import NetInfo from '@react-native-community/netinfo';
 
 export function useInvoice() {
     const { user } = useAuth();
@@ -20,71 +22,66 @@ export function useInvoice() {
         try {
             let selectedClientId = clientId;
 
-            // 1. Si pas de clientId, on cherche par nom ou on crée
+            // 1. Si pas de clientId, on cherche par nom ou on crée LOCALEMENT
             if (!selectedClientId) {
                 const trimmedName = customerName.trim();
 
-                // Recherche dans la nouvelle table 'clients'
-                const { data: existingClient } = await supabase
-                    .from('clients')
-                    .select('id')
-                    .eq('user_id', user.id)
-                    .ilike('name', trimmedName)
-                    .limit(1)
-                    .single();
+                // Recherche locale
+                const existingClient = await findClientByNameLocally(user.id, trimmedName);
 
                 if (existingClient) {
                     selectedClientId = existingClient.id;
                 } else {
-                    // Création automatique dans 'clients' si non trouvé
-                    const { data: clientData, error: clientError } = await supabase
-                        .from('clients')
-                        .insert({
-                            user_id: user.id,
-                            name: trimmedName,
-                        })
-                        .select()
-                        .single();
-
-                    if (clientError) throw clientError;
-                    selectedClientId = clientData.id;
+                    // Création locale
+                    const newClientId = await saveClientLocally({
+                        user_id: user.id,
+                        name: trimmedName
+                    });
+                    selectedClientId = newClientId;
                 }
             }
 
-            // 2. Insert Invoice (On garde temporairement customer_id pour la compatibilité schéma si besoin, 
-            // mais idéalement on devrait migrer la FK vers client_id si le schéma change)
-            // Note: Je suppose ici que le schéma des invoices utilise 'customer_id' 
-            // et que la table 'clients' est la nouvelle référence.
-            const { data: invoiceData, error: invoiceError } = await supabase
-                .from('invoices')
-                .insert({
-                    user_id: user.id,
-                    customer_id: selectedClientId, // On réutilise le champ customer_id pour pointer vers 'clients'
-                    invoice_number: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                    status: initialStatus,
-                    total_amount: totalAmount,
-                    created_at: new Date().toISOString()
-                })
-                .select()
-                .single();
+            // 2. Prepare Invoice Data for Local Save
+            const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-            if (invoiceError) throw invoiceError;
+            const invoiceData: Omit<LocalInvoice, 'id' | 'created_at' | 'updated_at' | 'sync_status'> = {
+                user_id: user.id,
+                customer_id: selectedClientId || null,
+                invoice_number: invoiceNumber,
+                status: initialStatus as any,
+                currency: 'RWF', // Should come from profile/settings ideally
+                exchange_rate: 1,
+                subtotal: totalAmount, // Assuming no tax logic yet for simplicity
+                tax_rate: 0,
+                total_amount: totalAmount,
+                due_date: null
+            };
 
-            // 3. Insert Invoice Items
-            const invoiceItems = items.map(item => ({
-                invoice_id: invoiceData.id,
+            const itemsData: Omit<LocalInvoiceItem, 'id' | 'invoice_id' | 'sync_status'>[] = items.map(item => ({
                 description: item.description,
                 quantity: item.quantity,
-                unit_price: item.unitPrice
+                unit_price: item.unitPrice,
+                total: item.quantity * item.unitPrice
             }));
 
-            const { error: itemsError } = await supabase
-                .from('invoice_items')
-                .insert(invoiceItems);
+            // 3. Save Locally
+            const newInvoiceId = await saveInvoiceLocally(invoiceData, itemsData);
 
-            if (itemsError) throw itemsError;
+            // 4. Trigger Sync in Background if Online
+            NetInfo.fetch().then(state => {
+                if (state.isConnected) {
+                    runSynchronization().catch(err => console.log('Background sync error:', err));
+                }
+            });
 
-            return invoiceData;
+            // 5. Return constructed object for UI
+            return {
+                id: newInvoiceId,
+                ...invoiceData,
+                invoice_number: invoiceNumber,
+                created_at: new Date().toISOString(),
+                status: initialStatus
+            };
 
         } catch (error) {
             console.error('Error creating invoice:', error);

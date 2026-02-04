@@ -35,6 +35,9 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { uploadImage } from '../../lib/upload';
 import { showError, showSuccess } from '../../lib/error-handler';
+import { saveExpenseLocally } from '../../lib/localServices';
+import { runSynchronization } from '../../lib/syncService';
+import NetInfo from '@react-native-community/netinfo';
 
 const { width } = Dimensions.get('window');
 
@@ -128,25 +131,37 @@ export default function AddExpenseScreen() {
         try {
             let receiptUrl = null;
             if (receiptUri) {
-                setUploading(true);
-                receiptUrl = await uploadImage(receiptUri, 'images');
+                // TODO: Save image locally properly for sync later? 
+                // For now, if we are offline, uploading to bucket will fail.
+                // We should save the URI locally and let sync service handle upload?
+                // For V2 MVP: We just try upload if online, else null. 
+                // Ideally: saveImageLocally(receiptUri) -> store local path -> sync service uploads it.
+                try {
+                    setUploading(true);
+                    receiptUrl = await uploadImage(receiptUri, 'images');
+                } catch (e) {
+                    console.log('Upload failed (offline?), proceeding with local save only');
+                }
                 setUploading(false);
             }
 
-            const { error } = await supabase
-                .from('expenses')
-                .insert({
-                    user_id: user.id,
-                    amount: parseFloat(amount),
-                    category,
-                    description: description.trim() || null,
-                    date,
-                    receipt_url: receiptUrl
-                });
+            await saveExpenseLocally({
+                user_id: user.id,
+                amount: parseFloat(amount),
+                category,
+                description: description.trim() || undefined,
+                date,
+                receipt_url: receiptUrl || undefined
+            });
 
-            if (error) throw error;
+            // Trigger sync in background
+            NetInfo.fetch().then(state => {
+                if (state.isConnected) {
+                    runSynchronization().catch(e => console.log(e));
+                }
+            });
 
-            showSuccess("Dépense enregistrée !");
+            showSuccess("Dépense enregistrée (Local/Sync) !");
             router.back();
         } catch (error) {
             showError(error, "Erreur lors de l'enregistrement");
@@ -237,8 +252,8 @@ export default function AddExpenseScreen() {
                                 key={cat.label}
                                 onPress={() => setCategory(cat.label)}
                                 className={`mr-3 px-5 py-4 rounded-[24px] border items-center justify-center flex-row shadow-sm ${category === cat.label
-                                        ? 'bg-slate-900 border-slate-900'
-                                        : 'bg-white border-slate-100'
+                                    ? 'bg-slate-900 border-slate-900'
+                                    : 'bg-white border-slate-100'
                                     }`}
                             >
                                 <Text className="text-xl mr-2">{cat.icon}</Text>

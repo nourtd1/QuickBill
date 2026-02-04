@@ -188,3 +188,129 @@ export const getAllInvoicesLocal = async (userId: string) => {
 
     return results;
 };
+
+/**
+ * Save a new client locally
+ */
+export const saveClientLocally = async (
+    clientData: { user_id: string; name: string; email?: string; phone?: string; address?: string }
+): Promise<string> => {
+    const db = await getDBConnection();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+
+    await db.runAsync(
+        `INSERT INTO clients (id, user_id, name, email, phone, address, sync_status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        [id, clientData.user_id, clientData.name, clientData.email || null, clientData.phone || null, clientData.address || null, now, now]
+    );
+
+    return id;
+};
+
+/**
+ * Find a client by name locally
+ */
+export const findClientByNameLocally = async (userId: string, name: string): Promise<any | null> => {
+    const db = await getDBConnection();
+    // Using simple LIKE for now, SQLite doesn't support ILIKE by default usually but some versions do. 
+    // We'll try to match exact or standard lower case in JS if needed.
+    // For now simple query:
+    const result = await db.getAllAsync(
+        `SELECT * FROM clients WHERE user_id = ? AND name = ? LIMIT 1`,
+        [userId, name]
+    );
+    return result.length > 0 ? result[0] : null;
+};
+
+/**
+ * Save an expense locally
+ */
+export const saveExpenseLocally = async (
+    expenseData: { user_id: string; amount: number; category: string; description?: string; date: string; receipt_url?: string }
+): Promise<string> => {
+    const db = await getDBConnection();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+
+    await db.runAsync(
+        `INSERT INTO expenses (id, user_id, amount, category, description, date, receipt_url, sync_status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        [id, expenseData.user_id, expenseData.amount, expenseData.category, expenseData.description || null, expenseData.date, expenseData.receipt_url || null, now, now]
+    );
+
+    return id;
+};
+
+/**
+ * Aggregation for Dashboard (Offline capable)
+ */
+export const getDashboardStatsLocal = async (userId: string) => {
+    const db = await getDBConnection();
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+    // 1. Monthly Revenue (Invoices created this month)
+    const revenueResult = await db.getAllAsync<{ total: number }>(
+        `SELECT SUM(total_amount) as total FROM invoices 
+         WHERE user_id = ? AND created_at >= ? AND created_at <= ?`,
+        [userId, firstDayOfMonth, lastDayOfMonth]
+    );
+    const monthlyRevenue = revenueResult[0]?.total || 0;
+
+    // 2. Monthly Expenses
+    const expenseResult = await db.getAllAsync<{ total: number }>(
+        `SELECT SUM(amount) as total FROM expenses
+         WHERE user_id = ? AND date >= ? AND date <= ?`,
+        [userId, firstDayOfMonth.split('T')[0], lastDayOfMonth.split('T')[0]] // Expenses use YYYY-MM-DD usually for date column
+    );
+    const monthlyExpenses = expenseResult[0]?.total || 0;
+
+    // 3. Pending Amount (Unpaid invoices)
+    const pendingResult = await db.getAllAsync<{ total: number }>(
+        `SELECT SUM(total_amount) as total FROM invoices
+         WHERE user_id = ? AND status != 'PAID'`,
+        [userId]
+    );
+    const pendingAmount = pendingResult[0]?.total || 0;
+
+    // 4. Recent Invoices
+    const recentInvoicesRaw = await db.getAllAsync<LocalInvoice>(
+        `SELECT * FROM invoices WHERE user_id = ? ORDER BY created_at DESC LIMIT 5`,
+        [userId]
+    );
+
+    // We need to fetch the customer name for these invoices to display them properly
+    const recentInvoices = await Promise.all(recentInvoicesRaw.map(async (inv) => {
+        let customerName = 'Unknown';
+        if (inv.customer_id) {
+            const client = await db.getAllAsync<{ name: string }>(`SELECT name FROM clients WHERE id = ?`, [inv.customer_id]);
+            if (client.length > 0) customerName = client[0].name;
+        }
+        return {
+            ...inv,
+            customer: { name: customerName } // Mock structure to match UI expectation
+        };
+    }));
+
+    // 5. Recent Expenses
+    const recentExpenses = await db.getAllAsync(
+        `SELECT * FROM expenses WHERE user_id = ? ORDER BY created_at DESC LIMIT 5`,
+        [userId]
+    );
+
+    // 6. Chart Data (Last 6 months) - simplified for SQLite
+    // We will just return null for now or implement a heavy query.
+    // Let's return empty array, UI handles it with dummy data if empty.
+    const chartData: any[] = [];
+
+    return {
+        monthlyRevenue,
+        monthlyExpenses,
+        pendingAmount,
+        recentInvoices,
+        recentExpenses,
+        chartData
+    };
+};

@@ -8,10 +8,11 @@ const SYNC_KEY = 'last_sync_timestamp';
 // Tables definition with order for dependency resolution
 const SYNC_TABLES = [
     'profiles',
-    'customers',
+    'clients',
     'invoices',
     'invoice_items',
-    'payments'
+    'payments',
+    'expenses'
 ];
 
 type SyncStatus = 'pending' | 'synced' | 'error';
@@ -122,7 +123,7 @@ export const fetchRemoteChanges = async () => {
             sync_status = 'synced';
           `;
 
-                    await db.runAsync(sql, ...valuesWithSync);
+                    await db.runAsync(sql, ...(valuesWithSync as any[]));
                 }
             }
         } catch (e) {

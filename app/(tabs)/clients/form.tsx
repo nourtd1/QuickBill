@@ -31,6 +31,7 @@ export default function ClientFormScreen() {
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
+    const [notes, setNotes] = useState('');
     const [portalToken, setPortalToken] = useState<string | null>(null);
 
     useEffect(() => {
@@ -53,6 +54,7 @@ export default function ClientFormScreen() {
                 setEmail(data.email || '');
                 setPhone(data.phone || '');
                 setAddress(data.address || '');
+                setNotes(data.notes || '');
                 setPortalToken(data.portal_token || null);
             }
         } catch (error) {
@@ -77,6 +79,7 @@ export default function ClientFormScreen() {
                 email: email.trim() || null,
                 phone: phone.trim() || null,
                 address: address.trim() || null,
+                notes: notes.trim() || null,
             };
 
             if (isEditing) {
@@ -223,6 +226,22 @@ export default function ClientFormScreen() {
                                             onChangeText={setEmail}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
+                                        />
+                                    </View>
+                                </View>
+
+                                {/* Notes Input */}
+                                <View>
+                                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Notes Privées (Interne)</Text>
+                                    <View className="bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[120px] mb-5">
+                                        <TextInput
+                                            className="flex-1 text-base text-slate-900 font-medium h-full"
+                                            placeholder="Ajoutez des notes privées sur ce client..."
+                                            placeholderTextColor="#94A3B8"
+                                            value={notes}
+                                            onChangeText={setNotes}
+                                            multiline
+                                            textAlignVertical="top"
                                         />
                                     </View>
                                 </View>

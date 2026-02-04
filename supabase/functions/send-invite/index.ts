@@ -20,6 +20,7 @@ const handler = async (req: Request): Promise<Response> => {
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${RESEND_API_KEY}`,
+        
             },
             body: JSON.stringify({
                 from: "QuickBill Team <onboarding@resend.dev>", // Note: Verify this domain on Resend dashboard or use default

@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Users, UserPlus, Trash2, Mail, CheckCircle, X, Shield, Lock } from 'lucide-react-native';
 import { getTeamMembers, inviteMember, removeMember, TeamMember, TeamRole } from '../../lib/teamService';
 import { useAuth } from '../../context/AuthContext';
@@ -143,30 +142,21 @@ export default function TeamSettingsScreen() {
     };
 
     return (
-        <View className="flex-1 bg-slate-50">
-            <StatusBar style="light" />
+        <View className="flex-1 bg-[#F9FAFB]">
+            <StatusBar style="dark" />
+            <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
 
-            {/* Header Curve */}
-            <LinearGradient
-                colors={['#1E40AF', '#1e3a8a']}
-                className="absolute top-0 left-0 right-0 h-[180px] rounded-b-[40px]"
-            />
-
-            <SafeAreaView className="flex-1">
-                {/* Header Content */}
-                <View className="flex-row items-center justify-between px-6 py-4 mb-2">
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        className="w-10 h-10 bg-white/20 items-center justify-center rounded-full backdrop-blur-md"
-                    >
-                        <ArrowLeft size={20} color="white" />
+                {/* Header */}
+                <View className="flex-row items-center justify-between px-4 py-2 mb-2">
+                    <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
+                        <ArrowLeft size={24} color="#0F172A" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-black text-white tracking-tight">Gestion d'Équipe</Text>
+                    <Text className="text-xl font-bold text-slate-900">Gestion d'Équipe</Text>
                     <TouchableOpacity
                         onPress={() => setInviteModalVisible(true)}
-                        className="w-10 h-10 bg-white/20 items-center justify-center rounded-full backdrop-blur-md"
+                        className="w-10 h-10 bg-blue-50 items-center justify-center rounded-full border border-blue-100"
                     >
-                        <UserPlus size={20} color="white" />
+                        <UserPlus size={20} color="#2563EB" />
                     </TouchableOpacity>
                 </View>
 
@@ -176,7 +166,7 @@ export default function TeamSettingsScreen() {
                     contentContainerStyle={{ paddingBottom: 120 }}
                 >
                     {/* Intro Card */}
-                    <View className="bg-white p-6 rounded-[24px] shadow-sm shadow-blue-900/5 mb-6 border border-slate-100 mt-4">
+                    <View className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 mb-6 mt-4">
                         <View className="flex-row items-center mb-3">
                             <View className="bg-blue-50 p-2.5 rounded-xl mr-3">
                                 <Users size={24} color="#1E40AF" />
@@ -208,7 +198,7 @@ export default function TeamSettingsScreen() {
 
                                 return (
                                     <View key={member.id} className="bg-white p-4 rounded-[20px] mb-3 border border-slate-100 shadow-sm flex-row items-center">
-                                        <View className="w-12 h-12 bg-slate-100 rounded-full items-center justify-center mr-4 shadow-inner">
+                                        <View className="w-12 h-12 bg-slate-100 rounded-full items-center justify-center mr-4 border border-slate-200">
                                             <Text className="font-black text-slate-600 text-lg">{initial}</Text>
                                         </View>
 
@@ -240,7 +230,7 @@ export default function TeamSettingsScreen() {
                 </ScrollView>
             </SafeAreaView>
 
-            {/* Invite Modal */}
+            {/* Invite Modal - Darkened Overlay */}
             <Modal
                 transparent
                 visible={inviteModalVisible}
@@ -248,9 +238,9 @@ export default function TeamSettingsScreen() {
                 onRequestClose={() => setInviteModalVisible(false)}
             >
                 <View className="flex-1 bg-slate-900/60 justify-end">
-                    <View className="bg-slate-50 rounded-t-[32px] overflow-hidden">
+                    <View className="bg-white rounded-t-[32px] overflow-hidden h-[85%]">
                         <View className="p-6 pb-4 bg-white border-b border-slate-100 flex-row justify-between items-center">
-                            <Text className="text-xl font-black text-slate-900">Inviter un membre</Text>
+                            <Text className="text-2xl font-black text-slate-900">Inviter</Text>
                             <TouchableOpacity onPress={() => setInviteModalVisible(false)} className="bg-slate-100 p-2 rounded-full">
                                 <X size={24} color="#64748B" />
                             </TouchableOpacity>

@@ -303,7 +303,32 @@ export const getDashboardStatsLocal = async (userId: string) => {
     // 6. Chart Data (Last 6 months) - simplified for SQLite
     // We will just return null for now or implement a heavy query.
     // Let's return empty array, UI handles it with dummy data if empty.
-    const chartData: any[] = [];
+    // 6. Chart Data (Last 6 months)
+    const chartData: { value: number; label: string; frontColor?: string }[] = [];
+
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const monthLabel = d.toLocaleString('default', { month: 'short' });
+        const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
+
+        // SQLite doesn't have great date functions, so we filter in JS or use strftime if available.
+        // Assuming YYYY-MM-DD format for created_at.
+        const startOfMonth = `${monthKey}-01`;
+        const endOfMonth = `${monthKey}-31`; // Simple approximation, works for string comparison
+
+        const monthResult = await db.getAllAsync<{ total: number }>(
+            `SELECT SUM(total_amount) as total FROM invoices 
+             WHERE user_id = ? AND created_at >= ? AND created_at <= ? AND status != 'merged'`, // Exclude merged/deleted if any
+            [userId, startOfMonth, endOfMonth]
+        );
+
+        chartData.push({
+            value: monthResult[0]?.total || 0,
+            label: monthLabel,
+            frontColor: i === 0 ? '#2563EB' : '#E0E7FF', // Highlight current month
+        });
+    }
 
     return {
         monthlyRevenue,

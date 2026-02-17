@@ -1,250 +1,295 @@
-import React, { useEffect, useState } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    ScrollView,
-    Alert,
-    Image,
-    Dimensions,
-    Modal
-} from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, Switch, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
-import ActivityLogList from '../../components/ActivityLogList';
-import { supabase } from '../../lib/supabase';
-import {
-    LogOut,
-    Building2,
-    PenTool,
-    ChevronRight,
-    Package,
-    ShieldCheck,
-    FileText,
-    Users,
-    X,
-    TrendingDown,
-    Camera,
-    Plus,
-    Info,
-    Settings,
-    CreditCard,
-    Bell,
-    Globe,
-    HelpCircle
-} from 'lucide-react-native';
-import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import TaxReportModal from '../../components/TaxReportModal';
-const { width } = Dimensions.get('window');
+import { StatusBar } from 'expo-status-bar';
+import {
+    HelpCircle,
+    Pencil,
+    BadgeCheck,
+    User,
+    Lock,
+    Bell,
+    Briefcase,
+    Receipt,
+    CreditCard,
+    Moon,
+    Globe,
+    MessageCircleQuestion,
+    LogOut,
+    ChevronRight,
+    Crown
+} from 'lucide-react-native';
+
+const ICON_SIZE = 20;
 
 export default function SettingsScreen() {
     const router = useRouter();
     const { signOut, user } = useAuth();
-    const { profile, fetchProfile } = useProfile();
-    const [taxModalVisible, setTaxModalVisible] = useState(false);
-    const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
-
-    useEffect(() => {
-        fetchProfile();
-        fetchExpenses();
-    }, []);
-
-    const fetchExpenses = async () => {
-        if (!user) return;
-        const { data } = await supabase
-            .from('expenses')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('date', { ascending: false })
-            .limit(3);
-        if (data) setRecentExpenses(data);
-    };
+    const { profile } = useProfile();
 
     const handleSignOut = () => {
-        Alert.alert(
-            "Déconnexion",
-            "Êtes-vous sûr de vouloir vous déconnecter ?",
-            [
-                { text: "Annuler", style: "cancel" },
-                { text: "Se déconnecter", style: "destructive", onPress: signOut }
-            ]
-        );
+        // Add confirmation logic if needed, for now direct action as per design
+        signOut();
     };
 
-    const MenuButton = ({ icon: Icon, title, subtitle, onPress, color, bgColor }: any) => (
+    const Section = ({ title, children }: { title?: string; children: React.ReactNode }) => (
+        <View className="mb-6">
+            {title && (
+                <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
+                    {title}
+                </Text>
+            )}
+            <View className="bg-white/70 rounded-2xl overflow-hidden border border-white/50 shadow-sm">
+                {children}
+            </View>
+        </View>
+    );
+
+    const SettingItem = ({
+        icon: Icon,
+        colorClass,
+        textClass,
+        label,
+        onPress,
+        isLast,
+        rightElement
+    }: {
+        icon: any;
+        colorClass: string;
+        textClass: string;
+        label: string;
+        onPress?: () => void;
+        isLast?: boolean;
+        rightElement?: React.ReactNode;
+    }) => (
         <TouchableOpacity
             onPress={onPress}
-            className="bg-white rounded-[28px] p-4 flex-row items-center mb-4 shadow-sm border border-slate-100 active:bg-slate-50 transition-all"
+            activeOpacity={0.7}
+            className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-100' : ''}`}
         >
-            <View className={`w-12 h-12 ${bgColor} rounded-2xl items-center justify-center mr-4 border border-white/10`}>
-                <Icon size={22} color={color} strokeWidth={2.5} />
+            <View className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${colorClass}`}>
+                <Icon size={ICON_SIZE} style={{ color: textClass }} />
             </View>
-            <View className="flex-1">
-                <Text className="text-slate-900 font-black text-base">{title}</Text>
-                <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-tight">{subtitle}</Text>
+            <Text className="flex-1 text-slate-800 font-semibold text-[15px]">{label}</Text>
+            {rightElement || <ChevronRight size={20} color="#CBD5E1" />}
+        </TouchableOpacity>
+    );
+
+    // Dynamic text color extraction workaround:
+    // Since NativeWind handles classes, we need to pass style objects or use specific text-color classes properly.
+    // However, tailwind classes like 'text-blue-600' need to be parsed by NativeWind.
+    // The trick 'style={{ color: textClass }}' won't work directly with class names string like 'text-blue-600'.
+    // Instead we will use a mapping or hex colors for the icon "color" prop, OR text-{color} class on the Icon? 
+    // Lucide doesn't accept className. 
+    // Fix: We'll pass the hex color directly or use specific classes on a wrapper Text if needed, 
+    // but Lucide icons take a `color` prop.
+    // Let's use a helper for colors to keep it clean and working.
+
+    const getColor = (twClass: string) => {
+        // Simple mapping for the requested design
+        switch (twClass) {
+            case 'text-blue-600': return '#2563EB';
+            case 'text-purple-600': return '#9333EA';
+            case 'text-orange-600': return '#EA580C';
+            case 'text-indigo-600': return '#4F46E5';
+            case 'text-emerald-600': return '#059669';
+            case 'text-cyan-600': return '#0891B2';
+            case 'text-slate-600': return '#475569';
+            case 'text-sky-600': return '#0284C7';
+            case 'text-teal-600': return '#0D9488';
+            case 'text-red-600': return '#DC2626';
+            case 'text-amber-600': return '#D97706';
+            default: return '#475569';
+        }
+    };
+
+    // Re-implement SettingItem to use the color helper
+    const SettingItemWithColor = ({
+        icon: Icon,
+        bgClass,
+        textTwColor,
+        label,
+        onPress,
+        isLast
+    }: {
+        icon: any;
+        bgClass: string;
+        textTwColor: string;
+        label: string;
+        onPress?: () => void;
+        isLast?: boolean;
+    }) => (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.7}
+            className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-100' : ''}`}
+        >
+            <View className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${bgClass}`}>
+                <Icon size={ICON_SIZE} color={getColor(textTwColor)} />
             </View>
-            <View className="bg-slate-50 p-2 rounded-xl">
-                <ChevronRight size={16} color="#CBD5E1" strokeWidth={3} />
-            </View>
+            <Text className="flex-1 text-slate-800 font-semibold text-[15px]">{label}</Text>
+            <ChevronRight size={20} color="#CBD5E1" />
         </TouchableOpacity>
     );
 
     return (
-        <View className="flex-1 bg-slate-50">
-            <StatusBar style="light" />
-
-            <LinearGradient
-                colors={['#1E40AF', '#1e3a8a']}
-                className="pt-14 pb-10 px-6 rounded-b-[42px] shadow-2xl z-10"
-            >
-                <View className="flex-row justify-between items-center mb-6">
-                    <View>
-                        <Text className="text-3xl font-black text-white tracking-tight">Paramètres</Text>
-                        <Text className="text-blue-200/60 text-[10px] font-bold uppercase tracking-[1.5px] mt-0.5">Configuration & Compte</Text>
-                    </View>
+        <View className="flex-1 bg-[#f6f6f8]">
+            <StatusBar style="dark" />
+            <SafeAreaView className="flex-1">
+                {/* Header */}
+                <View className="flex-row justify-between items-center px-6 pt-2 pb-4">
+                    <Text className="text-3xl font-extrabold text-slate-900">Settings</Text>
                     <TouchableOpacity
-                        onPress={handleSignOut}
-                        className="bg-red-500/20 w-12 h-12 items-center justify-center rounded-[18px] border border-red-500/20 shadow-lg"
+                        onPress={() => router.push('/settings/help')}
+                        className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm"
                     >
-                        <LogOut size={22} color="#F87171" strokeWidth={2.5} />
+                        <HelpCircle size={20} color="#1E293B" />
                     </TouchableOpacity>
                 </View>
 
-                {/* Profile Card Glassmorphism */}
-                <TouchableOpacity
-                    onPress={() => router.push('/settings/business')}
-                    className="bg-white/10 p-5 rounded-[32px] flex-row items-center border border-white/20 backdrop-blur-md"
+                <ScrollView
+                    className="flex-1 px-5"
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                    showsVerticalScrollIndicator={false}
                 >
-                    <View className="w-16 h-16 rounded-[22px] bg-white items-center justify-center overflow-hidden shadow-lg border border-white/10">
-                        {profile?.logo_url ? (
-                            <Image source={{ uri: profile.logo_url }} className="w-full h-full" />
-                        ) : (
-                            <Building2 size={32} color="#1E40AF" />
-                        )}
-                    </View>
-                    <View className="ml-4 flex-1">
-                        <Text className="text-white font-black text-xl leading-tight" numberOfLines={1}>
-                            {profile?.business_name || 'Mon Business'}
+                    {/* Profile Header */}
+                    <View className="items-center mt-4 mb-8">
+                        <View className="relative">
+                            <LinearGradient
+                                colors={['#1337ec', '#a855f7', '#60a5fa']}
+                                start={{ x: 0, y: 1 }}
+                                end={{ x: 1, y: 0 }}
+                                className="p-[3px] rounded-full"
+                            >
+                                <View className="bg-white p-[2px] rounded-full">
+                                    <Image
+                                        source={{ uri: profile?.logo_url || 'https://i.pravatar.cc/150?img=11' }}
+                                        className="w-24 h-24 rounded-full"
+                                    />
+                                </View>
+                            </LinearGradient>
+
+                            <TouchableOpacity className="absolute bottom-0 right-0 bg-[#1337ec] p-2 rounded-full border-[3px] border-white">
+                                <Pencil size={12} color="white" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text className="text-xl font-bold text-slate-900 mt-4">
+                            {profile?.business_name || 'Alex Sterling'}
                         </Text>
-                        <View className="bg-white/20 self-start px-2 py-0.5 rounded-lg mt-1">
-                            <Text className="text-blue-100 text-[9px] font-black uppercase tracking-widest">{user?.email}</Text>
+
+                        <View className="flex-row items-center bg-[#1337ec]/10 px-3 py-1 rounded-full mt-2">
+                            <BadgeCheck size={12} color="#1337ec" style={{ marginRight: 4 }} />
+                            <Text className="text-[#1337ec] text-xs font-bold uppercase tracking-wide">
+                                Premium Member
+                            </Text>
                         </View>
                     </View>
-                    <View className="bg-white/15 p-2 rounded-full">
-                        <PenTool size={16} color="white" />
-                    </View>
-                </TouchableOpacity>
-            </LinearGradient>
 
-            <ScrollView
-                className="flex-1"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 120, paddingTop: 24 }}
-            >
-                {/* Section: Business */}
-                <View className="px-6">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Mon Entreprise</Text>
-                    <MenuButton
-                        icon={Building2}
-                        title="Profil Business"
-                        subtitle="Identité & Coordonnées"
-                        onPress={() => router.push('/settings/business')}
-                        color="#2563EB"
-                        bgColor="bg-blue-50"
-                    />
-                    <MenuButton
-                        icon={PenTool}
-                        title="Signature"
-                        subtitle="Personnaliser vos documents"
-                        onPress={() => router.push('/settings/signature')}
-                        color="#7C3AED"
-                        bgColor="bg-purple-50"
-                    />
-                    <MenuButton
-                        icon={Users}
-                        title="Gestion d'Équipe"
-                        subtitle="Inviter des collaborateurs"
-                        onPress={() => router.push('/settings/team')}
-                        color="#10B981"
-                        bgColor="bg-emerald-50"
-                    />
-                </View>
+                    {/* Group: Account */}
+                    <Section title="Account">
+                        <SettingItemWithColor
+                            icon={Crown}
+                            bgClass="bg-amber-100" // using amber/gold for premium feel
+                            textTwColor="text-amber-600" // needs helper support or use hex in helper
+                            label="Pro Access"
+                            onPress={() => router.push('/settings/subscription')}
+                        />
+                        <SettingItemWithColor
+                            icon={User}
+                            bgClass="bg-blue-50"
+                            textTwColor="text-blue-600"
+                            label="Personal Info"
+                            onPress={() => router.push('/settings/personal-info')}
+                        />
+                        <SettingItemWithColor
+                            icon={Lock}
+                            bgClass="bg-purple-50"
+                            textTwColor="text-purple-600"
+                            label="Security"
+                            onPress={() => router.push('/settings/security')}
+                        />
+                        <SettingItemWithColor
+                            icon={Bell}
+                            bgClass="bg-orange-50"
+                            textTwColor="text-orange-600"
+                            label="Notifications"
+                            isLast
+                            onPress={() => router.push('/settings/notifications')}
+                        />
+                    </Section>
 
-                {/* Section: Finance & Tax */}
-                <View className="px-6 mt-8">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Finances & Coordonnées</Text>
-                    <MenuButton
-                        icon={CreditCard}
-                        title="Paiements & RIB"
-                        subtitle="Coordonnées bancaires & QR Code"
-                        onPress={() => router.push('/settings/payment')}
-                        color="#2563EB"
-                        bgColor="bg-blue-50"
-                    />
-                    <MenuButton
-                        icon={FileText}
-                        title="Rapports Fiscaux"
-                        subtitle="TVA, EBM et Exports"
-                        onPress={() => setTaxModalVisible(true)}
-                        color="#0F172A"
-                        bgColor="bg-slate-200"
-                    />
-                    <MenuButton
-                        icon={TrendingDown}
-                        title="Abonnement"
-                        subtitle="Gérer votre plan Pro"
-                        onPress={() => router.push('/settings/subscription')}
-                        color="#F59E0B"
-                        bgColor="bg-amber-50"
-                    />
-                </View>
+                    {/* Group: Business */}
+                    <Section title="Business">
+                        <SettingItemWithColor
+                            icon={Briefcase}
+                            bgClass="bg-indigo-50"
+                            textTwColor="text-indigo-600"
+                            label="Business Profile"
+                            onPress={() => router.push('/settings/business')}
+                        />
+                        <SettingItemWithColor
+                            icon={Receipt}
+                            bgClass="bg-emerald-50"
+                            textTwColor="text-emerald-600"
+                            label="Tax Settings"
+                            onPress={() => router.push('/settings/tax')}
+                        />
+                        <SettingItemWithColor
+                            icon={CreditCard}
+                            bgClass="bg-cyan-50"
+                            textTwColor="text-cyan-600"
+                            label="Payment Methods"
+                            isLast
+                            onPress={() => router.push('/settings/payment')}
+                        />
+                    </Section>
 
-                {/* Section: App Settings */}
-                <View className="px-6 mt-8">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-4 ml-2">Application</Text>
-                    <MenuButton
-                        icon={ShieldCheck}
-                        title="Sécurité"
-                        subtitle="Mot de passe et accès"
-                        onPress={() => router.push('/settings/security')}
-                        color="#64748B"
-                        bgColor="bg-slate-100"
-                    />
-                    <MenuButton
-                        icon={Info}
-                        title="À propos"
-                        subtitle="Version & Aide"
-                        onPress={() => router.push('/settings/about')}
-                        color="#3B82F6"
-                        bgColor="bg-blue-50"
-                    />
-                </View>
+                    {/* Group: App */}
+                    <Section title="App">
+                        <SettingItemWithColor
+                            icon={Moon}
+                            bgClass="bg-slate-100"
+                            textTwColor="text-slate-600"
+                            label="Theme"
+                            onPress={() => router.push('/settings/theme')}
+                        />
+                        <SettingItemWithColor
+                            icon={Globe}
+                            bgClass="bg-sky-50"
+                            textTwColor="text-sky-600"
+                            label="Language"
+                            onPress={() => router.push('/settings/language')}
+                        />
+                        <SettingItemWithColor
+                            icon={MessageCircleQuestion}
+                            bgClass="bg-teal-50"
+                            textTwColor="text-teal-600"
+                            label="Help & Support"
+                            isLast
+                            onPress={() => router.push('/settings/help')}
+                        />
+                    </Section>
 
-                {/* Recent Activities Widget */}
-                <View className="px-6 mt-8">
-                    <View className="flex-row justify-between items-center mb-4 ml-2">
-                        <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px]">Activité Récente</Text>
-                    </View>
-                    <View className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100">
-                        <ActivityLogList />
-                    </View>
-                </View>
+                    {/* Log Out */}
+                    <TouchableOpacity
+                        onPress={handleSignOut}
+                        className="bg-red-50 flex-row items-center justify-center p-4 rounded-2xl mb-8"
+                    >
+                        <LogOut size={20} color="#DC2626" style={{ marginRight: 8 }} />
+                        <Text className="text-red-600 font-bold text-base">Log Out</Text>
+                    </TouchableOpacity>
 
-                {/* Version Footer */}
-                <View className="py-12 items-center">
-                    <View className="flex-row items-center mb-2">
-                        <View className="w-1 h-1 rounded-full bg-emerald-500 mr-2" />
-                        <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Connecté en mode sécurisé</Text>
-                    </View>
-                    <Text className="text-slate-300 text-[9px] font-black uppercase tracking-[3px]">
-                        QuickBill Premium v2.5
+                    <Text className="text-center text-slate-300 text-xs font-medium pb-8">
+                        QuickBill v2.4.0 (Build 412)
                     </Text>
-                </View>
-            </ScrollView>
 
-            <TaxReportModal visible={taxModalVisible} onClose={() => setTaxModalVisible(false)} />
+                </ScrollView>
+            </SafeAreaView>
         </View>
     );
 }
+

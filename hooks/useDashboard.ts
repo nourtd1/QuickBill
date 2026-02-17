@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { Invoice } from '../types';
 
 export interface MonthlyData {
-    month: string;
     value: number;
+    label: string;
+    frontColor?: string;
 }
 
 export function useDashboard() {
@@ -16,7 +17,7 @@ export function useDashboard() {
     const [monthlyExpenses, setMonthlyExpenses] = useState(0);
     const [pendingAmount, setPendingAmount] = useState(0);
     const [chartData, setChartData] = useState<MonthlyData[]>([]);
-    const [recentExpenses, setRecentExpenses] = useState<any[]>([]); // New State
+    const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchDashboardData = useCallback(async () => {
@@ -24,8 +25,6 @@ export function useDashboard() {
         setLoading(true);
 
         try {
-            // Fetch Stats from Local Database (Offline First Strategy)
-            // The sync service keeps this local DB up to date with cloud
             const data = await getDashboardStatsLocal(user.id);
 
             setMonthlyRevenue(data.monthlyRevenue || 0);
@@ -42,6 +41,29 @@ export function useDashboard() {
         }
     }, [user]);
 
+    // Calculate Growth (Last month vs Previous month)
+    const growth = chartData.length >= 2
+        ? (() => {
+            const current = chartData[chartData.length - 1].value;
+            const previous = chartData[5 - 1].value || 1; // Avoid division by zero, use 1 or handle logic
+            // Actually, chartData is generic. If I pushed 6 months:
+            // index 5 = current month (0 months ago)
+            // index 4 = previous month (1 month ago)
+            // Wait, the loop was i=5 down to 0.
+            // i=0 is current month (pushed Last).
+            // NO, I pushed inside the loop `for (let i = 5; i >= 0; i--)`.
+            // First iteration i=5 (5 months ago) -> Pushed first.
+            // Last iteration i=0 (0 months ago) -> Pushed last.
+            // So chartData[5] is current month. chartData[4] is previous.
+
+            const curr = chartData[5]?.value || 0;
+            const prev = chartData[4]?.value || 0;
+
+            if (prev === 0) return curr > 0 ? 100 : 0;
+            return ((curr - prev) / prev) * 100;
+        })()
+        : 0;
+
     return {
         invoices,
         monthlyRevenue,
@@ -49,7 +71,8 @@ export function useDashboard() {
         netProfit: monthlyRevenue - monthlyExpenses,
         pendingAmount,
         chartData,
-        recentExpenses, // Return new data
+        recentExpenses,
+        growth, // New Return
         loading,
         refresh: fetchDashboardData
     };

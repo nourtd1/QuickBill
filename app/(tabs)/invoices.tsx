@@ -8,22 +8,24 @@ import {
     RefreshControl,
     TextInput,
     ActivityIndicator,
-    Dimensions
+    Dimensions,
+    SafeAreaView,
+    Image,
+    Alert,
+    Linking
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
     Plus,
     Search,
     FileText,
-    CheckCircle2,
-    Clock,
-    AlertCircle,
-    ChevronRight,
-    Filter,
-    ArrowUpRight,
-    MessageSquare,
-    Calendar,
-    ArrowRight
+    Bell,
+    SlidersHorizontal,
+    Wallet,
+    TrendingUp,
+    Send,
+    User,
+    MoreHorizontal
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,12 +33,30 @@ import { useOffline } from '../../context/OfflineContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/currencyEngine';
 import { supabase } from '../../lib/supabase';
+import { useTeamRole } from '../../hooks/useTeamRole';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft' | 'pending_approval' | 'rejected';
+type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft' | 'pending_approval' | 'rejected' | 'all';
 
-import { useTeamRole } from '../../hooks/useTeamRole';
+// Component for Avatar Display
+const ClientAvatar = ({ name, size = 48 }: { name: string, size?: number }) => {
+    const initials = name
+        ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+        : '??';
+
+    // Generate a consistent color based on name
+    const colors = ['bg-indigo-100', 'bg-blue-100', 'bg-emerald-100', 'bg-amber-100', 'bg-purple-100', 'bg-pink-100'];
+    const colorIndex = name.length % colors.length;
+    const bgColor = colors[colorIndex];
+    const textColor = bgColor.replace('100', '600').replace('bg-', 'text-');
+
+    return (
+        <View className={`${bgColor} rounded-full items-center justify-center`} style={{ width: size, height: size }}>
+            <Text className={`font-bold text-base ${textColor}`}>{initials}</Text>
+        </View>
+    );
+};
 
 export default function InvoicesScreen() {
     const router = useRouter();
@@ -47,7 +67,7 @@ export default function InvoicesScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState<InvoiceStatus | 'all'>('all');
+    const [activeFilter, setActiveFilter] = useState<InvoiceStatus>('all');
 
     const fetchInvoices = useCallback(async () => {
         try {
@@ -60,33 +80,13 @@ export default function InvoicesScreen() {
                     .order('created_at', { ascending: false });
 
                 if (allErr) throw allErr;
-
-                // Fetch unread counts
-                const { data: unreadCounts, error: unreadErr } = await supabase
-                    .from('invoice_messages')
-                    .select('invoice_id')
-                    .eq('sender_type', 'client')
-                    .is('read_at', null);
-
-                const unreadMap = (unreadCounts || []).reduce((acc: any, curr: any) => {
-                    acc[curr.invoice_id] = (acc[curr.invoice_id] || 0) + 1;
-                    return acc;
-                }, {});
-
-                const enrichedInvoices = (allInvoices || []).map(inv => ({
-                    ...inv,
-                    unread_count: unreadMap[inv.id] || 0
-                }));
-
-                setInvoices(enrichedInvoices);
+                setInvoices(allInvoices || []);
             } else {
                 const data = await getInvoices(profile?.id || '');
                 setInvoices(data);
             }
         } catch (error) {
             console.error('Failed to fetch invoices', error);
-            const localData = await getInvoices(profile?.id || '');
-            if (localData.length > 0) setInvoices(localData);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -105,11 +105,10 @@ export default function InvoicesScreen() {
     };
 
     const stats = useMemo(() => {
-        const total = invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
-        const paidCount = invoices.filter(inv => inv.status === 'paid' || inv.status === 'PAID').length;
-        const pendingApprovalCount = invoices.filter(inv => inv.status === 'PENDING_APPROVAL').length;
-        const pendingCount = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'PAID').length;
-        return { total, paidCount, pendingCount, pendingApprovalCount };
+        const totalOutstanding = invoices
+            .filter(inv => inv.status !== 'paid' && inv.status !== 'PAID')
+            .reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
+        return { totalOutstanding };
     }, [invoices]);
 
     const filteredInvoices = useMemo(() => {
@@ -120,221 +119,254 @@ export default function InvoicesScreen() {
             if (activeFilter === 'all') return matchesSearch;
 
             const status = inv.status.toUpperCase();
-
             if (activeFilter === 'pending_approval') return matchesSearch && status === 'PENDING_APPROVAL';
-            if (activeFilter === 'rejected') return matchesSearch && status === 'REJECTED';
-
             return matchesSearch && status === activeFilter.toUpperCase();
         });
     }, [invoices, searchQuery, activeFilter]);
 
+    // Custom Status Badge Style matching design
     const getStatusStyle = (status: string) => {
         switch (status?.toUpperCase()) {
-            case 'PAID': return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: <CheckCircle2 size={12} color="#059669" /> };
-            case 'SENT': return { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700', icon: <Clock size={12} color="#2563EB" /> };
-            case 'OVERDUE': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-700', icon: <AlertCircle size={12} color="#DC2626" /> };
-            case 'PENDING_APPROVAL': return { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', icon: <AlertCircle size={12} color="#D97706" /> };
-            case 'REJECTED': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-700', icon: <AlertCircle size={12} color="#DC2626" /> };
-            default: return { bg: 'bg-slate-50', border: 'border-slate-100', text: 'text-slate-600', icon: <FileText size={12} color="#475569" /> };
+            case 'PAID': return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'PAID' };
+            case 'SENT': return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'SENT' };
+            case 'OVERDUE': return { bg: 'bg-red-100', text: 'text-red-600', label: 'OVERDUE' };
+            case 'PENDING': return { bg: 'bg-orange-100', text: 'text-orange-600', label: 'PENDING' }; // Matches design "Pending" yellow/orange
+            case 'DRAFT': return { bg: 'bg-slate-100', text: 'text-slate-600', label: 'DRAFT' };
+            default: return { bg: 'bg-slate-100', text: 'text-slate-600', label: status };
         }
     };
 
-    const renderItem = ({ item }: { item: any }) => {
-        const statusStyle = getStatusStyle(item.status);
-        const customerName = item.customer?.name || 'Client Inconnu';
-        const date = new Date(item.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const StatusBadge = ({ status }: { status: string }) => {
+        const style = getStatusStyle(status);
+        return (
+            <View className={`px-3 py-1.5 rounded-lg ${style.bg}`}>
+                <Text className={`text-[10px] font-bold ${style.text} uppercase tracking-wide`}>
+                    {style.label}
+                </Text>
+            </View>
+        );
+    };
+
+    const renderHeader = () => (
+        <View className="px-5 pt-4 pb-2 bg-[#F9FAFC]">
+            {/* Top Bar */}
+            <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-[32px] font-bold text-slate-900">Invoices</Text>
+                <View className="flex-row gap-3">
+                    <TouchableOpacity
+                        onPress={() => router.push('/invoice/new')}
+                        className="bg-white w-12 h-12 rounded-full items-center justify-center shadow-sm border border-slate-100"
+                    >
+                        <Plus size={24} color="#1e293b" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => router.push('/notifications')}
+                        className="bg-white w-12 h-12 rounded-full items-center justify-center shadow-sm border border-slate-100 relative"
+                    >
+                        <Bell size={22} color="#1e293b" />
+                        <View className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Search & Filter Bar */}
+            <View className="flex-row gap-3 mb-6">
+                <View className="flex-1 h-12 bg-white rounded-full flex-row items-center px-4 shadow-[0_2px_15px_-5px_rgba(0,0,0,0.05)] border border-slate-100">
+                    <Search size={20} color="#6366F1" className="mr-2" />
+                    <TextInput
+                        className="flex-1 font-medium text-base text-slate-800 h-full"
+                        placeholder="Search client or invoice ID"
+                        placeholderTextColor="#94a3b8"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
+                <TouchableOpacity className="w-12 h-12 bg-[#2563EB] rounded-full items-center justify-center shadow-lg shadow-blue-500/30">
+                    <SlidersHorizontal size={20} color="white" />
+                </TouchableOpacity>
+            </View>
+
+            {/* Filter Tabs */}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="flex-row mb-2"
+                contentContainerStyle={{ paddingRight: 20 }}
+            >
+                {['all', 'paid', 'pending', 'overdue'].map((filter) => {
+                    const isActive = activeFilter === filter || (filter === 'pending' && activeFilter === 'pending_approval');
+                    return (
+                        <TouchableOpacity
+                            key={filter}
+                            onPress={() => setActiveFilter(filter === 'pending' ? 'pending_approval' : filter as InvoiceStatus)}
+                            className={`mr-3 py-2 px-6 rounded-full border transition-all ${isActive ? 'bg-[#2563EB] border-[#2563EB]' : 'bg-white border-transparent'}`}
+                        >
+                            <Text className={`font-bold capitalize text-sm ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                                {filter}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
+    );
+
+    const handleSendReminders = async () => {
+        // Filter for unpaid invoices that might need reminding
+        const unpaidInvoices = invoices.filter(inv =>
+            (inv.status === 'overdue' || inv.status === 'sent' || inv.status === 'pending') &&
+            inv.customer?.email
+        );
+
+        if (unpaidInvoices.length === 0) {
+            Alert.alert("No Reminders Needed", "There are no unpaid invoices with client emails found.");
+            return;
+        }
+
+        // Extract unique emails
+        const emails = [...new Set(unpaidInvoices.map(inv => inv.customer.email))];
+
+        if (emails.length === 0) {
+            Alert.alert("Missing Emails", "Unpaid invoices found, but no client emails are attached.");
+            return;
+        }
+
+        const subject = encodeURIComponent(`Payment Reminder - ${profile?.business_name || 'Invoices'}`);
+        const body = encodeURIComponent("Dear Client,\n\nThis is a gentle reminder regarding outstanding invoices. Please check your dashboard or contact us for payment details.\n\nBest regards,");
+
+        // Use BCC to protect privacy used in bulk
+        const url = `mailto:?bcc=${emails.join(',')}&subject=${subject}&body=${body}`;
+
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+            await Linking.openURL(url);
+        } else {
+            Alert.alert("Error", "Could not open email client.");
+        }
+    };
+
+    // EXACT Match for the purple gradient total card
+    const renderTotalCard = () => (
+        <View className="mx-5 mb-8 mt-2">
+            <LinearGradient
+                colors={['#F0F3FF', '#F5F7FF']}
+                className="rounded-[32px] p-6 border border-white max-w-full relative overflow-hidden shadow-sm"
+            >
+                {/* Purple blurry background effect */}
+                <View className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-100 rounded-full blur-[50px]" />
+
+                <View className="flex-row justify-between items-start mb-2">
+                    <Text className="text-xs font-bold text-[#6366F1] uppercase tracking-widest mb-2">TOTAL OUTSTANDING</Text>
+                    <View className="w-10 h-10 bg-indigo-100 rounded-xl items-center justify-center">
+                        <Wallet size={20} color="#4F46E5" />
+                    </View>
+                </View>
+
+                <Text className="text-[40px] font-black text-slate-900 tracking-tight leading-[48px] mb-2">
+                    {formatCurrency(stats.totalOutstanding, profile?.currency || 'USD')}
+                </Text>
+
+                <View className="flex-row items-center mb-6">
+                    <TrendingUp size={14} color="#EF4444" className="mr-1.5" />
+                    <Text className="text-slate-500 text-xs font-bold">Unpaid Invoices: {invoices.filter(i => i.status === 'overdue' || i.status === 'sent').length}</Text>
+                </View>
+
+                <TouchableOpacity
+                    className="w-full bg-[#2563EB] h-14 rounded-[20px] flex-row items-center justify-center shadow-xl shadow-blue-500/20 active:scale-[0.98]"
+                    onPress={handleSendReminders}
+                >
+                    <Send size={18} color="white" fill="white" className="mr-2" />
+                    <Text className="text-white font-bold text-base">Send Reminders</Text>
+                </TouchableOpacity>
+            </LinearGradient>
+        </View>
+    );
+
+    const renderEmptyState = () => (
+        <View className="items-center justify-center py-20 px-4">
+            <View className="w-20 h-20 bg-slate-100 rounded-full items-center justify-center mb-6">
+                <FileText size={32} color="#94a3b8" />
+            </View>
+            <Text className="text-xl font-bold text-slate-900 mb-2">No Invoices Found</Text>
+            <Text className="text-slate-500 font-medium text-center px-10">
+                You don't have any invoices matching the current filter criteria.
+            </Text>
+            <TouchableOpacity
+                onPress={() => { setActiveFilter('all'); setSearchQuery(''); }}
+                className="mt-6 px-6 py-3 bg-slate-900 rounded-full"
+            >
+                <Text className="text-white font-bold text-sm">Clear Filters</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
+    // List Item matched to design
+    const renderInvoiceItem = ({ item }: { item: any }) => {
+        const customerName = item.customer?.name || 'Unknown Client';
+        const date = new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
         return (
             <TouchableOpacity
                 onPress={() => router.push(`/invoice/${item.id}`)}
-                className="bg-white p-5 rounded-[32px] mb-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all"
+                className="mx-5 mb-4 bg-white p-5 rounded-[24px] shadow-[0_2px_15px_-8px_rgba(0,0,0,0.06)] border border-slate-50 flex-row items-center active:bg-slate-50/80"
             >
-                <View className="flex-row items-center mb-4">
-                    <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 border ${item.status === 'paid' || item.status === 'PAID' ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-                        <Text className={`font-black text-lg ${item.status === 'paid' || item.status === 'PAID' ? 'text-emerald-600' : 'text-slate-400'}`}>
-                            {customerName.charAt(0).toUpperCase()}
-                        </Text>
-                    </View>
-                    <View className="flex-1">
-                        <Text className="text-slate-900 font-black text-lg mb-0.5" numberOfLines={1}>{customerName}</Text>
-                        <View className="flex-row items-center">
-                            <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mr-2">#{item.invoice_number}</Text>
-                            <View className="w-1 h-1 bg-slate-300 rounded-full mr-2" />
-                            <Text className="text-slate-400 text-[10px] font-bold uppercase">{date}</Text>
-                        </View>
-                    </View>
-                    <View className="items-end">
-                        <Text className="text-slate-900 font-black text-lg">{formatCurrency(item.total_amount, item.currency || profile?.currency || 'USD')}</Text>
-                        <View className={`mt-1 flex-row items-center px-2 py-0.5 rounded-md border ${statusStyle.bg} ${statusStyle.border}`}>
-                            {statusStyle.icon}
-                            <Text className={`text-[9px] font-black ml-1 uppercase ${statusStyle.text}`}>
-                                {item.status === 'PENDING_APPROVAL' ? 'Validation' : item.status}
-                            </Text>
-                        </View>
+                <View className="mr-4">
+                    <ClientAvatar name={customerName} size={48} />
+                </View>
+
+                <View className="flex-1 mr-2">
+                    <Text className="font-bold text-slate-900 text-base mb-1" numberOfLines={1}>{customerName}</Text>
+                    <View className="flex-row items-center">
+                        <Text className="text-xs text-slate-400 font-bold mr-1">#{item.invoice_number}</Text>
+                        <Text className="text-xs text-slate-300">•</Text>
+                        <Text className="text-xs text-slate-400 font-medium ml-1">{date}</Text>
                     </View>
                 </View>
 
-                {(item.unread_count > 0) && (
-                    <View className="bg-blue-50 border border-blue-100 p-3 rounded-2xl flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                            <MessageSquare size={14} color="#2563EB" className="mr-2" />
-                            <Text className="text-blue-700 text-xs font-bold">{item.unread_count} nouveau(x) message(s)</Text>
-                        </View>
-                        <ArrowRight size={14} color="#2563EB" />
-                    </View>
-                )}
+                <View className="items-end">
+                    <Text className="font-black text-slate-900 text-lg mb-2">
+                        {formatCurrency(item.total_amount, item.currency || profile?.currency || 'USD')}
+                    </Text>
+                    <StatusBadge status={item.status} />
+                </View>
             </TouchableOpacity>
         );
     };
 
     return (
-        <View className="flex-1 bg-slate-50">
-            <StatusBar style="light" />
-
-            <LinearGradient
-                colors={['#1E40AF', '#1e3a8a']}
-                className="pt-16 pb-12 px-6 rounded-b-[48px] shadow-2xl z-10"
-            >
-                <View className="flex-row justify-between items-center mb-8">
-                    <View>
-                        <Text className="text-4xl font-black text-white tracking-tight">Factures</Text>
-                        <Text className="text-blue-200/60 text-xs font-bold uppercase tracking-[2px] mt-1">Gérer vos revenus</Text>
-                    </View>
-                    <TouchableOpacity
-                        onPress={() => router.push('/invoice/new')}
-                        className="bg-white/20 w-14 h-14 items-center justify-center rounded-[22px] border border-white/20 shadow-lg"
-                    >
-                        <Plus size={28} color="white" strokeWidth={3} />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Search Bar Upgrade */}
-                <View className="bg-white/10 p-1.5 rounded-[24px] flex-row items-center border border-white/20 backdrop-blur-md mb-6">
-                    <View className="bg-white flex-1 flex-row items-center px-4 h-12 rounded-[20px] shadow-sm">
-                        <Search size={20} color="#94A3B8" />
-                        <TextInput
-                            className="flex-1 ml-3 text-base text-slate-800 font-bold"
-                            placeholder="Rechercher..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            placeholderTextColor="#CBD5E1"
-                        />
-                        {searchQuery.length > 0 && (
-                            <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                <AlertCircle size={18} color="#CBD5E1" />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                    <TouchableOpacity className="w-12 h-12 items-center justify-center">
-                        <Filter size={20} color="white" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Mini Stats Grid */}
-                <View className="flex-row gap-3">
-                    <View className="flex-1 bg-white/10 rounded-2xl p-3 border border-white/10">
-                        <Text className="text-blue-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Total CA</Text>
-                        <Text className="text-white font-black text-sm" numberOfLines={1}>{stats.total.toLocaleString()} <Text className="text-[10px] opacity-60">{profile?.currency}</Text></Text>
-                    </View>
-                    {(isAdmin || isOwner) && stats.pendingApprovalCount > 0 ? (
-                        <TouchableOpacity
-                            onPress={() => setActiveFilter('pending_approval')}
-                            className={`flex-1 rounded-2xl p-3 border ${activeFilter === 'pending_approval' ? 'bg-amber-500 border-amber-400' : 'bg-amber-400/20 border-amber-400/30'}`}
-                        >
-                            <Text className={`${activeFilter === 'pending_approval' ? 'text-white' : 'text-amber-100'} text-[8px] font-black uppercase tracking-widest mb-1 flex-row items-center`}>
-                                À Valider <View className="w-2 h-2 rounded-full bg-red-500 ml-1" />
-                            </Text>
-                            <Text className="text-white font-black text-sm">{stats.pendingApprovalCount} Factures</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <View className="flex-1 bg-emerald-400/10 rounded-2xl p-3 border border-emerald-400/20">
-                            <Text className="text-emerald-100/60 text-[8px] font-black uppercase tracking-widest mb-1">Payées</Text>
-                            <Text className="text-white font-black text-sm">{stats.paidCount} Factures</Text>
-                        </View>
-                    )}
-
-                    <View className="flex-1 bg-amber-400/10 rounded-2xl p-3 border border-amber-400/20">
-                        {/* Reuse pending count for general stats */}
-                        <Text className="text-amber-100/60 text-[8px] font-black uppercase tracking-widest mb-1">En attente</Text>
-                        <Text className="text-white font-black text-sm">{stats.pendingCount} Factures</Text>
-                    </View>
-                </View>
-            </LinearGradient>
-
-            {/* Filter Chips Overlay */}
-            <View className="px-6 -mt-6 z-20">
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingVertical: 10 }}
-                    className="flex-row"
-                >
-                    {(['all', 'pending_approval', 'paid', 'sent', 'overdue'] as const).map((filter) => {
-                        const labels: any = {
-                            all: 'Toutes',
-                            pending_approval: 'À Valider',
-                            paid: 'Payées',
-                            sent: 'Envoyées',
-                            overdue: 'Retard',
-                            rejected: 'Rejetées'
-                        };
-
-                        return (
-                            <TouchableOpacity
-                                key={filter}
-                                onPress={() => setActiveFilter(filter)}
-                                className={`mr-3 px-6 py-3 rounded-full border shadow-sm ${activeFilter === filter
-                                    ? 'bg-slate-900 border-slate-900'
-                                    : 'bg-white border-slate-100'
-                                    }`}
-                            >
-                                <View className="flex-row items-center">
-                                    {filter === 'pending_approval' && stats.pendingApprovalCount > 0 && activeFilter !== filter && (
-                                        <View className="w-2 h-2 rounded-full bg-amber-500 mr-2" />
-                                    )}
-                                    <Text className={`font-black text-xs uppercase tracking-widest ${activeFilter === filter ? 'text-white' : 'text-slate-500'
-                                        }`}>
-                                        {labels[filter] || filter}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        )
-                    })}
-                </ScrollView>
-            </View>
-
-            {loading ? (
-                <View className="flex-1 items-center justify-center mt-10">
-                    <ActivityIndicator size="large" color="#1E40AF" />
-                    <Text className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Chargement des factures...</Text>
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredInvoices}
-                    keyExtractor={item => item.id}
-                    renderItem={renderItem}
-                    contentContainerStyle={{ padding: 24, paddingBottom: 120, paddingTop: 10 }}
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />
-                    }
-                    ListEmptyComponent={
-                        <View className="items-center justify-center py-24 bg-white rounded-[40px] border border-dashed border-slate-200 shadow-inner">
-                            <View className="bg-slate-50 p-6 rounded-full mb-4">
-                                <FileText size={48} color="#CBD5E1" strokeWidth={1.5} />
+        <SafeAreaView className="flex-1 bg-[#F9FAFC]">
+            <StatusBar style="dark" />
+            <FlatList
+                data={filteredInvoices}
+                keyExtractor={item => item.id}
+                renderItem={renderInvoiceItem}
+                ListHeaderComponent={
+                    <>
+                        <View>
+                            {renderHeader()}
+                            {renderTotalCard()}
+                            <View className="flex-row justify-between items-center px-6 mb-4">
+                                <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recent Invoices</Text>
+                                <TouchableOpacity>
+                                    <Text className="text-[#2563EB] font-bold text-xs">View All</Text>
+                                </TouchableOpacity>
                             </View>
-                            <Text className="text-slate-900 font-black text-xl mb-1">Aucune facture</Text>
-                            <Text className="text-slate-400 text-center px-12 mb-8 font-medium">Vous n'avez pas encore de factures {activeFilter !== 'all' ? `avec le statut "${activeFilter}"` : ''}.</Text>
-                            <TouchableOpacity
-                                onPress={() => router.push('/invoice/new')}
-                                className="bg-blue-600 px-8 py-4 rounded-2xl shadow-xl shadow-blue-200"
-                            >
-                                <Text className="text-white font-black uppercase tracking-wider">Créer une facture</Text>
-                            </TouchableOpacity>
                         </View>
-                    }
-                />
+                    </>
+                }
+                ListFooterComponent={<View className="h-24" />}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />
+                }
+                ListEmptyComponent={!loading ? renderEmptyState() : null}
+            />
+
+            {loading && invoices.length === 0 && (
+                <View className="absolute inset-0 items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+                    <ActivityIndicator size="large" color="#2563EB" />
+                </View>
             )}
-        </View>
+        </SafeAreaView>
     );
 }

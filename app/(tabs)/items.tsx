@@ -29,7 +29,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Item } from '../../types';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -41,6 +41,7 @@ export default function ItemsTab() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [refreshing, setRefreshing] = useState(false);
+    const insets = useSafeAreaInsets();
 
     const fetchItems = useCallback(async () => {
         if (!user) return;
@@ -156,7 +157,7 @@ export default function ItemsTab() {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: Platform.OS === 'android' ? 30 : 0 }}>
+        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
 
             {loading && items.length === 0 ? (
@@ -252,6 +253,6 @@ export default function ItemsTab() {
             >
                 <Plus size={24} color="white" strokeWidth={2.5} />
             </TouchableOpacity>
-        </SafeAreaView>
+        </View>
     );
 }

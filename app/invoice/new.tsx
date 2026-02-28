@@ -5,13 +5,15 @@ import {
     TextInput,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
+
     KeyboardAvoidingView,
     Platform,
     Alert,
     ActivityIndicator,
-    Image
+    Image,
+    Modal
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
     ArrowLeft,
@@ -20,7 +22,8 @@ import {
     Plus,
     Layers,
     ChevronRight,
-    Box
+    Box,
+    Trash2
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useClients } from '../../hooks/useClients';
@@ -43,6 +46,7 @@ export default function NewInvoiceScreen() {
     const { data: clients } = useClients();
     const { createInvoice, saving: isSaving } = useInvoice();
     const { profile } = useProfile();
+    const insets = useSafeAreaInsets();
 
     // Form State
     const [invoiceNumber, setInvoiceNumber] = useState('INV-2024-' + Math.floor(100 + Math.random() * 900));
@@ -57,12 +61,12 @@ export default function NewInvoiceScreen() {
 
     // Items State
     const [items, setItems] = useState<InvoiceItemState[]>([
-        { id: '1', description: 'Web Design Services', quantity: '10', unit_price: '100' },
-        { id: '2', description: 'SEO Optimization', quantity: '1', unit_price: '500' }
+        { id: Date.now().toString(), description: '', quantity: '1', unit_price: '0' }
     ]);
 
     // Client State (Mocked for design view, typically selected)
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+    const [clientModalVisible, setClientModalVisible] = useState(false);
 
     // Calculations
     const subtotal = items.reduce((acc, item) => {
@@ -77,7 +81,7 @@ export default function NewInvoiceScreen() {
     const addItem = () => {
         setItems([
             ...items,
-            { id: Date.now().toString(), description: 'New Item', quantity: '1', unit_price: '0' }
+            { id: Date.now().toString(), description: '', quantity: '1', unit_price: '0' }
         ]);
     };
 
@@ -85,11 +89,44 @@ export default function NewInvoiceScreen() {
         setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
     };
 
+    const removeItem = (id: string) => {
+        setItems(items.filter(i => i.id !== id));
+    };
+
     const handleCreate = async () => {
-        // Mock save for UI demo
-        Alert.alert('Success', 'Invoice created successfully!', [
-            { text: 'OK', onPress: () => router.back() }
-        ]);
+        if (!selectedClientId) {
+            Alert.alert('Erreur', 'Veuillez sélectionner un client.');
+            return;
+        }
+
+        const validItems = items.filter(item => item.description.trim() !== '');
+        if (validItems.length === 0) {
+            Alert.alert('Erreur', 'Veuillez ajouter au moins un article avec une description.');
+            return;
+        }
+
+        try {
+            const formattedItems = validItems.map(i => ({
+                description: i.description.trim(),
+                quantity: parseFloat(i.quantity) || 0,
+                unitPrice: parseFloat(i.unit_price) || 0
+            }));
+
+            const selectedClient = clients?.find(c => c.id === selectedClientId);
+
+            await createInvoice(
+                selectedClient?.name || 'Client Inconnu',
+                formattedItems,
+                totalAmount,
+                selectedClientId
+            );
+
+            Alert.alert('Succès', 'Facture créée avec succès!', [
+                { text: 'OK', onPress: () => router.back() }
+            ]);
+        } catch (error: any) {
+            Alert.alert('Erreur', error.message || 'Impossible de créer la facture.');
+        }
     };
 
     const formatCurrency = (amount: number) => {
@@ -100,7 +137,7 @@ export default function NewInvoiceScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F3E8FF]">
+        <View className="flex-1 bg-[#F3E8FF]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
 
             {/* Header */}
@@ -120,18 +157,36 @@ export default function NewInvoiceScreen() {
             >
                 <ScrollView
                     className="flex-1 px-6 pt-2"
-                    contentContainerStyle={{ paddingBottom: 150 }}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Invoice Number Card */}
-                    <View className="bg-white rounded-[32px] p-6 mb-6 shadow-sm border border-purple-50 flex-row justify-between items-center">
-                        <View>
-                            <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">INVOICE NUMBER</Text>
-                            <Text className="text-slate-900 text-xl font-black tracking-tight">#{invoiceNumber}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => setInvoiceNumber('INV-2024-' + Math.floor(100 + Math.random() * 900))}>
-                            <RefreshCw size={20} color="#A855F7" />
+                    {/* Client Selector (Added) */}
+                    <View className="mb-6 mt-2">
+                        <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 ml-1">CLIENT</Text>
+                        <TouchableOpacity
+                            onPress={() => setClientModalVisible(true)}
+                            className="bg-white rounded-[24px] p-5 shadow-sm border border-purple-50 flex-row justify-between items-center"
+                        >
+                            <View>
+                                <Text className="text-slate-900 font-bold text-base">
+                                    {clients?.find(c => c.id === selectedClientId)?.name || 'Sélectionner un client'}
+                                </Text>
+                            </View>
+                            <ChevronRight size={20} color="#CBD5E1" />
                         </TouchableOpacity>
+                    </View>
+
+                    {/* Invoice Number Card */}
+                    <View className="bg-white rounded-[32px] p-6 mb-6 shadow-sm border border-purple-50 flex-row justify-between items-center focus-within:border-purple-300">
+                        <View className="flex-1">
+                            <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">INVOICE NUMBER</Text>
+                            <TextInput
+                                className="text-slate-900 text-xl font-black tracking-tight p-0 m-0"
+                                value={invoiceNumber}
+                                onChangeText={setInvoiceNumber}
+                                placeholder="e.g. INV-001"
+                                placeholderTextColor="#94A3B8"
+                            />
+                        </View>
                     </View>
 
                     {/* Dates */}
@@ -139,18 +194,30 @@ export default function NewInvoiceScreen() {
                         {/* Issue Date */}
                         <View className="w-[48%]">
                             <Text className="text-slate-500 text-sm font-medium mb-2 pl-1">Issue Date</Text>
-                            <TouchableOpacity className="bg-white rounded-[20px] p-4 flex-row items-center border border-slate-200 shadow-sm">
+                            <View className="bg-white rounded-[20px] p-4 flex-row items-center border border-slate-200 shadow-sm">
                                 <Calendar size={18} color="#A855F7" className="mr-2" />
-                                <Text className="text-slate-900 font-bold">{issueDate}</Text>
-                            </TouchableOpacity>
+                                <TextInput
+                                    className="flex-1 text-slate-900 font-bold p-0 m-0"
+                                    value={issueDate}
+                                    onChangeText={setIssueDate}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor="#94A3B8"
+                                />
+                            </View>
                         </View>
                         {/* Due Date */}
                         <View className="w-[48%]">
                             <Text className="text-slate-500 text-sm font-medium mb-2 pl-1">Due Date</Text>
-                            <TouchableOpacity className="bg-white rounded-[20px] p-4 flex-row items-center border border-slate-200 shadow-sm">
+                            <View className="bg-white rounded-[20px] p-4 flex-row items-center border border-slate-200 shadow-sm">
                                 <Calendar size={18} color="#A855F7" className="mr-2" />
-                                <Text className="text-slate-900 font-bold">{dueDate}</Text>
-                            </TouchableOpacity>
+                                <TextInput
+                                    className="flex-1 text-slate-900 font-bold p-0 m-0"
+                                    value={dueDate}
+                                    onChangeText={setDueDate}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor="#94A3B8"
+                                />
+                            </View>
                         </View>
                     </View>
 
@@ -162,7 +229,7 @@ export default function NewInvoiceScreen() {
                             className="bg-purple-100 px-3 py-1.5 rounded-full flex-row items-center"
                         >
                             <Plus size={14} color="#A855F7" className="mr-1" />
-                            <Text className="text-purple-600 text-xs font-bold uppercase">Add Item</Text>
+                            <Text className="text-purple-600 text-xs font-bold uppercase">Ajouter</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -203,13 +270,19 @@ export default function NewInvoiceScreen() {
                                             keyboardType="numeric"
                                         />
                                     </View>
-                                    <Text className="text-purple-500 text-[10px] font-bold mt-1">Design & Prototyping</Text>
                                 </View>
 
-                                {/* Amount */}
-                                <Text className="text-slate-900 font-bold text-lg">
-                                    {formatCurrency((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0))}
-                                </Text>
+                                {/* Amount & Actions */}
+                                <View className="items-end gap-2">
+                                    <Text className="text-slate-900 font-bold text-lg">
+                                        {formatCurrency((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0))}
+                                    </Text>
+                                    {items.length > 1 && (
+                                        <TouchableOpacity onPress={() => removeItem(item.id)} className="bg-red-50 p-1.5 rounded-full">
+                                            <Trash2 size={14} color="#EF4444" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         ))}
 
@@ -221,7 +294,7 @@ export default function NewInvoiceScreen() {
                             <View className="bg-purple-500 rounded-full p-0.5 mr-2">
                                 <Plus size={14} color="white" />
                             </View>
-                            <Text className="text-purple-600 font-medium">Add New Item</Text>
+                            <Text className="text-purple-600 font-medium">Ajouter une ligne vide</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -254,26 +327,69 @@ export default function NewInvoiceScreen() {
                         </View>
                     </View>
 
-                </ScrollView>
-            </KeyboardAvoidingView>
+                </ScrollView >
 
-            {/* Footer Main Button */}
-            <View className="absolute bottom-0 w-full bg-white px-6 py-4 pb-8 border-t border-slate-100 shadow-2xl rounded-t-[32px]">
-                <TouchableOpacity
-                    onPress={handleCreate}
-                    disabled={isSaving}
-                    className="w-full bg-[#9333EA] h-14 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-purple-500/30"
-                >
-                    {isSaving ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <>
-                            <Text className="text-white font-bold text-lg mr-2">Preview & Send</Text>
-                            <ChevronRight size={20} color="white" strokeWidth={3} />
-                        </>
-                    )}
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+                {/* Footer Main Button */}
+                <View style={{ paddingBottom: Math.max(insets.bottom, 20), paddingTop: 16 }} className="w-full bg-[#F3E8FF] px-6 border-t border-purple-100 shadow-2xl rounded-t-[32px]">
+                    <TouchableOpacity
+                        onPress={handleCreate}
+                        disabled={isSaving}
+                        className="w-full bg-[#9333EA] h-14 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-purple-500/30"
+                    >
+                        {isSaving ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Text className="text-white font-bold text-lg mr-2">Preview & Send</Text>
+                                <ChevronRight size={20} color="white" strokeWidth={3} />
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView >
+
+            {/* Client Selection Modal */}
+            <Modal visible={clientModalVisible} transparent animationType="slide">
+                <View className="flex-1 justify-end bg-black/50">
+                    <View className="bg-white rounded-t-[32px] p-6 max-h-[80%] pb-[100px]">
+                        <View className="flex-row justify-between items-center mb-6">
+                            <Text className="text-xl font-bold text-slate-900">Sélectionner un client</Text>
+                            <TouchableOpacity onPress={() => setClientModalVisible(false)} className="bg-slate-100 px-4 py-2 rounded-full">
+                                <Text className="font-bold text-slate-500">Fermer</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {clients?.map(client => (
+                                <TouchableOpacity
+                                    key={client.id}
+                                    onPress={() => {
+                                        setSelectedClientId(client.id);
+                                        setClientModalVisible(false);
+                                    }}
+                                    className={`p-4 rounded-2xl mb-3 flex-row justify-between items-center ${selectedClientId === client.id ? 'bg-purple-50 border border-purple-200' : 'bg-slate-50 border border-slate-100'}`}
+                                >
+                                    <View>
+                                        <Text className="font-bold text-slate-800 text-base">{client.name}</Text>
+                                        {client.email && <Text className="text-slate-500 text-xs mt-1">{client.email}</Text>}
+                                    </View>
+                                    {selectedClientId === client.id && <Box size={20} color="#A855F7" />}
+                                </TouchableOpacity>
+                            ))}
+                            {(!clients || clients.length === 0) && (
+                                <View className="py-8 items-center">
+                                    <Text className="text-slate-500 text-center mb-4">Aucun client trouvé.</Text>
+                                    <TouchableOpacity onPress={() => {
+                                        setClientModalVisible(false);
+                                        router.push('/(tabs)/clients/form');
+                                    }} className="bg-purple-100 px-4 py-2 rounded-full">
+                                        <Text className="text-purple-600 font-bold">Ajouter un client</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </View >
     );
 }

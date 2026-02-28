@@ -5,7 +5,7 @@ import {
     TouchableOpacity,
     ScrollView,
     Image,
-    SafeAreaView,
+    
     Alert,
     Dimensions
 } from 'react-native';

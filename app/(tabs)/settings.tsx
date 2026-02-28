@@ -1,10 +1,14 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Switch, SafeAreaView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Switch, Platform, ActivityIndicator, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../../lib/supabase';
+import { uploadImage as uploadHelper } from '../../lib/upload';
 import {
     HelpCircle,
     Pencil,
@@ -28,7 +32,47 @@ const ICON_SIZE = 20;
 export default function SettingsScreen() {
     const router = useRouter();
     const { signOut, user } = useAuth();
-    const { profile } = useProfile();
+    const { profile, updateProfile, fetchProfile } = useProfile();
+    const insets = useSafeAreaInsets();
+    const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
+
+    const pickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0].uri) {
+                await uploadImage(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error starting image picker:', error);
+            Alert.alert('Erreur', 'Impossible de lancer la galerie d\'images.');
+        }
+    };
+
+    const uploadImage = async (uri: string) => {
+        if (!user) return;
+        setUploadingAvatar(true);
+        try {
+            // Upload to Supabase Storage using helper
+            const publicUrl = await uploadHelper(uri, 'logos');
+
+            // Update Profile record
+            const { error: updateError } = await updateProfile({ logo_url: publicUrl });
+            if (updateError) throw updateError;
+
+            Alert.alert("Succès", "Photo de profil mise à jour avec succès.");
+        } catch (error: any) {
+            console.error('Error uploading image:', error);
+            Alert.alert("Erreur", "Le téléchargement a échoué. Vérifiez votre connexion et vos permissions.");
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
 
     const handleSignOut = () => {
         // Add confirmation logic if needed, for now direct action as per design
@@ -136,9 +180,9 @@ export default function SettingsScreen() {
     );
 
     return (
-        <View className="flex-1 bg-[#f6f6f8]">
+        <View className="flex-1 bg-[#f6f6f8]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
-            <SafeAreaView className="flex-1">
+            <View className="flex-1">
                 {/* Header */}
                 <View className="flex-row justify-between items-center px-6 pt-2 pb-4">
                     <Text className="text-3xl font-extrabold text-slate-900">Settings</Text>
@@ -172,8 +216,16 @@ export default function SettingsScreen() {
                                 </View>
                             </LinearGradient>
 
-                            <TouchableOpacity className="absolute bottom-0 right-0 bg-[#1337ec] p-2 rounded-full border-[3px] border-white">
-                                <Pencil size={12} color="white" />
+                            <TouchableOpacity
+                                className="absolute bottom-0 right-0 bg-[#1337ec] p-2 rounded-full border-[3px] border-white"
+                                onPress={pickImage}
+                                disabled={uploadingAvatar}
+                            >
+                                {uploadingAvatar ? (
+                                    <ActivityIndicator size="small" color="white" style={{ width: 12, height: 12 }} />
+                                ) : (
+                                    <Pencil size={12} color="white" />
+                                )}
                             </TouchableOpacity>
                         </View>
 
@@ -288,7 +340,7 @@ export default function SettingsScreen() {
                     </Text>
 
                 </ScrollView>
-            </SafeAreaView>
+            </View>
         </View>
     );
 }

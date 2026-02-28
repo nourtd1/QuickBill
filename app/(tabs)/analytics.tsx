@@ -5,9 +5,9 @@ import {
     ScrollView,
     TouchableOpacity,
     Dimensions,
-    Image,
-    SafeAreaView
+    Image
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LineChart, PieChart } from 'react-native-gifted-charts';
 import {
@@ -68,6 +68,7 @@ const topClients = [
 export default function AnalyticsScreen() {
     const router = useRouter();
     const [selectedPeriod, setSelectedPeriod] = useState('Month');
+    const insets = useSafeAreaInsets();
 
     const renderPeriodSelector = () => (
         <View className="flex-row bg-slate-100 p-1 rounded-xl mb-6 mx-4">
@@ -97,7 +98,7 @@ export default function AnalyticsScreen() {
                 <Text className="text-2xl font-bold text-slate-900">Revenue</Text>
             </View>
             <TouchableOpacity
-                onPress={() => router.push('/notifications')}
+                onPress={() => router.push('/activity')}
                 className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-slate-100 relative"
             >
                 <Bell size={20} color="#1e293b" />
@@ -107,7 +108,7 @@ export default function AnalyticsScreen() {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F9FAFC]">
+        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
 
             {/* Custom Header since we use Stack.Screen header config usually but here custom is better for layout */}
@@ -306,6 +307,6 @@ export default function AnalyticsScreen() {
                 </View>
 
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -30,7 +30,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useAuth } from '../../context/AuthContext';
 import AiVoiceAssistant from '../../components/AiVoiceAssistant';
@@ -97,8 +97,9 @@ const ActivityItem = ({ icon: Icon, iconBg, iconColor, title, date, amount, stat
 export default function Dashboard() {
     const router = useRouter();
     const { profile } = useAuth();
-    const { netProfit, loading, refresh, pendingAmount, growth } = useDashboard(); // Connected to Real Data
+    const { netProfit, loading, refresh, pendingAmount, growth, invoices, recentExpenses } = useDashboard(); // Connected to Real Data
     const [aiVisible, setAiVisible] = useState(false);
+    const insets = useSafeAreaInsets();
 
     const [notificationsVisible, setNotificationsVisible] = useState(false);
 
@@ -114,11 +115,87 @@ export default function Dashboard() {
     const monthlyGrowth = growth > 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`;
     const growthColor = growth >= 0 ? '#10B981' : '#EF4444';
 
+    // Combine and sort activities from invoices and expenses
+    const activities = useMemo(() => {
+        const invs = (invoices || []).map(inv => ({
+            id: inv.id,
+            type: 'invoice',
+            title: (Array.isArray(inv.customer) ? inv.customer[0]?.name : inv.customer?.name) || 'Unknown Client',
+            date: new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            dateObj: new Date(inv.created_at),
+            amount: inv.total_amount,
+            status: inv.status,
+            isPositive: true
+        }));
+
+        const exps = (recentExpenses || []).map(exp => ({
+            id: exp.id,
+            type: 'expense',
+            title: exp.category || 'Expense',
+            date: new Date(exp.date || exp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            dateObj: new Date(exp.date || exp.created_at),
+            amount: exp.amount,
+            status: 'Expensed',
+            isPositive: false
+        }));
+
+        return [...invs, ...exps]
+            .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
+            .slice(0, 5);
+    }, [invoices, recentExpenses]);
+
+    const getActivityStyling = (item: any) => {
+        if (item.type === 'expense') {
+            return {
+                icon: Server,
+                iconBg: 'bg-pink-100',
+                iconColor: '#DB2777',
+                statusBg: 'bg-slate-100',
+                statusColor: 'text-slate-600',
+                amountText: `-${formatCurrency(item.amount, profile?.currency || 'USD')}`,
+                status: 'Expensed'
+            };
+        }
+
+        const status = (item.status || '').toUpperCase();
+        let statusBg = 'bg-orange-100';
+        let statusColor = 'text-orange-700';
+        let displayStatus = 'Pending';
+
+        if (status === 'PAID') {
+            statusBg = 'bg-emerald-100';
+            statusColor = 'text-emerald-700';
+            displayStatus = 'Paid';
+        } else if (status === 'OVERDUE') {
+            statusBg = 'bg-red-100';
+            statusColor = 'text-red-700';
+            displayStatus = 'Overdue';
+        } else if (status === 'SENT') {
+            statusBg = 'bg-blue-100';
+            statusColor = 'text-blue-700';
+            displayStatus = 'Sent';
+        } else if (status === 'DRAFT') {
+            statusBg = 'bg-slate-100';
+            statusColor = 'text-slate-600';
+            displayStatus = 'Draft';
+        }
+
+        return {
+            icon: PenTool,
+            iconBg: 'bg-indigo-100',
+            iconColor: '#4F46E5',
+            statusBg,
+            statusColor,
+            amountText: `+${formatCurrency(item.amount, profile?.currency || 'USD')}`,
+            status: displayStatus
+        };
+    };
+
     return (
         <View className="flex-1 bg-[#F9FAFC] relative">
             {/* ... (Header and Background remain same) ... */}
 
-            <SafeAreaView className="flex-1">
+            <View className="flex-1" style={{ paddingTop: insets.top }}>
                 <ScrollView
                     className="flex-1 px-6 pt-2"
                     showsVerticalScrollIndicator={false}
@@ -220,7 +297,7 @@ export default function Dashboard() {
 
                                 <View className="h-[1px] bg-slate-100 mb-4" />
 
-                                <TouchableOpacity className="items-center py-2" onPress={() => router.push('/notifications')}>
+                                <TouchableOpacity className="items-center py-2" onPress={() => router.push('/activity')}>
                                     <Text className="text-slate-500 font-bold text-xs">View all activity</Text>
                                 </TouchableOpacity>
                             </View>
@@ -336,46 +413,36 @@ export default function Dashboard() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Activity List - MOCKED to match design exactly first */}
-                    <ActivityItem
-                        icon={PenTool}
-                        iconBg="bg-indigo-100"
-                        iconColor="#4F46E5"
-                        title="Acme Corp Design"
-                        date="Oct 24, 2023"
-                        amount="+$1,200.00"
-                        status="Paid"
-                        statusBg="bg-emerald-100"
-                        statusColor="text-emerald-700"
-                        isPositive={true}
-                    />
-                    <ActivityItem
-                        icon={Palette}
-                        iconBg="bg-purple-100"
-                        iconColor="#9333EA"
-                        title="Studio Branding"
-                        date="Oct 22, 2023"
-                        amount="$450.00"
-                        status="Pending"
-                        statusBg="bg-orange-100"
-                        statusColor="text-orange-700"
-                        isPositive={true}
-                    />
-                    <ActivityItem
-                        icon={Server}
-                        iconBg="bg-pink-100"
-                        iconColor="#DB2777"
-                        title="Server Costs"
-                        date="Oct 20, 2023"
-                        amount="-$20.00"
-                        status="Expensed"
-                        statusBg="bg-slate-100"
-                        statusColor="text-slate-600"
-                        isPositive={false}
-                    />
+                    {/* Activity List - Real Data */}
+                    {activities.length > 0 ? activities.map((item, index) => {
+                        const style = getActivityStyling(item);
+                        return (
+                            <ActivityItem
+                                key={item.id || index}
+                                icon={style.icon}
+                                iconBg={style.iconBg}
+                                iconColor={style.iconColor}
+                                title={item.title}
+                                date={item.date}
+                                amount={style.amountText}
+                                status={style.status}
+                                statusBg={style.statusBg}
+                                statusColor={style.statusColor}
+                                isPositive={item.isPositive}
+                            />
+                        );
+                    }) : (
+                        <View className="items-center py-8 bg-white rounded-[24px] border border-slate-50 shadow-sm mb-6">
+                            <Clock size={32} color="#CBD5E1" className="mb-3" />
+                            <Text className="text-slate-900 font-bold mb-1">No Activity Yet</Text>
+                            <Text className="text-slate-500 text-xs text-center px-10">
+                                Your recent invoices and expenses will appear here.
+                            </Text>
+                        </View>
+                    )}
 
                 </ScrollView>
-            </SafeAreaView>
+            </View>
 
             <AiVoiceAssistant visible={aiVisible} onClose={() => setAiVisible(false)} />
         </View>

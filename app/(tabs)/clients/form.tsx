@@ -9,10 +9,11 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
-    SafeAreaView,
-    Image
+    Image,
+    SafeAreaView
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ArrowLeft,
     Camera,
@@ -35,6 +36,7 @@ export default function ClientFormScreen() {
     const { id } = useLocalSearchParams();
     const { user } = useAuth();
     const isEditing = !!id;
+    const insets = useSafeAreaInsets();
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEditing);
@@ -318,30 +320,31 @@ export default function ClientFormScreen() {
                     </View>
 
                 </ScrollView>
-            </KeyboardAvoidingView>
 
-            {/* Footer Button */}
-            <View className="absolute bottom-0 w-full bg-white/95 backdrop-blur-lg px-6 py-4 pb-8 border-t border-slate-100 rounded-t-[32px] shadow-2xl">
-                <TouchableOpacity
-                    onPress={handleSave}
-                    disabled={loading}
-                    className="w-full bg-[#4F46E5] h-14 rounded-full flex-row items-center justify-center shadow-lg shadow-indigo-500/30"
-                    // Note: Screenshot uses purple similar to invoice (#9333EA) or indigo (#4F46E5). 
-                    // Screenshot looks vivid blue/purple. Let's use #4F46E5 (Indigo) or #6366F1 matching the 'Create Client' button color.
-                    // The invoice 'Preview & Send' was purple. The screenshot has a very "Blurple" button.
-                    style={{ backgroundColor: '#4F46E5' }}
+                {/* Footer Button */}
+                <View
+                    style={{ paddingBottom: Math.max(insets.bottom, 20), paddingTop: 16 }}
+                    className="w-full bg-[#F3E8FF] px-6 border-t border-purple-100 shadow-2xl"
                 >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <>
-                            <Text className="text-white font-bold text-lg mr-2">Create Client</Text>
-                            <ArrowLeft size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} strokeWidth={2.5} />
-                        </>
-                    )}
-                </TouchableOpacity>
-            </View>
-
+                    <TouchableOpacity
+                        onPress={handleSave}
+                        disabled={loading}
+                        className="w-full h-14 rounded-full flex-row items-center justify-center shadow-lg shadow-indigo-500/30"
+                        style={{ backgroundColor: '#4F46E5' }}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Text className="text-white font-bold text-lg mr-2">
+                                    {isEditing ? 'Save Changes' : 'Create Client'}
+                                </Text>
+                                <ArrowLeft size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} strokeWidth={2.5} />
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

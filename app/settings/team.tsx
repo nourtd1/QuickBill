@@ -8,7 +8,7 @@ import {
     Alert,
     Modal,
     TextInput,
-    SafeAreaView,
+    
     Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';

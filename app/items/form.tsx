@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Check, Trash2, Package, Info, CreditCard, Box } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
@@ -11,6 +12,7 @@ export default function ItemForm() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { user, profile } = useAuth();
+    const insets = useSafeAreaInsets();
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -154,7 +156,7 @@ export default function ItemForm() {
                     </View>
 
                     {/* Overlapping Content */}
-                    <View className="px-6 -mt-10 pb-20">
+                    <View className="px-6 -mt-10" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
                         <View className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-200/50 border border-slate-100 mb-8">
                             <View className="space-y-6">
                                 {/* Name Input */}

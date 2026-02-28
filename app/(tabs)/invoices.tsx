@@ -9,11 +9,12 @@ import {
     TextInput,
     ActivityIndicator,
     Dimensions,
-    SafeAreaView,
+
     Image,
     Alert,
     Linking
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
     Plus,
@@ -63,6 +64,7 @@ export default function InvoicesScreen() {
     const { getInvoices, isOffline } = useOffline();
     const { profile } = useAuth();
     const { role, isOwner, isAdmin } = useTeamRole();
+    const insets = useSafeAreaInsets();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -160,7 +162,7 @@ export default function InvoicesScreen() {
                         <Plus size={24} color="#1e293b" />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={() => router.push('/notifications')}
+                        onPress={() => router.push('/activity')}
                         className="bg-white w-12 h-12 rounded-full items-center justify-center shadow-sm border border-slate-100 relative"
                     >
                         <Bell size={22} color="#1e293b" />
@@ -334,7 +336,7 @@ export default function InvoicesScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F9FAFC]">
+        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
             <FlatList
                 data={filteredInvoices}
@@ -367,6 +369,6 @@ export default function InvoicesScreen() {
                     <ActivityIndicator size="large" color="#2563EB" />
                 </View>
             )}
-        </SafeAreaView>
+        </View>
     );
 }

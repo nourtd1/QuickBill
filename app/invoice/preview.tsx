@@ -4,11 +4,12 @@ import {
     Text,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
+
     Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ChevronLeft,
     MoreHorizontal,
@@ -23,9 +24,10 @@ const PRIMARY_COLOR = '#1337ec';
 
 export default function InvoicePreviewScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     return (
-        <SafeAreaView className="flex-1 bg-[#f6f6f8]">
+        <View className="flex-1 bg-[#f6f6f8]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
 
             {/* Header */}
@@ -178,6 +180,6 @@ export default function InvoicePreviewScreen() {
                     </TouchableOpacity>
                 </View>
             </View>
-        </SafeAreaView>
+        </View>
     );
 }

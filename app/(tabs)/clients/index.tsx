@@ -6,11 +6,12 @@ import {
     TextInput,
     TouchableOpacity,
     Image,
-    SafeAreaView,
+
     ScrollView,
     StatusBar as RNStatusBar,
     Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
     Search,
@@ -35,6 +36,7 @@ export default function ClientsScreen() {
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState('All Clients');
     const [statsMap, setStatsMap] = useState<Record<string, { total: number; unpaid: number; count: number }>>({});
+    const insets = useSafeAreaInsets();
 
     const fetchClients = async () => {
         try {
@@ -202,7 +204,7 @@ export default function ClientsScreen() {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0 }}>
+        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
 
             <FlatList
@@ -227,6 +229,6 @@ export default function ClientsScreen() {
             >
                 <Plus size={32} color="white" />
             </TouchableOpacity>
-        </SafeAreaView>
+        </View>
     );
 }

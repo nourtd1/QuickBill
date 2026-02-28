@@ -4,7 +4,7 @@ import {
     Text,
     TouchableOpacity,
     ScrollView,
-    SafeAreaView,
+    
     Image,
     ActivityIndicator
 } from 'react-native';

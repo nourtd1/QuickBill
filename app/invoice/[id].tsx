@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send, AlertCircle, MoreHorizontal } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
@@ -193,7 +193,30 @@ export default function InvoiceDetails() {
                         <ArrowLeft size={20} color="white" />
                     </TouchableOpacity>
                     <Text className="text-xl font-black text-white tracking-tight">Détails</Text>
-                    <View style={{ width: 40 }} />
+
+                    {(isAdmin || isOwner) ? (
+                        <TouchableOpacity
+                            onPress={() => {
+                                Alert.alert("Options de la Facture", "Que voulez-vous faire ?", [
+                                    { text: "Annuler", style: "cancel" },
+                                    {
+                                        text: "Supprimer", style: "destructive", onPress: async () => {
+                                            const { error } = await supabase.from('invoices').delete().eq('id', id);
+                                            if (error) showError(error);
+                                            else {
+                                                router.replace('/(tabs)/invoices');
+                                            }
+                                        }
+                                    }
+                                ]);
+                            }}
+                            className="w-10 h-10 bg-white/20 items-center justify-center rounded-full backdrop-blur-md"
+                        >
+                            <MoreHorizontal size={20} color="white" />
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={{ width: 40 }} />
+                    )}
                 </View>
 
                 <ScrollView

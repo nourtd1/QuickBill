@@ -5,7 +5,7 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    SafeAreaView,
+    
     StatusBar as RNStatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';

@@ -41,14 +41,18 @@ export const generateUUID = () => {
 export const saveImageLocally = async (uri: string): Promise<string> => {
     try {
         const filename = uri.split('/').pop();
+        // @ts-ignore
         const newPath = FileSystem.documentDirectory + 'images/' + filename;
 
         // Ensure directory exists
+        // @ts-ignore
         const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'images/');
         if (!dirInfo.exists) {
+            // @ts-ignore
             await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory + 'images/');
         }
 
+        // @ts-ignore
         await FileSystem.copyAsync({
             from: uri,
             to: newPath

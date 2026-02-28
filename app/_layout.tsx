@@ -104,13 +104,36 @@ function RootLayoutNav() {
             <Stack.Screen name="setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="items/index" options={{ headerShown: false }} />
+            <Stack.Screen name="activity" options={{ headerShown: false }} />
             <Stack.Screen name="items/form" options={{ headerShown: false }} />
             <Stack.Screen name="estimates/index" options={{ headerShown: false }} />
             <Stack.Screen name="estimates/new" options={{ headerShown: false }} />
             <Stack.Screen name="estimates/[id]" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="invoice/new" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="invoice/[id]" options={{ presentation: 'modal', headerShown: false }} />
+
+            {/* Added Missing Pages to prevent RNSScreen crashes */}
+            <Stack.Screen name="expenses/scan" options={{ headerShown: false }} />
+            <Stack.Screen name="expenses/add" options={{ headerShown: false }} />
+            <Stack.Screen name="finance/reconcile" options={{ headerShown: false }} />
+
+            <Stack.Screen name="settings/profile" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/theme" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/business" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/team" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/security" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/payment" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/language" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/tax" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/signature" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/subscription" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/whatsapp" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/help" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/contact" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/about" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/checkout" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/success" options={{ headerShown: false }} />
         </Stack>
     );
 }

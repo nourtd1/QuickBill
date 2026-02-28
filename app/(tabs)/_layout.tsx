@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Home, Settings, Users, FileText, Package, PieChart as PieChartIcon, User } from 'lucide-react-native';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
     const unreadCount = useUnreadMessages();
+    const insets = useSafeAreaInsets();
 
     return (
         <Tabs
@@ -15,8 +17,8 @@ export default function TabLayout() {
                     borderTopWidth: 1,
                     borderTopColor: '#F1F5F9', // Slate-100
                     backgroundColor: '#FFFFFF',
-                    height: 80, // Taller tab bar like in modern designs
-                    paddingBottom: 25,
+                    height: 60 + (insets.bottom > 0 ? insets.bottom : 10), // Taller tab bar like in modern designs
+                    paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
                     paddingTop: 10,
                     elevation: 0,
                     shadowOpacity: 0,

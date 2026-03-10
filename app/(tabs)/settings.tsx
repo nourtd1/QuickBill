@@ -210,11 +210,27 @@ export default function SettingsScreen() {
                                 end={{ x: 1, y: 0 }}
                                 className="p-[3px] rounded-full"
                             >
-                                <View className="bg-white p-[2px] rounded-full">
-                                    <Image
-                                        source={{ uri: profile?.logo_url || 'https://i.pravatar.cc/150?img=11' }}
-                                        className="w-24 h-24 rounded-full"
-                                    />
+                                <View className="bg-white dark:bg-slate-900 p-[2px] rounded-full">
+                                    {profile?.logo_url ? (
+                                        <Image
+                                            source={{ uri: profile.logo_url }}
+                                            className="w-24 h-24 rounded-full"
+                                        />
+                                    ) : (
+                                        <LinearGradient
+                                            colors={colorScheme === 'dark' ? ['#1e293b', '#0f172a'] : ['#f1f5f9', '#e2e8f0']}
+                                            className="w-24 h-24 rounded-full items-center justify-center"
+                                        >
+                                            <Text className="text-3xl font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">
+                                                {(() => {
+                                                    const name = profile?.business_name || profile?.full_name || user?.email || 'U';
+                                                    const parts = name.trim().split(' ');
+                                                    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+                                                    return name.substring(0, 2).toUpperCase();
+                                                })()}
+                                            </Text>
+                                        </LinearGradient>
+                                    )}
                                 </View>
                             </LinearGradient>
 

@@ -28,15 +28,19 @@ import {
     ChevronDown,
     X,
     Search,
-    Check
+    Check,
+    BadgeCheck
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { uploadImage } from '../../lib/upload';
 import { validatePhone } from '../../lib/validation';
 import { showSuccess, showError } from '../../lib/error-handler';
 import { COLORS } from '../../constants/colors';
 import { useColorScheme } from 'nativewind';
+import { sendEmailChangeVerification } from '../../lib/email';
+import { supabase } from '../../lib/supabase';
 
 // Country Codes - African countries first, then rest of the world
 const COUNTRY_CODES = [
@@ -161,6 +165,15 @@ export default function ProfileScreen() {
     const [showCountryCodeModal, setShowCountryCodeModal] = useState(false);
     const [countrySearchQuery, setCountrySearchQuery] = useState('');
 
+    const getInitials = (name: string) => {
+        if (!name) return 'U';
+        const parts = name.trim().split(' ');
+        if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
+
     useEffect(() => {
         fetchProfile();
     }, []);
@@ -171,10 +184,11 @@ export default function ProfileScreen() {
             setFullName(profile.full_name || profile.business_name || '');
             setAvatarUrl(profile.logo_url || null);
 
-            // Parse phone number to extract country code
+            // Parse phone number to extract country code (safely matching longest code first)
             const phoneStr = profile.phone_contact || '';
             if (phoneStr) {
-                const matchedCode = COUNTRY_CODES.find(cc => phoneStr.startsWith(cc.code));
+                const longestFirstCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                const matchedCode = longestFirstCodes.find(cc => phoneStr.startsWith(cc.code));
                 if (matchedCode) {
                     setCountryCode(matchedCode.code);
                     setPhone(phoneStr.substring(matchedCode.code.length).trim());
@@ -196,7 +210,7 @@ export default function ProfileScreen() {
         }
 
         const pickerResult = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'images',
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
@@ -258,6 +272,36 @@ export default function ProfileScreen() {
         }
     };
 
+    const handleEmailChange = () => {
+        Alert.prompt(
+            "Changer d'Email",
+            "Entrez votre nouvelle adresse email. Nous vous enverrons un code de confirmation via EmailJS.",
+            [
+                { text: "Annuler", style: "cancel" },
+                {
+                    text: "Envoyer",
+                    onPress: async (newEmail?: string) => {
+                        if (newEmail && newEmail.includes('@')) {
+                            const code = Math.floor(100000 + Math.random() * 900000).toString();
+                            await sendEmailChangeVerification(newEmail, code);
+
+                            // Optionally, update supabase email (disabled in demo to not break dev login)
+                            /* 
+                            const { error } = await supabase.auth.updateUser({ email: newEmail });
+                            if (error) Alert.alert("Erreur", error.message);
+                            */
+
+                            Alert.alert('Vérification Envoyée', `Nous avons simulé l'envoi du code (\${code}) à \${newEmail}.`);
+                        } else {
+                            Alert.alert('Erreur', 'Email invalide');
+                        }
+                    }
+                }
+            ],
+            'plain-text'
+        );
+    };
+
     // Filter country codes based on search
     const filteredCountryCodes = COUNTRY_CODES.filter(item =>
         item.country.toLowerCase().includes(countrySearchQuery.toLowerCase()) ||
@@ -300,32 +344,61 @@ export default function ProfileScreen() {
                         {/* Avatar Section */}
                         <View className="items-center mt-6 mb-8">
                             <View className="relative">
-                                <View className="w-28 h-28 rounded-full bg-slate-200 dark:bg-slate-800 items-center justify-center overflow-hidden border-4 border-white dark:border-slate-700 shadow-lg">
-                                    {avatarUrl ? (
-                                        <Image source={{ uri: avatarUrl }} className="w-full h-full" />
-                                    ) : (
-                                        <User size={48} color={colorScheme === 'dark' ? '#94A3B8' : '#94A3B8'} />
-                                    )}
-                                    {uploading && (
-                                        <View className="absolute inset-0 bg-black/30 items-center justify-center">
-                                            <ActivityIndicator color="white" />
-                                        </View>
-                                    )}
-                                </View>
+                                {/* The outer premium glow/border effect */}
+                                <LinearGradient
+                                    colors={['#1337ec', '#a855f7', '#60a5fa']}
+                                    start={{ x: 0, y: 1 }}
+                                    end={{ x: 1, y: 0 }}
+                                    className="p-[3px] rounded-full shadow-lg"
+                                >
+                                    <View className="w-28 h-28 rounded-full bg-white dark:bg-slate-900 items-center justify-center overflow-hidden border-[3px] border-white dark:border-slate-900 relative">
+                                        {avatarUrl ? (
+                                            <Image source={{ uri: avatarUrl }} className="w-full h-full" />
+                                        ) : (
+                                            <LinearGradient
+                                                colors={colorScheme === 'dark' ? ['#1e293b', '#0f172a'] : ['#f1f5f9', '#e2e8f0']}
+                                                className="w-full h-full items-center justify-center"
+                                            >
+                                                <Text className="text-4xl font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">
+                                                    {getInitials(fullName)}
+                                                </Text>
+                                            </LinearGradient>
+                                        )}
+                                        {uploading && (
+                                            <View className="absolute inset-0 bg-black/40 items-center justify-center">
+                                                <ActivityIndicator color="white" size="small" />
+                                            </View>
+                                        )}
+                                    </View>
+                                </LinearGradient>
+
+                                {/* Redesigned Camera Button */}
                                 <TouchableOpacity
                                     onPress={handlePickImage}
-                                    className="absolute bottom-0 right-0 p-2.5 rounded-full border-[3px] border-white shadow-md active:scale-95"
-                                    style={{ backgroundColor: COLORS.primary }}
+                                    className="absolute bottom-1 right-[-4px] p-2.5 rounded-full border-[3px] border-white dark:border-slate-900 shadow-xl active:scale-95 bg-white dark:bg-slate-800"
                                 >
-                                    <Camera size={16} color="white" />
+                                    <Camera size={18} color="#1337ec" />
                                 </TouchableOpacity>
                             </View>
-                            <Text className="mt-4 font-bold text-lg text-slate-900 dark:text-white">
+
+                            <Text className="mt-5 font-extrabold text-2xl text-slate-900 dark:text-white">
                                 {fullName || 'User'}
                             </Text>
-                            <Text className="font-medium text-slate-500 dark:text-slate-400">
-                                {user?.email}
-                            </Text>
+
+                            <View className="flex-row items-center mt-1 mb-2 opacity-80">
+                                <Mail size={14} color={colorScheme === 'dark' ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
+                                <Text className="font-medium text-[15px] text-slate-500 dark:text-slate-400">
+                                    {user?.email}
+                                </Text>
+                            </View>
+
+                            {/* Premium Badge */}
+                            <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 rounded-full mt-1 border border-blue-100 dark:border-blue-800/30">
+                                <BadgeCheck size={14} color="#2563EB" style={{ marginRight: 6 }} />
+                                <Text className="text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                    Business Profile
+                                </Text>
+                            </View>
                         </View>
 
                         {/* Form Fields */}
@@ -347,11 +420,18 @@ export default function ProfileScreen() {
                                 </View>
                             </View>
 
-                            {/* Email - Read Only */}
+                            {/* Email - Read Only by default (with edit button) */}
                             <View className="mt-6">
-                                <Text className="text-xs font-bold uppercase tracking-wider mb-2 ml-1 text-slate-500 dark:text-slate-400">
-                                    Email Address
-                                </Text>
+                                <View className="flex-row items-center justify-between mb-2 ml-1">
+                                    <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        Email Address
+                                    </Text>
+                                    <TouchableOpacity onPress={handleEmailChange}>
+                                        <Text className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                                            Modifier
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                                 <View className="flex-row items-center bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 opacity-80">
                                     <Mail size={20} color={colorScheme === 'dark' ? '#64748B' : '#64748B'} style={{ marginRight: 12 }} />
                                     <TextInput
@@ -364,7 +444,7 @@ export default function ProfileScreen() {
                                     <Shield size={16} color={colorScheme === 'dark' ? '#64748B' : '#64748B'} />
                                 </View>
                                 <Text className="text-[10px] mt-1.5 ml-1 text-slate-400 dark:text-slate-500">
-                                    Email cannot be changed directly for security reasons.
+                                    Cet email est sécurisé. Cliquez sur "Modifier" pour le changer avec vérification.
                                 </Text>
                             </View>
 

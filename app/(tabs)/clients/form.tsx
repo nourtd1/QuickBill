@@ -40,6 +40,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../../../lib/upload';
 import { showSuccess, showError } from '../../../lib/error-handler';
 import { COLORS } from '../../../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Country Codes - African countries first, then rest of the world
 const COUNTRY_CODES = [
@@ -92,7 +93,7 @@ const COUNTRY_CODES = [
     { code: '+253', country: 'Djibouti', flag: '🇩🇯' },
     { code: '+211', country: 'South Sudan', flag: '🇸🇸' },
     { code: '+291', country: 'Eritrea', flag: '🇪🇷' },
-    
+
     // Rest of the World
     { code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
     { code: '+44', country: 'United Kingdom', flag: '🇬🇧' },
@@ -159,7 +160,7 @@ const CURRENCIES = [
     { code: 'GNF', symbol: 'FG', name: 'Guinean Franc', region: '🇬🇳 Guinea' },
     { code: 'KMF', symbol: 'CF', name: 'Comorian Franc', region: '🇰🇲 Comoros' },
     { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', region: '🇨🇭 Switzerland' },
-    
+
     // Autres Devises Africaines
     { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', region: '🇰🇪 Kenya' },
     { code: 'UGX', symbol: 'USh', name: 'Ugandan Shilling', region: '🇺🇬 Uganda' },
@@ -194,7 +195,7 @@ const CURRENCIES = [
     { code: 'LRD', symbol: 'L$', name: 'Liberian Dollar', region: '🇱🇷 Liberia' },
     { code: 'CVE', symbol: '$', name: 'Cape Verdean Escudo', region: '🇨🇻 Cape Verde' },
     { code: 'STN', symbol: 'Db', name: 'São Tomé and Príncipe Dobra', region: '🇸🇹 São Tomé' },
-    
+
     // Devises Internationales Majeures
     { code: 'USD', symbol: '$', name: 'US Dollar', region: '🇺🇸 USA' },
     { code: 'EUR', symbol: '€', name: 'Euro', region: '🇪🇺 Europe' },
@@ -274,7 +275,7 @@ export default function ClientFormScreen() {
             if (data) {
                 setBusinessName(data.name || '');
                 setEmail(data.email || '');
-                
+
                 // Parse phone number to extract country code
                 const phoneStr = data.phone || '';
                 if (phoneStr) {
@@ -287,7 +288,7 @@ export default function ClientFormScreen() {
                         setPhone(phoneStr);
                     }
                 }
-                
+
                 setAddress(data.address || '');
                 setNotes(data.notes || '');
                 setRegistrationNumber(data.registration_number || '');
@@ -439,20 +440,30 @@ export default function ClientFormScreen() {
     }
 
     return (
-        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
+        <View className="flex-1 bg-white">
             <StatusBar style="dark" />
 
+            {/* Background Decorative Elements */}
+            <View className="absolute top-0 left-0 right-0 h-[45%]">
+                <LinearGradient
+                    colors={['#DBEAFE', '#F8FAFC']}
+                    className="flex-1"
+                />
+                <View className="absolute -top-20 -right-20 w-64 h-64 bg-blue-400/10 rounded-full" />
+                <View className="absolute top-40 -left-20 w-48 h-48 bg-indigo-400/10 rounded-full" />
+            </View>
+
             {/* Header */}
-            <View className="flex-row justify-between items-center px-6 py-4 bg-[#F9FAFC]">
-                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-                    <ArrowLeft size={24} color="#0F172A" />
+            <View className="flex-row justify-between items-center px-6 pt-12 pb-4">
+                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 bg-white rounded-full border border-slate-100 shadow-sm shadow-slate-200/50">
+                    <ArrowLeft size={20} color="#0F172A" strokeWidth={3} />
                 </TouchableOpacity>
-                <Text className="text-xl font-bold text-slate-900">
-                    {isEditing ? 'Edit Client' : 'New Client'}
+                <Text className="text-xl font-black text-slate-900 tracking-tight">
+                    {isEditing ? 'Modifier Client' : 'Nouveau Client'}
                 </Text>
                 {isEditing ? (
-                    <TouchableOpacity onPress={handleDelete} className="p-2">
-                        <Trash2 size={22} color="#EF4444" />
+                    <TouchableOpacity onPress={handleDelete} className="p-2 bg-red-50 rounded-full border border-red-100">
+                        <Trash2 size={20} color="#EF4444" strokeWidth={2.5} />
                     </TouchableOpacity>
                 ) : (
                     <View className="w-10" />
@@ -469,13 +480,15 @@ export default function ClientFormScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Logo/Photo Upload */}
-                    <View className="items-center mb-8 mt-4">
-                        <TouchableOpacity onPress={handlePickLogo} disabled={uploadingLogo} className="relative">
-                            <View className="w-24 h-24 rounded-full bg-slate-200 items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+                    <View className="items-center mb-10 mt-6">
+                        <TouchableOpacity onPress={handlePickLogo} disabled={uploadingLogo} className="relative shadow-2xl shadow-blue-500/20">
+                            <View className="w-24 h-24 rounded-[32px] bg-white items-center justify-center border border-blue-50 overflow-hidden shadow-sm">
                                 {logoUrl ? (
                                     <Image source={{ uri: logoUrl }} className="w-full h-full" resizeMode="cover" />
                                 ) : (
-                                    <Building2 size={32} color="#94A3B8" />
+                                    <LinearGradient colors={['#1E40AF', '#1e3a8a']} className="w-full h-full items-center justify-center">
+                                        <Building2 size={32} color="white" />
+                                    </LinearGradient>
                                 )}
                                 {uploadingLogo && (
                                     <View className="absolute inset-0 bg-black/50 items-center justify-center">
@@ -483,41 +496,42 @@ export default function ClientFormScreen() {
                                     </View>
                                 )}
                             </View>
-                            <View className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-2 border-white shadow-md">
-                                <Pencil size={14} color="white" />
+                            <View className="absolute bottom-0 right-[-5px] bg-white p-2 rounded-full border border-blue-50 shadow-md">
+                                <Pencil size={14} color="#1E40AF" strokeWidth={3} />
                             </View>
                         </TouchableOpacity>
-                        <Text className="text-blue-600 font-bold text-sm mt-3">
-                            {logoUrl ? 'Change Logo' : 'Upload Logo'}
+                        <Text className="text-blue-600 font-black text-[10px] uppercase tracking-widest mt-4">
+                            {logoUrl ? 'Modifier le logo' : 'Ajouter un logo'}
                         </Text>
                     </View>
 
                     {/* Business Details */}
-                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4 ml-1">BUSINESS DETAILS</Text>
+                    <Text className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-4 ml-1">Company Details</Text>
 
                     <View className="mb-4">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Business Name <Text className="text-red-500">*</Text></Text>
-                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
-                            <Building2 size={18} color="#94A3B8" />
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Business Name <Text className="text-red-500">*</Text></Text>
+                        <View className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center">
+                            <Building2 size={20} color="#94A3B8" strokeWidth={2.5} />
                             <TextInput
-                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                className="flex-1 ml-3 text-base text-slate-900 font-bold"
                                 placeholder="Acme Corp, Inc."
                                 placeholderTextColor="#CBD5E1"
                                 value={businessName}
                                 onChangeText={setBusinessName}
+                                autoCapitalize="words"
                             />
                         </View>
                     </View>
 
                     <View className="mb-4">
                         <View className="flex-row justify-between mb-2 ml-1">
-                            <Text className="text-slate-600 text-sm font-semibold">Registration Number</Text>
-                            <Text className="text-slate-400 text-xs">(Optional)</Text>
+                            <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest">Registration Number</Text>
+                            <Text className="text-slate-400 font-bold text-[10px]">(Optional)</Text>
                         </View>
-                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
-                            <Hash size={18} color="#94A3B8" />
+                        <View className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center">
+                            <Hash size={20} color="#94A3B8" strokeWidth={2.5} />
                             <TextInput
-                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                className="flex-1 ml-3 text-base text-slate-900 font-bold"
                                 placeholder="e.g. 12345678"
                                 placeholderTextColor="#CBD5E1"
                                 value={registrationNumber}
@@ -527,28 +541,28 @@ export default function ClientFormScreen() {
                     </View>
 
                     <View className="mb-8">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Industry / Category</Text>
-                        <TouchableOpacity 
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Industry / Category</Text>
+                        <TouchableOpacity
                             onPress={() => setShowIndustryModal(true)}
-                            className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-slate-100"
+                            className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center"
                         >
-                            <Briefcase size={18} color="#94A3B8" />
-                            <Text className={`flex-1 ml-3 font-semibold ${industry ? 'text-slate-900' : 'text-slate-400'}`}>
+                            <Briefcase size={20} color="#94A3B8" strokeWidth={2.5} />
+                            <Text className={`flex-1 ml-3 text-base font-bold ${industry ? 'text-slate-900' : 'text-slate-400'}`}>
                                 {industry || 'Select Industry'}
                             </Text>
-                            <ChevronDown size={20} color="#94A3B8" />
+                            <ChevronDown size={20} color="#94A3B8" strokeWidth={2.5} />
                         </TouchableOpacity>
                     </View>
 
                     {/* Contact Information */}
-                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4 ml-1">CONTACT INFORMATION</Text>
+                    <Text className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-4 ml-1">Contact Information</Text>
 
                     <View className="mb-4">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Contact Person</Text>
-                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
-                            <User size={18} color="#94A3B8" />
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Contact Person</Text>
+                        <View className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center">
+                            <User size={20} color="#94A3B8" strokeWidth={2.5} />
                             <TextInput
-                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                className="flex-1 ml-3 text-base text-slate-900 font-bold"
                                 placeholder="Full Name"
                                 placeholderTextColor="#CBD5E1"
                                 value={contactPerson}
@@ -558,11 +572,11 @@ export default function ClientFormScreen() {
                     </View>
 
                     <View className="mb-4">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Email Address</Text>
-                        <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-slate-100">
-                            <Mail size={18} color="#94A3B8" />
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Email Address</Text>
+                        <View className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center">
+                            <Mail size={20} color="#94A3B8" strokeWidth={2.5} />
                             <TextInput
-                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                className="flex-1 ml-3 text-base text-slate-900 font-bold"
                                 placeholder="client@company.com"
                                 placeholderTextColor="#CBD5E1"
                                 value={email}
@@ -574,18 +588,17 @@ export default function ClientFormScreen() {
                     </View>
 
                     <View className="mb-4">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Phone Number</Text>
-                        <View className="bg-white rounded-2xl flex-row shadow-sm border border-slate-100 overflow-hidden">
-                            <TouchableOpacity 
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Phone Number</Text>
+                        <View className="bg-white border border-slate-100 rounded-[22px] shadow-sm shadow-slate-200/50 flex-row items-center overflow-hidden h-16 px-2">
+                            <TouchableOpacity
                                 onPress={() => setShowCountryCodeModal(true)}
-                                className="bg-slate-50 px-3 py-4 border-r border-slate-200 flex-row items-center"
+                                className="bg-slate-50 px-3 py-2 rounded-[16px] border border-slate-100 flex-row items-center"
                             >
-                                <Phone size={16} color="#64748B" />
-                                <Text className="text-slate-700 font-bold text-base ml-2">{getCountryDisplay()}</Text>
-                                <ChevronDown size={16} color="#94A3B8" className="ml-1" />
+                                <Text className="text-slate-900 font-black text-sm ml-1">{getCountryDisplay()}</Text>
+                                <ChevronDown size={14} color="#94A3B8" strokeWidth={3} className="ml-1" />
                             </TouchableOpacity>
                             <TextInput
-                                className="flex-1 px-4 py-4 text-slate-900 font-semibold"
+                                className="flex-1 ml-3 text-base text-slate-900 font-bold"
                                 placeholder="712 345 678"
                                 placeholderTextColor="#CBD5E1"
                                 value={phone}
@@ -596,14 +609,10 @@ export default function ClientFormScreen() {
                     </View>
 
                     <View className="mb-8">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Billing Address</Text>
-                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100">
-                            <View className="flex-row items-start mb-2">
-                                <MapPin size={18} color="#94A3B8" />
-                                <Text className="text-slate-400 text-xs ml-2 flex-1">Full address including city and postal code</Text>
-                            </View>
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Billing Address</Text>
+                        <View className="bg-white border border-slate-100 rounded-[22px] px-5 py-5 shadow-sm shadow-slate-200/50">
                             <TextInput
-                                className="text-slate-900 font-semibold min-h-[80px]"
+                                className="text-base text-slate-900 font-bold min-h-[80px]"
                                 placeholder="Street address, City, State, Zip Code"
                                 placeholderTextColor="#CBD5E1"
                                 value={address}
@@ -615,15 +624,15 @@ export default function ClientFormScreen() {
                     </View>
 
                     {/* Additional Details */}
-                    <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4 ml-1">ADDITIONAL DETAILS</Text>
+                    <Text className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-4 ml-1">Additional Details</Text>
 
                     <View className="flex-row justify-between mb-4 gap-4">
                         <View className="flex-1">
-                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Tax ID / VAT</Text>
-                            <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
-                                <CreditCard size={18} color="#94A3B8" />
+                            <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Tax ID / VAT</Text>
+                            <View className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center">
+                                <CreditCard size={20} color="#94A3B8" strokeWidth={2.5} />
                                 <TextInput
-                                    className="flex-1 ml-3 text-slate-900 font-semibold"
+                                    className="flex-1 ml-3 text-base text-slate-900 font-bold"
                                     placeholder="Optional"
                                     placeholderTextColor="#CBD5E1"
                                     value={taxId}
@@ -632,28 +641,24 @@ export default function ClientFormScreen() {
                             </View>
                         </View>
                         <View className="flex-1">
-                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Currency</Text>
-                            <TouchableOpacity 
+                            <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Currency</Text>
+                            <TouchableOpacity
                                 onPress={() => setShowCurrencyModal(true)}
-                                className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-slate-100"
+                                className="bg-white border border-slate-100 rounded-[22px] px-5 h-16 shadow-sm shadow-slate-200/50 flex-row items-center"
                             >
-                                <Globe size={18} color="#94A3B8" />
-                                <Text className="flex-1 ml-3 text-slate-900 font-semibold text-sm">{getCurrencyDisplay()}</Text>
-                                <ChevronDown size={16} color="#64748B" />
+                                <Globe size={20} color="#94A3B8" strokeWidth={2.5} />
+                                <Text className="flex-1 ml-3 text-base text-slate-900 font-bold">{getCurrencyDisplay()}</Text>
+                                <ChevronDown size={18} color="#94A3B8" strokeWidth={2.5} />
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     <View className="mb-4">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Internal Notes</Text>
-                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100">
-                            <View className="flex-row items-start mb-2">
-                                <FileText size={18} color="#94A3B8" />
-                                <Text className="text-slate-400 text-xs ml-2 flex-1">Private notes only visible to your team</Text>
-                            </View>
+                        <Text className="text-slate-900 font-black text-[10px] uppercase tracking-widest mb-2 ml-1">Internal Notes</Text>
+                        <View className="bg-white border border-slate-100 rounded-[22px] px-5 py-5 shadow-sm shadow-slate-200/50">
                             <TextInput
-                                className="text-slate-900 font-semibold min-h-[60px]"
-                                placeholder="Add any internal notes about this client..."
+                                className="text-base text-slate-900 font-bold min-h-[60px]"
+                                placeholder="Add any private notes about this client..."
                                 placeholderTextColor="#CBD5E1"
                                 value={notes}
                                 onChangeText={setNotes}
@@ -668,24 +673,33 @@ export default function ClientFormScreen() {
                 {/* Footer Button */}
                 <View
                     style={{ paddingBottom: Math.max(insets.bottom, 20), paddingTop: 16 }}
-                    className="w-full bg-[#F9FAFC] px-6 border-t border-slate-100 shadow-2xl"
+                    className="w-full bg-white px-8 pb-8 bg-transparent"
                 >
                     <TouchableOpacity
                         onPress={handleSave}
                         disabled={loading}
-                        className="w-full h-14 rounded-2xl flex-row items-center justify-center shadow-lg"
-                        style={{ backgroundColor: loading ? '#94A3B8' : COLORS.primary }}
+                        activeOpacity={0.9}
+                        className={`shadow-2xl shadow-blue-500/40`}
                     >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <>
-                                <Check size={20} color="white" strokeWidth={2.5} className="mr-2" />
-                                <Text className="text-white font-bold text-lg">
-                                    {isEditing ? 'Save Changes' : 'Create Client'}
-                                </Text>
-                            </>
-                        )}
+                        <LinearGradient
+                            colors={['#1E40AF', '#1e3a8a']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            className="h-16 rounded-[22px] flex-row items-center justify-center"
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <View className="w-8 h-8 rounded-full bg-white/20 items-center justify-center mr-3 hidden">
+                                        <Check size={16} color="white" strokeWidth={3} />
+                                    </View>
+                                    <Text className="text-white text-lg font-black uppercase tracking-widest">
+                                        {isEditing ? 'Sauvegarder' : 'Créer le client'}
+                                    </Text>
+                                </>
+                            )}
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -717,7 +731,7 @@ export default function ClientFormScreen() {
                                 const isAfricanFranc = index < 9; // First 9 are African Francs
                                 const isAfricanCurrency = index < 42; // First 42 are African currencies
                                 const showDivider = index === 8 || index === 41; // After Francs and African currencies
-                                
+
                                 return (
                                     <View key={curr.code}>
                                         <TouchableOpacity
@@ -725,9 +739,8 @@ export default function ClientFormScreen() {
                                                 setCurrency(curr.code);
                                                 setShowCurrencyModal(false);
                                             }}
-                                            className={`p-4 rounded-2xl mb-2 flex-row justify-between items-center ${
-                                                isSelected ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50 border border-slate-100'
-                                            }`}
+                                            className={`p-4 rounded-2xl mb-2 flex-row justify-between items-center ${isSelected ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50 border border-slate-100'
+                                                }`}
                                         >
                                             <View className="flex-1">
                                                 <View className="flex-row items-center mb-1">
@@ -750,7 +763,7 @@ export default function ClientFormScreen() {
                                                 </View>
                                             )}
                                         </TouchableOpacity>
-                                        
+
                                         {showDivider && (
                                             <View className="my-4">
                                                 <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest ml-1 mb-3">
@@ -784,9 +797,8 @@ export default function ClientFormScreen() {
                                         setIndustry(ind);
                                         setShowIndustryModal(false);
                                     }}
-                                    className={`p-4 rounded-2xl mb-3 flex-row justify-between items-center ${
-                                        industry === ind ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50 border border-slate-100'
-                                    }`}
+                                    className={`p-4 rounded-2xl mb-3 flex-row justify-between items-center ${industry === ind ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50 border border-slate-100'
+                                        }`}
                                 >
                                     <Text className={`font-bold text-base ${industry === ind ? 'text-blue-900' : 'text-slate-800'}`}>
                                         {ind}
@@ -809,11 +821,11 @@ export default function ClientFormScreen() {
                     <View className="bg-white rounded-t-[32px] p-6 max-h-[80%]" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
                         <View className="flex-row justify-between items-center mb-4">
                             <Text className="text-xl font-bold text-slate-900">Select Country Code</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={() => {
                                     setShowCountryCodeModal(false);
                                     setCountrySearchQuery('');
-                                }} 
+                                }}
                                 className="bg-slate-100 px-4 py-2 rounded-full"
                             >
                                 <Text className="font-bold text-slate-500">Close</Text>
@@ -845,7 +857,7 @@ export default function ClientFormScreen() {
                             {filteredCountries.map((country) => {
                                 const isSelected = countryCode === country.code;
                                 const isAfrican = COUNTRY_CODES.indexOf(country) < 47; // First 47 are African
-                                
+
                                 return (
                                     <TouchableOpacity
                                         key={country.code}
@@ -854,11 +866,10 @@ export default function ClientFormScreen() {
                                             setShowCountryCodeModal(false);
                                             setCountrySearchQuery('');
                                         }}
-                                        className={`p-4 rounded-2xl mb-2 flex-row justify-between items-center ${
-                                            isSelected 
-                                                ? 'bg-blue-50 border-2 border-blue-200' 
-                                                : 'bg-slate-50 border border-slate-100'
-                                        }`}
+                                        className={`p-4 rounded-2xl mb-2 flex-row justify-between items-center ${isSelected
+                                            ? 'bg-blue-50 border-2 border-blue-200'
+                                            : 'bg-slate-50 border border-slate-100'
+                                            }`}
                                     >
                                         <View className="flex-row items-center flex-1">
                                             <Text className="text-2xl mr-3">{country.flag}</Text>
@@ -879,7 +890,7 @@ export default function ClientFormScreen() {
                                     </TouchableOpacity>
                                 );
                             })}
-                            
+
                             {filteredCountries.length === 0 && (
                                 <View className="items-center py-10">
                                     <Globe size={48} color="#CBD5E1" />

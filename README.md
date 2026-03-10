@@ -19,6 +19,14 @@
 
 ---
 
+## 👦 QuickBill expliqué simplement (Version 10 ans)
+
+Imagine que tu as ouvert un super stand de limonade. Au lieu de noter tes ventes sur un papier froissé et d'oublier qui te doit de l'argent, QuickBill agit comme un véritable **robot-comptable de poche**. 
+Il t'aide à créer de belles factures avec ton propre logo, à les envoyer directement par WhatsApp à tes clients, à enregistrer tes dépenses en prenant juste une photo du reçu, et à te souvenir de tous tes revenus et dettes. 
+Le super-pouvoir le plus cool ? Il marche même sans connexion internet ! QuickBill transforme n'importe quel "petit vendeur" en vrai patron d'une grande entreprise.
+
+---
+
 ## 📊 1. Statut Actuel du Projet (MVP Avancé)
 
 L'application a dépassé le stade de simple MVP. Elle est **fonctionnelle à 90% pour un lancement bêta**.

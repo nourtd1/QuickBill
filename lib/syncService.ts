@@ -3,7 +3,14 @@ import { getDBConnection } from './database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LocalInvoice, LocalInvoiceItem } from './localServices';
 
-const SYNC_KEY = 'last_sync_timestamp';
+const SYNC_KEY = 'last_sync_timestamp'; // Kept for legacy/fallback if needed
+
+// Helper to get limit 3 months ago
+const getFallbackSyncDate = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 3);
+    return d.toISOString();
+};
 
 // Tables definition with order for dependency resolution
 const SYNC_TABLES = [
@@ -83,15 +90,35 @@ export const fetchRemoteChanges = async () => {
     const db = await getDBConnection();
     console.log('🔄 Starting PULL sync...');
 
-    const lastSync = await AsyncStorage.getItem(SYNC_KEY);
     const newSyncTime = new Date().toISOString(); // Capture start time
+    const fallbackSyncDate = getFallbackSyncDate();
+
+    // Ensure metadata table exists
+    await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS sync_metadata (
+            table_name TEXT PRIMARY KEY NOT NULL,
+            last_sync_at TEXT NOT NULL
+        );
+    `);
 
     for (const table of SYNC_TABLES) {
         try {
-            let query = supabase.from(table).select('*');
+            // Get last sync for this specific table from SQLite
+            const metadataRow = await db.getFirstAsync<{ last_sync_at: string }>(
+                `SELECT last_sync_at FROM sync_metadata WHERE table_name = ?`,
+                [table]
+            );
+            const lastSync = metadataRow?.last_sync_at;
+
+            // Apply a safety limit to prevent memory crash on huge datasets
+            let query = supabase.from(table).select('*').limit(1000);
 
             if (lastSync) {
+                // If we synced before, only pull new changes
                 query = query.gt('updated_at', lastSync);
+            } else if (table !== 'profiles' && table !== 'clients') {
+                // For heavy transaction tables, on first sync, limit to last 3 months
+                query = query.gte('updated_at', fallbackSyncDate);
             }
 
             const { data, error } = await query;
@@ -126,12 +153,21 @@ export const fetchRemoteChanges = async () => {
                     await db.runAsync(sql, ...(valuesWithSync as any[]));
                 }
             }
+
+            // Successfully fetched and processed changes for this table, update last_sync_at
+            await db.runAsync(
+                `INSERT INTO sync_metadata (table_name, last_sync_at) VALUES (?, ?) 
+                 ON CONFLICT(table_name) DO UPDATE SET last_sync_at = excluded.last_sync_at`,
+                table,
+                newSyncTime
+            );
+
         } catch (e) {
             console.error(`❌ Critical error pulling ${table}`, e);
         }
     }
 
-    // Update Last Sync Timestamp
+    // Optionally update old AsyncStorage just in case other parts of the app use it
     await AsyncStorage.setItem(SYNC_KEY, newSyncTime);
 };
 

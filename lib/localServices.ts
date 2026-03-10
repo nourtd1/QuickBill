@@ -308,7 +308,7 @@ export const getDashboardStatsLocal = async (userId: string) => {
     // We will just return null for now or implement a heavy query.
     // Let's return empty array, UI handles it with dummy data if empty.
     // 6. Chart Data (Last 6 months)
-    const chartData: { value: number; label: string; frontColor?: string }[] = [];
+    const chartData: { value: number; income: number; expense: number; label: string; frontColor?: string }[] = [];
 
     for (let i = 5; i >= 0; i--) {
         const d = new Date();
@@ -321,14 +321,25 @@ export const getDashboardStatsLocal = async (userId: string) => {
         const startOfMonth = `${monthKey}-01`;
         const endOfMonth = `${monthKey}-31`; // Simple approximation, works for string comparison
 
-        const monthResult = await db.getAllAsync<{ total: number }>(
+        const monthIncomeResult = await db.getAllAsync<{ total: number }>(
             `SELECT SUM(total_amount) as total FROM invoices 
-             WHERE user_id = ? AND created_at >= ? AND created_at <= ? AND status != 'merged'`, // Exclude merged/deleted if any
+             WHERE user_id = ? AND created_at >= ? AND created_at <= ? AND status != 'draft' AND status != 'rejected'`,
             [userId, startOfMonth, endOfMonth]
         );
 
+        const monthExpenseResult = await db.getAllAsync<{ total: number }>(
+            `SELECT SUM(amount) as total FROM expenses
+             WHERE user_id = ? AND date >= ? AND date <= ?`,
+            [userId, startOfMonth, endOfMonth]
+        );
+
+        const income = monthIncomeResult[0]?.total || 0;
+        const expense = monthExpenseResult[0]?.total || 0;
+
         chartData.push({
-            value: monthResult[0]?.total || 0,
+            value: income, // Kept for backwards compatibility
+            income: income,
+            expense: expense,
             label: monthLabel,
             frontColor: i === 0 ? '#2563EB' : '#E0E7FF', // Highlight current month
         });

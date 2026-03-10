@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getDashboardStatsLocal } from '../lib/localServices';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,8 @@ import { Invoice } from '../types';
 
 export interface MonthlyData {
     value: number;
+    income?: number;
+    expense?: number;
     label: string;
     frontColor?: string;
 }
@@ -40,6 +42,10 @@ export function useDashboard() {
             setLoading(false);
         }
     }, [user]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
 
     // Calculate Growth (Last month vs Previous month)
     const growth = chartData.length >= 2

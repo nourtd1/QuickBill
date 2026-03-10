@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    SafeAreaView
+    Modal
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,12 +24,206 @@ import {
     CreditCard,
     Globe,
     FileText,
-    Pencil
+    Pencil,
+    Check,
+    Trash2,
+    Building2,
+    User,
+    Hash,
+    Briefcase
 } from 'lucide-react-native';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { StatusBar } from 'expo-status-bar';
 import * as ExpoCrypto from 'expo-crypto';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '../../../lib/upload';
+import { showSuccess, showError } from '../../../lib/error-handler';
+import { COLORS } from '../../../constants/colors';
+
+// Country Codes - African countries first, then rest of the world
+const COUNTRY_CODES = [
+    // African Countries (Priority)
+    { code: '+27', country: 'South Africa', flag: '🇿🇦' },
+    { code: '+234', country: 'Nigeria', flag: '🇳🇬' },
+    { code: '+254', country: 'Kenya', flag: '🇰🇪' },
+    { code: '+256', country: 'Uganda', flag: '🇺🇬' },
+    { code: '+255', country: 'Tanzania', flag: '🇹🇿' },
+    { code: '+250', country: 'Rwanda', flag: '🇷🇼' },
+    { code: '+233', country: 'Ghana', flag: '🇬🇭' },
+    { code: '+225', country: 'Ivory Coast', flag: '🇨🇮' },
+    { code: '+221', country: 'Senegal', flag: '🇸🇳' },
+    { code: '+237', country: 'Cameroon', flag: '🇨🇲' },
+    { code: '+251', country: 'Ethiopia', flag: '🇪🇹' },
+    { code: '+20', country: 'Egypt', flag: '🇪🇬' },
+    { code: '+212', country: 'Morocco', flag: '🇲🇦' },
+    { code: '+213', country: 'Algeria', flag: '🇩🇿' },
+    { code: '+216', country: 'Tunisia', flag: '🇹🇳' },
+    { code: '+218', country: 'Libya', flag: '🇱🇾' },
+    { code: '+257', country: 'Burundi', flag: '🇧🇮' },
+    { code: '+260', country: 'Zambia', flag: '🇿🇲' },
+    { code: '+263', country: 'Zimbabwe', flag: '🇿🇼' },
+    { code: '+265', country: 'Malawi', flag: '🇲🇼' },
+    { code: '+267', country: 'Botswana', flag: '🇧🇼' },
+    { code: '+268', country: 'Eswatini', flag: '🇸🇿' },
+    { code: '+269', country: 'Comoros', flag: '🇰🇲' },
+    { code: '+230', country: 'Mauritius', flag: '🇲🇺' },
+    { code: '+248', country: 'Seychelles', flag: '🇸🇨' },
+    { code: '+261', country: 'Madagascar', flag: '🇲🇬' },
+    { code: '+258', country: 'Mozambique', flag: '🇲🇿' },
+    { code: '+264', country: 'Namibia', flag: '🇳🇦' },
+    { code: '+266', country: 'Lesotho', flag: '🇱🇸' },
+    { code: '+231', country: 'Liberia', flag: '🇱🇷' },
+    { code: '+232', country: 'Sierra Leone', flag: '🇸🇱' },
+    { code: '+224', country: 'Guinea', flag: '🇬🇳' },
+    { code: '+226', country: 'Burkina Faso', flag: '🇧🇫' },
+    { code: '+227', country: 'Niger', flag: '🇳🇪' },
+    { code: '+228', country: 'Togo', flag: '🇹🇬' },
+    { code: '+229', country: 'Benin', flag: '🇧🇯' },
+    { code: '+235', country: 'Chad', flag: '🇹🇩' },
+    { code: '+236', country: 'Central African Republic', flag: '🇨🇫' },
+    { code: '+240', country: 'Equatorial Guinea', flag: '🇬🇶' },
+    { code: '+241', country: 'Gabon', flag: '🇬🇦' },
+    { code: '+242', country: 'Congo', flag: '🇨🇬' },
+    { code: '+243', country: 'DR Congo', flag: '🇨🇩' },
+    { code: '+244', country: 'Angola', flag: '🇦🇴' },
+    { code: '+245', country: 'Guinea-Bissau', flag: '🇬🇼' },
+    { code: '+252', country: 'Somalia', flag: '🇸🇴' },
+    { code: '+253', country: 'Djibouti', flag: '🇩🇯' },
+    { code: '+211', country: 'South Sudan', flag: '🇸🇸' },
+    { code: '+291', country: 'Eritrea', flag: '🇪🇷' },
+    
+    // Rest of the World
+    { code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
+    { code: '+44', country: 'United Kingdom', flag: '🇬🇧' },
+    { code: '+33', country: 'France', flag: '🇫🇷' },
+    { code: '+49', country: 'Germany', flag: '🇩🇪' },
+    { code: '+39', country: 'Italy', flag: '🇮🇹' },
+    { code: '+34', country: 'Spain', flag: '🇪🇸' },
+    { code: '+351', country: 'Portugal', flag: '🇵🇹' },
+    { code: '+32', country: 'Belgium', flag: '🇧🇪' },
+    { code: '+31', country: 'Netherlands', flag: '🇳🇱' },
+    { code: '+41', country: 'Switzerland', flag: '🇨🇭' },
+    { code: '+43', country: 'Austria', flag: '🇦🇹' },
+    { code: '+45', country: 'Denmark', flag: '🇩🇰' },
+    { code: '+46', country: 'Sweden', flag: '🇸🇪' },
+    { code: '+47', country: 'Norway', flag: '🇳🇴' },
+    { code: '+358', country: 'Finland', flag: '🇫🇮' },
+    { code: '+48', country: 'Poland', flag: '🇵🇱' },
+    { code: '+7', country: 'Russia', flag: '🇷🇺' },
+    { code: '+380', country: 'Ukraine', flag: '🇺🇦' },
+    { code: '+90', country: 'Turkey', flag: '🇹🇷' },
+    { code: '+30', country: 'Greece', flag: '🇬🇷' },
+    { code: '+86', country: 'China', flag: '🇨🇳' },
+    { code: '+81', country: 'Japan', flag: '🇯🇵' },
+    { code: '+82', country: 'South Korea', flag: '🇰🇷' },
+    { code: '+91', country: 'India', flag: '🇮🇳' },
+    { code: '+92', country: 'Pakistan', flag: '🇵🇰' },
+    { code: '+880', country: 'Bangladesh', flag: '🇧🇩' },
+    { code: '+94', country: 'Sri Lanka', flag: '🇱🇰' },
+    { code: '+95', country: 'Myanmar', flag: '🇲🇲' },
+    { code: '+66', country: 'Thailand', flag: '🇹🇭' },
+    { code: '+84', country: 'Vietnam', flag: '🇻🇳' },
+    { code: '+60', country: 'Malaysia', flag: '🇲🇾' },
+    { code: '+65', country: 'Singapore', flag: '🇸🇬' },
+    { code: '+63', country: 'Philippines', flag: '🇵🇭' },
+    { code: '+62', country: 'Indonesia', flag: '🇮🇩' },
+    { code: '+61', country: 'Australia', flag: '🇦🇺' },
+    { code: '+64', country: 'New Zealand', flag: '🇳🇿' },
+    { code: '+52', country: 'Mexico', flag: '🇲🇽' },
+    { code: '+55', country: 'Brazil', flag: '🇧🇷' },
+    { code: '+54', country: 'Argentina', flag: '🇦🇷' },
+    { code: '+56', country: 'Chile', flag: '🇨🇱' },
+    { code: '+57', country: 'Colombia', flag: '🇨🇴' },
+    { code: '+51', country: 'Peru', flag: '🇵🇪' },
+    { code: '+58', country: 'Venezuela', flag: '🇻🇪' },
+    { code: '+971', country: 'UAE', flag: '🇦🇪' },
+    { code: '+966', country: 'Saudi Arabia', flag: '🇸🇦' },
+    { code: '+974', country: 'Qatar', flag: '🇶🇦' },
+    { code: '+965', country: 'Kuwait', flag: '🇰🇼' },
+    { code: '+973', country: 'Bahrain', flag: '🇧🇭' },
+    { code: '+968', country: 'Oman', flag: '🇴🇲' },
+    { code: '+962', country: 'Jordan', flag: '🇯🇴' },
+    { code: '+961', country: 'Lebanon', flag: '🇱🇧' },
+    { code: '+972', country: 'Israel', flag: '🇮🇱' },
+];
+
+const CURRENCIES = [
+    // Francs Africains (Priority)
+    { code: 'XOF', symbol: 'CFA', name: 'West African CFA Franc', region: '🌍 West Africa' },
+    { code: 'XAF', symbol: 'FCFA', name: 'Central African CFA Franc', region: '🌍 Central Africa' },
+    { code: 'RWF', symbol: 'FRw', name: 'Rwandan Franc', region: '🇷🇼 Rwanda' },
+    { code: 'BIF', symbol: 'FBu', name: 'Burundian Franc', region: '🇧🇮 Burundi' },
+    { code: 'CDF', symbol: 'FC', name: 'Congolese Franc', region: '🇨🇩 DR Congo' },
+    { code: 'DJF', symbol: 'Fdj', name: 'Djiboutian Franc', region: '🇩🇯 Djibouti' },
+    { code: 'GNF', symbol: 'FG', name: 'Guinean Franc', region: '🇬🇳 Guinea' },
+    { code: 'KMF', symbol: 'CF', name: 'Comorian Franc', region: '🇰🇲 Comoros' },
+    { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', region: '🇨🇭 Switzerland' },
+    
+    // Autres Devises Africaines
+    { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', region: '🇰🇪 Kenya' },
+    { code: 'UGX', symbol: 'USh', name: 'Ugandan Shilling', region: '🇺🇬 Uganda' },
+    { code: 'TZS', symbol: 'TSh', name: 'Tanzanian Shilling', region: '🇹🇿 Tanzania' },
+    { code: 'ZAR', symbol: 'R', name: 'South African Rand', region: '🇿🇦 South Africa' },
+    { code: 'NGN', symbol: '₦', name: 'Nigerian Naira', region: '🇳🇬 Nigeria' },
+    { code: 'GHS', symbol: '₵', name: 'Ghanaian Cedi', region: '🇬🇭 Ghana' },
+    { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', region: '🇪🇬 Egypt' },
+    { code: 'MAD', symbol: 'DH', name: 'Moroccan Dirham', region: '🇲🇦 Morocco' },
+    { code: 'TND', symbol: 'DT', name: 'Tunisian Dinar', region: '🇹🇳 Tunisia' },
+    { code: 'DZD', symbol: 'DA', name: 'Algerian Dinar', region: '🇩🇿 Algeria' },
+    { code: 'ETB', symbol: 'Br', name: 'Ethiopian Birr', region: '🇪🇹 Ethiopia' },
+    { code: 'MUR', symbol: '₨', name: 'Mauritian Rupee', region: '🇲🇺 Mauritius' },
+    { code: 'SCR', symbol: '₨', name: 'Seychellois Rupee', region: '🇸🇨 Seychelles' },
+    { code: 'MGA', symbol: 'Ar', name: 'Malagasy Ariary', region: '🇲🇬 Madagascar' },
+    { code: 'MZN', symbol: 'MT', name: 'Mozambican Metical', region: '🇲🇿 Mozambique' },
+    { code: 'AOA', symbol: 'Kz', name: 'Angolan Kwanza', region: '🇦🇴 Angola' },
+    { code: 'ZMW', symbol: 'ZK', name: 'Zambian Kwacha', region: '🇿🇲 Zambia' },
+    { code: 'MWK', symbol: 'MK', name: 'Malawian Kwacha', region: '🇲🇼 Malawi' },
+    { code: 'BWP', symbol: 'P', name: 'Botswana Pula', region: '🇧🇼 Botswana' },
+    { code: 'NAD', symbol: 'N$', name: 'Namibian Dollar', region: '🇳🇦 Namibia' },
+    { code: 'SZL', symbol: 'L', name: 'Swazi Lilangeni', region: '🇸🇿 Eswatini' },
+    { code: 'LSL', symbol: 'L', name: 'Lesotho Loti', region: '🇱🇸 Lesotho' },
+    { code: 'SOS', symbol: 'Sh', name: 'Somali Shilling', region: '🇸🇴 Somalia' },
+    { code: 'SSP', symbol: '£', name: 'South Sudanese Pound', region: '🇸🇸 South Sudan' },
+    { code: 'SDG', symbol: 'SDG', name: 'Sudanese Pound', region: '🇸🇩 Sudan' },
+    { code: 'ERN', symbol: 'Nfk', name: 'Eritrean Nakfa', region: '🇪🇷 Eritrea' },
+    { code: 'LYD', symbol: 'LD', name: 'Libyan Dinar', region: '🇱🇾 Libya' },
+    { code: 'MRU', symbol: 'UM', name: 'Mauritanian Ouguiya', region: '🇲🇷 Mauritania' },
+    { code: 'GMD', symbol: 'D', name: 'Gambian Dalasi', region: '🇬🇲 Gambia' },
+    { code: 'SLL', symbol: 'Le', name: 'Sierra Leonean Leone', region: '🇸🇱 Sierra Leone' },
+    { code: 'LRD', symbol: 'L$', name: 'Liberian Dollar', region: '🇱🇷 Liberia' },
+    { code: 'CVE', symbol: '$', name: 'Cape Verdean Escudo', region: '🇨🇻 Cape Verde' },
+    { code: 'STN', symbol: 'Db', name: 'São Tomé and Príncipe Dobra', region: '🇸🇹 São Tomé' },
+    
+    // Devises Internationales Majeures
+    { code: 'USD', symbol: '$', name: 'US Dollar', region: '🇺🇸 USA' },
+    { code: 'EUR', symbol: '€', name: 'Euro', region: '🇪🇺 Europe' },
+    { code: 'GBP', symbol: '£', name: 'British Pound', region: '🇬🇧 UK' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen', region: '🇯🇵 Japan' },
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', region: '🇨🇳 China' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee', region: '🇮🇳 India' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', region: '🇦🇺 Australia' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', region: '🇨🇦 Canada' },
+    { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', region: '🇦🇪 UAE' },
+    { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal', region: '🇸🇦 Saudi Arabia' },
+];
+
+const INDUSTRIES = [
+    'Technology',
+    'Healthcare',
+    'Finance',
+    'Education',
+    'Retail',
+    'Manufacturing',
+    'Construction',
+    'Real Estate',
+    'Hospitality',
+    'Transportation',
+    'Agriculture',
+    'Media & Entertainment',
+    'Professional Services',
+    'Other'
+];
 
 export default function ClientFormScreen() {
     const router = useRouter();
@@ -40,18 +234,27 @@ export default function ClientFormScreen() {
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEditing);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
-    // Form State matching the design
+    // Form State
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [businessName, setBusinessName] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
     const [industry, setIndustry] = useState('');
     const [contactPerson, setContactPerson] = useState('');
     const [email, setEmail] = useState('');
+    const [countryCode, setCountryCode] = useState('+250'); // Default to Rwanda
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
     const [taxId, setTaxId] = useState('');
-    const [currency, setCurrency] = useState('USD ($)');
+    const [currency, setCurrency] = useState('USD');
     const [notes, setNotes] = useState('');
+
+    // Modal states
+    const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+    const [showIndustryModal, setShowIndustryModal] = useState(false);
+    const [showCountryCodeModal, setShowCountryCodeModal] = useState(false);
+    const [countrySearchQuery, setCountrySearchQuery] = useState('');
 
     useEffect(() => {
         if (isEditing) {
@@ -69,21 +272,96 @@ export default function ClientFormScreen() {
 
             if (error) throw error;
             if (data) {
-                // Mapping DB fields to UI fields
                 setBusinessName(data.name || '');
                 setEmail(data.email || '');
-                setPhone(data.phone || '');
+                
+                // Parse phone number to extract country code
+                const phoneStr = data.phone || '';
+                if (phoneStr) {
+                    // Try to find matching country code
+                    const matchedCode = COUNTRY_CODES.find(cc => phoneStr.startsWith(cc.code));
+                    if (matchedCode) {
+                        setCountryCode(matchedCode.code);
+                        setPhone(phoneStr.substring(matchedCode.code.length).trim());
+                    } else {
+                        setPhone(phoneStr);
+                    }
+                }
+                
                 setAddress(data.address || '');
                 setNotes(data.notes || '');
-                // Other fields would be populated here if they existed in DB
+                setRegistrationNumber(data.registration_number || '');
+                setIndustry(data.industry || '');
+                setContactPerson(data.contact_person || '');
+                setTaxId(data.tax_id || '');
+                setCurrency(data.currency || 'USD');
+                setLogoUrl(data.logo_url || null);
             }
         } catch (error) {
             console.error('Error loading client:', error);
-            Alert.alert('Error', 'Could not load client details.');
+            showError(error, 'Could not load client details');
             router.back();
         } finally {
             setFetching(false);
         }
+    };
+
+    const handlePickLogo = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'Please grant access to your photo library.');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0].uri) {
+                setUploadingLogo(true);
+                const publicUrl = await uploadImage(result.assets[0].uri, 'client-logos');
+                setLogoUrl(publicUrl);
+                setUploadingLogo(false);
+                showSuccess('Logo uploaded successfully');
+            }
+        } catch (error) {
+            setUploadingLogo(false);
+            showError(error, 'Failed to upload logo');
+        }
+    };
+
+    const handleDelete = () => {
+        Alert.alert(
+            'Delete Client',
+            'Are you sure you want to delete this client? This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            const { error } = await supabase
+                                .from('clients')
+                                .delete()
+                                .eq('id', id);
+                            if (error) throw error;
+                            showSuccess('Client deleted successfully');
+                            router.back();
+                        } catch (error) {
+                            showError(error, 'Failed to delete client');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const handleSave = async () => {
@@ -94,16 +372,18 @@ export default function ClientFormScreen() {
 
         setLoading(true);
         try {
-            // Mapping UI fields back to DB fields
-            // Note: New fields (Registration, Industry, Contact Person, Tax ID, Currency) 
-            // are not currently saved as they likely don't exist in the schema yet.
-            // We save the core fields.
             const clientData = {
                 name: businessName.trim(),
                 email: email.trim() || null,
-                phone: phone.trim() || null,
+                phone: phone.trim() ? `${countryCode}${phone.trim()}` : null,
                 address: address.trim() || null,
                 notes: notes.trim() || null,
+                registration_number: registrationNumber.trim() || null,
+                industry: industry.trim() || null,
+                contact_person: contactPerson.trim() || null,
+                tax_id: taxId.trim() || null,
+                currency: currency || 'USD',
+                logo_url: logoUrl || null,
             };
 
             if (isEditing) {
@@ -112,6 +392,7 @@ export default function ClientFormScreen() {
                     .update(clientData)
                     .eq('id', id);
                 if (error) throw error;
+                showSuccess('Client updated successfully');
             } else {
                 const { error } = await supabase
                     .from('clients')
@@ -121,40 +402,61 @@ export default function ClientFormScreen() {
                         portal_token: ExpoCrypto.randomUUID()
                     }]);
                 if (error) throw error;
+                showSuccess('Client created successfully');
             }
 
             router.back();
         } catch (error: any) {
             console.error('Save error:', error);
-            Alert.alert('Error', error.message || 'Failed to save client.');
+            showError(error, 'Failed to save client');
         } finally {
             setLoading(false);
         }
     };
 
+    const getCurrencyDisplay = () => {
+        const curr = CURRENCIES.find(c => c.code === currency);
+        return curr ? `${curr.symbol} ${curr.code}` : currency;
+    };
+
+    const getCountryDisplay = () => {
+        const country = COUNTRY_CODES.find(c => c.code === countryCode);
+        return country ? `${country.flag} ${country.code}` : countryCode;
+    };
+
+    const filteredCountries = COUNTRY_CODES.filter(country =>
+        country.country.toLowerCase().includes(countrySearchQuery.toLowerCase()) ||
+        country.code.includes(countrySearchQuery)
+    );
+
     if (fetching) {
         return (
-            <View className="flex-1 items-center justify-center bg-[#F3E8FF]">
-                <ActivityIndicator size="large" color="#9333EA" />
+            <View className="flex-1 items-center justify-center bg-[#F9FAFC]">
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text className="text-slate-400 mt-4 font-medium">Loading client...</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F3E8FF]">
+        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
 
             {/* Header */}
-            <View className="flex-row justify-between items-center px-6 py-4">
+            <View className="flex-row justify-between items-center px-6 py-4 bg-[#F9FAFC]">
                 <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
                     <ArrowLeft size={24} color="#0F172A" />
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-slate-900">
-                    {isEditing ? 'Edit Client' : 'Add New Client'}
+                    {isEditing ? 'Edit Client' : 'New Client'}
                 </Text>
-                <TouchableOpacity onPress={handleSave}>
-                    <Text className="text-purple-600 font-bold text-base">Save</Text>
-                </TouchableOpacity>
+                {isEditing ? (
+                    <TouchableOpacity onPress={handleDelete} className="p-2">
+                        <Trash2 size={22} color="#EF4444" />
+                    </TouchableOpacity>
+                ) : (
+                    <View className="w-10" />
+                )}
             </View>
 
             <KeyboardAvoidingView
@@ -168,30 +470,43 @@ export default function ClientFormScreen() {
                 >
                     {/* Logo/Photo Upload */}
                     <View className="items-center mb-8 mt-4">
-                        <View className="relative">
-                            <View className="w-24 h-24 rounded-full bg-slate-300 items-center justify-center border-4 border-white shadow-sm overflow-hidden dash-spinner">
-                                <Camera size={32} color="white" />
-                                {/* Dashed border effect simulation can be a separate SVG or Image overlay if needed, sticking to CSS for now */}
+                        <TouchableOpacity onPress={handlePickLogo} disabled={uploadingLogo} className="relative">
+                            <View className="w-24 h-24 rounded-full bg-slate-200 items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+                                {logoUrl ? (
+                                    <Image source={{ uri: logoUrl }} className="w-full h-full" resizeMode="cover" />
+                                ) : (
+                                    <Building2 size={32} color="#94A3B8" />
+                                )}
+                                {uploadingLogo && (
+                                    <View className="absolute inset-0 bg-black/50 items-center justify-center">
+                                        <ActivityIndicator color="white" />
+                                    </View>
+                                )}
                             </View>
-                            <TouchableOpacity className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-2 border-white">
+                            <View className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-2 border-white shadow-md">
                                 <Pencil size={14} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                        <Text className="text-purple-600 font-bold text-sm mt-3">Upload Logo/Photo</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <Text className="text-blue-600 font-bold text-sm mt-3">
+                            {logoUrl ? 'Change Logo' : 'Upload Logo'}
+                        </Text>
                     </View>
 
                     {/* Business Details */}
                     <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4 ml-1">BUSINESS DETAILS</Text>
 
                     <View className="mb-4">
-                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Business Name</Text>
-                        <TextInput
-                            className="bg-white rounded-2xl px-4 py-4 text-slate-900 font-semibold shadow-sm border border-transparent focus:border-purple-500"
-                            placeholder="Acme Corp, Inc."
-                            placeholderTextColor="#CBD5E1"
-                            value={businessName}
-                            onChangeText={setBusinessName}
-                        />
+                        <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Business Name <Text className="text-red-500">*</Text></Text>
+                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
+                            <Building2 size={18} color="#94A3B8" />
+                            <TextInput
+                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                placeholder="Acme Corp, Inc."
+                                placeholderTextColor="#CBD5E1"
+                                value={businessName}
+                                onChangeText={setBusinessName}
+                            />
+                        </View>
                     </View>
 
                     <View className="mb-4">
@@ -199,27 +514,30 @@ export default function ClientFormScreen() {
                             <Text className="text-slate-600 text-sm font-semibold">Registration Number</Text>
                             <Text className="text-slate-400 text-xs">(Optional)</Text>
                         </View>
-                        <TextInput
-                            className="bg-white rounded-2xl px-4 py-4 text-slate-900 font-semibold shadow-sm border border-transparent focus:border-purple-500"
-                            placeholder="e.g. 12345678"
-                            placeholderTextColor="#CBD5E1"
-                            value={registrationNumber}
-                            onChangeText={setRegistrationNumber}
-                        />
+                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
+                            <Hash size={18} color="#94A3B8" />
+                            <TextInput
+                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                placeholder="e.g. 12345678"
+                                placeholderTextColor="#CBD5E1"
+                                value={registrationNumber}
+                                onChangeText={setRegistrationNumber}
+                            />
+                        </View>
                     </View>
 
                     <View className="mb-8">
                         <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Industry / Category</Text>
-                        <View className="bg-slate-100 rounded-2xl px-4 py-4 flex-row justify-between items-center">
-                            <TextInput
-                                className="flex-1 text-slate-900 font-semibold p-0"
-                                placeholder="Select Industry"
-                                placeholderTextColor="#64748B"
-                                value={industry}
-                                onChangeText={setIndustry}
-                            />
+                        <TouchableOpacity 
+                            onPress={() => setShowIndustryModal(true)}
+                            className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-slate-100"
+                        >
+                            <Briefcase size={18} color="#94A3B8" />
+                            <Text className={`flex-1 ml-3 font-semibold ${industry ? 'text-slate-900' : 'text-slate-400'}`}>
+                                {industry || 'Select Industry'}
+                            </Text>
                             <ChevronDown size={20} color="#94A3B8" />
-                        </View>
+                        </TouchableOpacity>
                     </View>
 
                     {/* Contact Information */}
@@ -227,21 +545,24 @@ export default function ClientFormScreen() {
 
                     <View className="mb-4">
                         <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Contact Person</Text>
-                        <TextInput
-                            className="bg-white rounded-2xl px-4 py-4 text-slate-900 font-semibold shadow-sm border border-transparent focus:border-purple-500"
-                            placeholder="Full Name"
-                            placeholderTextColor="#CBD5E1"
-                            value={contactPerson}
-                            onChangeText={setContactPerson}
-                        />
+                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
+                            <User size={18} color="#94A3B8" />
+                            <TextInput
+                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                placeholder="Full Name"
+                                placeholderTextColor="#CBD5E1"
+                                value={contactPerson}
+                                onChangeText={setContactPerson}
+                            />
+                        </View>
                     </View>
 
                     <View className="mb-4">
                         <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Email Address</Text>
-                        <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-transparent focus:border-purple-500">
-                            <Mail size={18} color="#94A3B8" className="mr-3" />
+                        <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-slate-100">
+                            <Mail size={18} color="#94A3B8" />
                             <TextInput
-                                className="flex-1 text-slate-900 font-semibold p-0"
+                                className="flex-1 ml-3 text-slate-900 font-semibold"
                                 placeholder="client@company.com"
                                 placeholderTextColor="#CBD5E1"
                                 value={email}
@@ -254,14 +575,18 @@ export default function ClientFormScreen() {
 
                     <View className="mb-4">
                         <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Phone Number</Text>
-                        <View className="bg-white rounded-2xl flex-row shadow-sm border border-transparent overflow-hidden">
-                            <View className="bg-slate-50 px-4 py-4 border-r border-slate-100 flex-row items-center">
-                                <Phone size={14} color="#64748B" className="mr-2" />
-                                <Text className="text-slate-600 font-bold">+1</Text>
-                            </View>
+                        <View className="bg-white rounded-2xl flex-row shadow-sm border border-slate-100 overflow-hidden">
+                            <TouchableOpacity 
+                                onPress={() => setShowCountryCodeModal(true)}
+                                className="bg-slate-50 px-3 py-4 border-r border-slate-200 flex-row items-center"
+                            >
+                                <Phone size={16} color="#64748B" />
+                                <Text className="text-slate-700 font-bold text-base ml-2">{getCountryDisplay()}</Text>
+                                <ChevronDown size={16} color="#94A3B8" className="ml-1" />
+                            </TouchableOpacity>
                             <TextInput
                                 className="flex-1 px-4 py-4 text-slate-900 font-semibold"
-                                placeholder="(555) 000-0000"
+                                placeholder="712 345 678"
                                 placeholderTextColor="#CBD5E1"
                                 value={phone}
                                 onChangeText={setPhone}
@@ -272,15 +597,21 @@ export default function ClientFormScreen() {
 
                     <View className="mb-8">
                         <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Billing Address</Text>
-                        <TextInput
-                            className="bg-white rounded-2xl px-4 py-4 text-slate-900 font-semibold shadow-sm border border-transparent focus:border-purple-500 min-h-[100px]"
-                            placeholder="Street address, City, State, Zip Code"
-                            placeholderTextColor="#CBD5E1"
-                            value={address}
-                            onChangeText={setAddress}
-                            multiline
-                            textAlignVertical="top"
-                        />
+                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100">
+                            <View className="flex-row items-start mb-2">
+                                <MapPin size={18} color="#94A3B8" />
+                                <Text className="text-slate-400 text-xs ml-2 flex-1">Full address including city and postal code</Text>
+                            </View>
+                            <TextInput
+                                className="text-slate-900 font-semibold min-h-[80px]"
+                                placeholder="Street address, City, State, Zip Code"
+                                placeholderTextColor="#CBD5E1"
+                                value={address}
+                                onChangeText={setAddress}
+                                multiline
+                                textAlignVertical="top"
+                            />
+                        </View>
                     </View>
 
                     {/* Additional Details */}
@@ -289,34 +620,47 @@ export default function ClientFormScreen() {
                     <View className="flex-row justify-between mb-4 gap-4">
                         <View className="flex-1">
                             <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Tax ID / VAT</Text>
-                            <TextInput
-                                className="bg-white rounded-2xl px-4 py-4 text-slate-900 font-semibold shadow-sm border border-transparent focus:border-purple-500"
-                                placeholder="Optional"
-                                placeholderTextColor="#CBD5E1"
-                                value={taxId}
-                                onChangeText={setTaxId}
-                            />
+                            <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100 flex-row items-center">
+                                <CreditCard size={18} color="#94A3B8" />
+                                <TextInput
+                                    className="flex-1 ml-3 text-slate-900 font-semibold"
+                                    placeholder="Optional"
+                                    placeholderTextColor="#CBD5E1"
+                                    value={taxId}
+                                    onChangeText={setTaxId}
+                                />
+                            </View>
                         </View>
                         <View className="flex-1">
                             <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Currency</Text>
-                            <View className="bg-slate-100 rounded-2xl px-4 py-4 flex-row justify-between items-center">
-                                <Text className="text-slate-900 font-semibold">{currency}</Text>
+                            <TouchableOpacity 
+                                onPress={() => setShowCurrencyModal(true)}
+                                className="bg-white rounded-2xl px-4 py-4 flex-row items-center shadow-sm border border-slate-100"
+                            >
+                                <Globe size={18} color="#94A3B8" />
+                                <Text className="flex-1 ml-3 text-slate-900 font-semibold text-sm">{getCurrencyDisplay()}</Text>
                                 <ChevronDown size={16} color="#64748B" />
-                            </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
                     <View className="mb-4">
                         <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Internal Notes</Text>
-                        <TextInput
-                            className="bg-white rounded-2xl px-4 py-4 text-slate-900 font-semibold shadow-sm border border-transparent focus:border-purple-500 min-h-[80px]"
-                            placeholder="Private notes only visible to your team..."
-                            placeholderTextColor="#CBD5E1"
-                            value={notes}
-                            onChangeText={setNotes}
-                            multiline
-                            textAlignVertical="top"
-                        />
+                        <View className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100">
+                            <View className="flex-row items-start mb-2">
+                                <FileText size={18} color="#94A3B8" />
+                                <Text className="text-slate-400 text-xs ml-2 flex-1">Private notes only visible to your team</Text>
+                            </View>
+                            <TextInput
+                                className="text-slate-900 font-semibold min-h-[60px]"
+                                placeholder="Add any internal notes about this client..."
+                                placeholderTextColor="#CBD5E1"
+                                value={notes}
+                                onChangeText={setNotes}
+                                multiline
+                                textAlignVertical="top"
+                            />
+                        </View>
                     </View>
 
                 </ScrollView>
@@ -324,27 +668,229 @@ export default function ClientFormScreen() {
                 {/* Footer Button */}
                 <View
                     style={{ paddingBottom: Math.max(insets.bottom, 20), paddingTop: 16 }}
-                    className="w-full bg-[#F3E8FF] px-6 border-t border-purple-100 shadow-2xl"
+                    className="w-full bg-[#F9FAFC] px-6 border-t border-slate-100 shadow-2xl"
                 >
                     <TouchableOpacity
                         onPress={handleSave}
                         disabled={loading}
-                        className="w-full h-14 rounded-full flex-row items-center justify-center shadow-lg shadow-indigo-500/30"
-                        style={{ backgroundColor: '#4F46E5' }}
+                        className="w-full h-14 rounded-2xl flex-row items-center justify-center shadow-lg"
+                        style={{ backgroundColor: loading ? '#94A3B8' : COLORS.primary }}
                     >
                         {loading ? (
                             <ActivityIndicator color="white" />
                         ) : (
                             <>
-                                <Text className="text-white font-bold text-lg mr-2">
+                                <Check size={20} color="white" strokeWidth={2.5} className="mr-2" />
+                                <Text className="text-white font-bold text-lg">
                                     {isEditing ? 'Save Changes' : 'Create Client'}
                                 </Text>
-                                <ArrowLeft size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} strokeWidth={2.5} />
                             </>
                         )}
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+
+            {/* Currency Modal */}
+            <Modal visible={showCurrencyModal} transparent animationType="slide">
+                <View className="flex-1 justify-end bg-black/50">
+                    <View className="bg-white rounded-t-[32px] p-6 max-h-[80%]" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+                        <View className="flex-row justify-between items-center mb-6">
+                            <View>
+                                <Text className="text-xl font-bold text-slate-900">Select Currency</Text>
+                                <Text className="text-slate-400 text-xs mt-1">Choose your preferred currency</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowCurrencyModal(false)} className="bg-slate-100 px-4 py-2 rounded-full">
+                                <Text className="font-bold text-slate-500">Close</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* African Francs Section */}
+                        <View className="mb-4">
+                            <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest ml-1 mb-3">
+                                💰 African Francs
+                            </Text>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {CURRENCIES.map((curr, index) => {
+                                const isSelected = currency === curr.code;
+                                const isAfricanFranc = index < 9; // First 9 are African Francs
+                                const isAfricanCurrency = index < 42; // First 42 are African currencies
+                                const showDivider = index === 8 || index === 41; // After Francs and African currencies
+                                
+                                return (
+                                    <View key={curr.code}>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setCurrency(curr.code);
+                                                setShowCurrencyModal(false);
+                                            }}
+                                            className={`p-4 rounded-2xl mb-2 flex-row justify-between items-center ${
+                                                isSelected ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50 border border-slate-100'
+                                            }`}
+                                        >
+                                            <View className="flex-1">
+                                                <View className="flex-row items-center mb-1">
+                                                    <Text className={`font-bold text-base ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
+                                                        {curr.name}
+                                                    </Text>
+                                                </View>
+                                                <View className="flex-row items-center">
+                                                    <Text className="text-slate-500 text-sm font-medium mr-2">
+                                                        {curr.code} ({curr.symbol})
+                                                    </Text>
+                                                    <Text className="text-slate-400 text-xs">
+                                                        {curr.region}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            {isSelected && (
+                                                <View className="w-6 h-6 bg-blue-600 rounded-full items-center justify-center ml-2">
+                                                    <Check size={14} color="white" strokeWidth={3} />
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                        
+                                        {showDivider && (
+                                            <View className="my-4">
+                                                <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest ml-1 mb-3">
+                                                    {index === 8 ? '🌍 Other African Currencies' : '🌎 International Currencies'}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Industry Modal */}
+            <Modal visible={showIndustryModal} transparent animationType="slide">
+                <View className="flex-1 justify-end bg-black/50">
+                    <View className="bg-white rounded-t-[32px] p-6 max-h-[70%]" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+                        <View className="flex-row justify-between items-center mb-6">
+                            <Text className="text-xl font-bold text-slate-900">Select Industry</Text>
+                            <TouchableOpacity onPress={() => setShowIndustryModal(false)} className="bg-slate-100 px-4 py-2 rounded-full">
+                                <Text className="font-bold text-slate-500">Close</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {INDUSTRIES.map((ind) => (
+                                <TouchableOpacity
+                                    key={ind}
+                                    onPress={() => {
+                                        setIndustry(ind);
+                                        setShowIndustryModal(false);
+                                    }}
+                                    className={`p-4 rounded-2xl mb-3 flex-row justify-between items-center ${
+                                        industry === ind ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50 border border-slate-100'
+                                    }`}
+                                >
+                                    <Text className={`font-bold text-base ${industry === ind ? 'text-blue-900' : 'text-slate-800'}`}>
+                                        {ind}
+                                    </Text>
+                                    {industry === ind && (
+                                        <View className="w-6 h-6 bg-blue-600 rounded-full items-center justify-center">
+                                            <Check size={14} color="white" strokeWidth={3} />
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Country Code Modal */}
+            <Modal visible={showCountryCodeModal} transparent animationType="slide">
+                <View className="flex-1 justify-end bg-black/50">
+                    <View className="bg-white rounded-t-[32px] p-6 max-h-[80%]" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+                        <View className="flex-row justify-between items-center mb-4">
+                            <Text className="text-xl font-bold text-slate-900">Select Country Code</Text>
+                            <TouchableOpacity 
+                                onPress={() => {
+                                    setShowCountryCodeModal(false);
+                                    setCountrySearchQuery('');
+                                }} 
+                                className="bg-slate-100 px-4 py-2 rounded-full"
+                            >
+                                <Text className="font-bold text-slate-500">Close</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Search Bar */}
+                        <View className="bg-slate-50 rounded-2xl px-4 py-3 flex-row items-center mb-4 border border-slate-200">
+                            <Globe size={18} color="#94A3B8" />
+                            <TextInput
+                                className="flex-1 ml-3 text-slate-900 font-semibold"
+                                placeholder="Search country or code..."
+                                placeholderTextColor="#94A3B8"
+                                value={countrySearchQuery}
+                                onChangeText={setCountrySearchQuery}
+                            />
+                        </View>
+
+                        {/* African Countries Label */}
+                        {!countrySearchQuery && (
+                            <View className="mb-3">
+                                <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest ml-1">
+                                    🌍 African Countries
+                                </Text>
+                            </View>
+                        )}
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {filteredCountries.map((country) => {
+                                const isSelected = countryCode === country.code;
+                                const isAfrican = COUNTRY_CODES.indexOf(country) < 47; // First 47 are African
+                                
+                                return (
+                                    <TouchableOpacity
+                                        key={country.code}
+                                        onPress={() => {
+                                            setCountryCode(country.code);
+                                            setShowCountryCodeModal(false);
+                                            setCountrySearchQuery('');
+                                        }}
+                                        className={`p-4 rounded-2xl mb-2 flex-row justify-between items-center ${
+                                            isSelected 
+                                                ? 'bg-blue-50 border-2 border-blue-200' 
+                                                : 'bg-slate-50 border border-slate-100'
+                                        }`}
+                                    >
+                                        <View className="flex-row items-center flex-1">
+                                            <Text className="text-2xl mr-3">{country.flag}</Text>
+                                            <View className="flex-1">
+                                                <Text className={`font-bold text-base ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
+                                                    {country.country}
+                                                </Text>
+                                                <Text className="text-slate-500 text-sm font-medium mt-0.5">
+                                                    {country.code}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        {isSelected && (
+                                            <View className="w-6 h-6 bg-blue-600 rounded-full items-center justify-center">
+                                                <Check size={14} color="white" strokeWidth={3} />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                            
+                            {filteredCountries.length === 0 && (
+                                <View className="items-center py-10">
+                                    <Globe size={48} color="#CBD5E1" />
+                                    <Text className="text-slate-400 font-semibold mt-4">No countries found</Text>
+                                    <Text className="text-slate-300 text-sm mt-1">Try a different search term</Text>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </View>
     );
 }

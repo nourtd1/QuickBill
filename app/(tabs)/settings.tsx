@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { uploadImage as uploadHelper } from '../../lib/upload';
+import { useColorScheme } from 'nativewind';
 import {
     HelpCircle,
     Pencil,
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
     const router = useRouter();
     const { signOut, user } = useAuth();
     const { profile, updateProfile, fetchProfile } = useProfile();
+    const { colorScheme } = useColorScheme();
     const insets = useSafeAreaInsets();
     const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
 
@@ -82,11 +84,11 @@ export default function SettingsScreen() {
     const Section = ({ title, children }: { title?: string; children: React.ReactNode }) => (
         <View className="mb-6">
             {title && (
-                <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
+                <Text className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
                     {title}
                 </Text>
             )}
-            <View className="bg-white/70 rounded-2xl overflow-hidden border border-white/50 shadow-sm">
+            <View className="bg-white/70 dark:bg-slate-800/80 rounded-2xl overflow-hidden border border-white/50 dark:border-slate-700/50 shadow-sm">
                 {children}
             </View>
         </View>
@@ -169,28 +171,28 @@ export default function SettingsScreen() {
         <TouchableOpacity
             onPress={onPress}
             activeOpacity={0.7}
-            className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-100' : ''}`}
+            className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-100 dark:border-slate-700/50' : ''}`}
         >
             <View className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${bgClass}`}>
                 <Icon size={ICON_SIZE} color={getColor(textTwColor)} />
             </View>
-            <Text className="flex-1 text-slate-800 font-semibold text-[15px]">{label}</Text>
-            <ChevronRight size={20} color="#CBD5E1" />
+            <Text className="flex-1 text-slate-800 dark:text-white font-semibold text-[15px]">{label}</Text>
+            <ChevronRight size={20} color={colorScheme === 'dark' ? '#475569' : '#CBD5E1'} />
         </TouchableOpacity>
     );
 
     return (
-        <View className="flex-1 bg-[#f6f6f8]" style={{ paddingTop: insets.top }}>
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-[#f6f6f8] dark:bg-slate-900" style={{ paddingTop: insets.top }}>
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View className="flex-1">
                 {/* Header */}
                 <View className="flex-row justify-between items-center px-6 pt-2 pb-4">
-                    <Text className="text-3xl font-extrabold text-slate-900">Settings</Text>
+                    <Text className="text-3xl font-extrabold text-slate-900 dark:text-white">Settings</Text>
                     <TouchableOpacity
                         onPress={() => router.push('/settings/help')}
-                        className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm"
+                        className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full items-center justify-center shadow-sm"
                     >
-                        <HelpCircle size={20} color="#1E293B" />
+                        <HelpCircle size={20} color={colorScheme === 'dark' ? '#F8FAFC' : '#1E293B'} />
                     </TouchableOpacity>
                 </View>
 
@@ -229,13 +231,13 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        <Text className="text-xl font-bold text-slate-900 mt-4">
+                        <Text className="text-xl font-bold text-slate-900 dark:text-white mt-4">
                             {profile?.business_name || 'Alex Sterling'}
                         </Text>
 
-                        <View className="flex-row items-center bg-[#1337ec]/10 px-3 py-1 rounded-full mt-2">
-                            <BadgeCheck size={12} color="#1337ec" style={{ marginRight: 4 }} />
-                            <Text className="text-[#1337ec] text-xs font-bold uppercase tracking-wide">
+                        <View className="flex-row items-center bg-[#1337ec]/10 dark:bg-[#1337ec]/20 px-3 py-1 rounded-full mt-2">
+                            <BadgeCheck size={12} color={colorScheme === 'dark' ? '#93C5FD' : '#1337ec'} style={{ marginRight: 4 }} />
+                            <Text className="text-[#1337ec] dark:text-blue-300 text-xs font-bold uppercase tracking-wide">
                                 Premium Member
                             </Text>
                         </View>
@@ -329,13 +331,13 @@ export default function SettingsScreen() {
                     {/* Log Out */}
                     <TouchableOpacity
                         onPress={handleSignOut}
-                        className="bg-red-50 flex-row items-center justify-center p-4 rounded-2xl mb-8"
+                        className="bg-red-50 dark:bg-red-900/20 flex-row items-center justify-center p-4 rounded-2xl mb-8"
                     >
                         <LogOut size={20} color="#DC2626" style={{ marginRight: 8 }} />
-                        <Text className="text-red-600 font-bold text-base">Log Out</Text>
+                        <Text className="text-red-600 dark:text-red-400 font-bold text-base">Log Out</Text>
                     </TouchableOpacity>
 
-                    <Text className="text-center text-slate-300 text-xs font-medium pb-8">
+                    <Text className="text-center text-slate-300 dark:text-slate-600 text-xs font-medium pb-8">
                         QuickBill v2.4.0 (Build 412)
                     </Text>
 

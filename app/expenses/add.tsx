@@ -11,7 +11,7 @@ import {
     Platform,
     Image,
     Dimensions,
-    Switch // Import Switch
+    Switch
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -42,7 +42,7 @@ import NetInfo from '@react-native-community/netinfo';
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
-    { id: 'meals', label: 'Meals', icon: Utensils, color: '#6366F1' }, // Indigo-500
+    { id: 'meals', label: 'Meals', icon: Utensils, color: '#6366F1' },
     { id: 'travel', label: 'Travel', icon: Plane, color: '#6366F1' },
     { id: 'office', label: 'Office', icon: Briefcase, color: '#6366F1' },
 ];
@@ -51,13 +51,13 @@ export default function AddExpenseScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { user, profile } = useAuth();
-    const currency = profile?.currency || '$';
+    const currency = profile?.currency || 'USD';
 
     const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('meals'); // Default to meals
+    const [category, setCategory] = useState('meals');
     const [merchant, setMerchant] = useState('');
     const [description, setDescription] = useState('');
-    const [date, setDate] = useState('10/24/2023'); // Mock date matching design
+    const [date, setDate] = useState('10/24/2023');
     const [receiptUri, setReceiptUri] = useState<string | null>(null);
     const [isTaxDeductible, setIsTaxDeductible] = useState(false);
 
@@ -71,14 +71,13 @@ export default function AddExpenseScreen() {
     }, [params]);
 
     const handlePickImage = async () => {
-        // Same implementation as before
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!granted) {
             Alert.alert("Permission Required", "Access to gallery is needed.");
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'images',
+            mediaTypes: ['images'],
             allowsEditing: true,
             quality: 0.7,
         });
@@ -88,7 +87,6 @@ export default function AddExpenseScreen() {
     };
 
     const handleCamera = async () => {
-        // Same implementation as before
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
         if (!granted) {
             Alert.alert("Permission Required", "Access to camera is needed.");
@@ -104,7 +102,6 @@ export default function AddExpenseScreen() {
     };
 
     const handleSave = async () => {
-        // Mock save logic matching previous functionality but updated visuals
         if (!amount || isNaN(parseFloat(amount))) {
             Alert.alert("Error", "Please enter a valid amount.");
             return;
@@ -113,15 +110,37 @@ export default function AddExpenseScreen() {
 
         setSaving(true);
         try {
-            // ... (keep existing upload and save logic)
-            // Simulating save for UI demo
-            setTimeout(() => {
-                setSaving(false);
-                router.back();
-            }, 1000);
+            let receiptUrl = null;
+            if (receiptUri) {
+                setUploading(true);
+                receiptUrl = await uploadImage(receiptUri, 'receipts');
+                setUploading(false);
+            }
 
+            const expenseData = {
+                user_id: user.id,
+                amount: parseFloat(amount),
+                category,
+                merchant: merchant.trim() || undefined,
+                description: description.trim() || undefined,
+                date: date || new Date().toISOString().split('T')[0],
+                receipt_url: receiptUrl || undefined,
+            };
+
+            const netState = await NetInfo.fetch();
+            if (netState.isConnected) {
+                const { error } = await supabase.from('expenses').insert(expenseData);
+                if (error) throw error;
+                showSuccess("Expense saved successfully!");
+            } else {
+                await saveExpenseLocally(expenseData);
+                showSuccess("Expense saved locally. Will sync when online.");
+            }
+
+            router.back();
         } catch (error) {
-            // ...
+            showError(error, "Failed to save expense");
+        } finally {
             setSaving(false);
         }
     };
@@ -130,7 +149,6 @@ export default function AddExpenseScreen() {
         <View className="flex-1 bg-[#F5F7FF]">
             <StatusBar style="dark" />
 
-            {/* Header */}
             <View className="flex-row justify-between items-center px-6 pt-4 pb-2 z-10 bg-[#F5F7FF]">
                 <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
                     <ArrowLeft size={24} color="#0F172A" />
@@ -150,7 +168,6 @@ export default function AddExpenseScreen() {
                     contentContainerStyle={{ paddingBottom: 200 }}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Amount Card */}
                     <View className="bg-white rounded-[40px] py-10 items-center justify-center shadow-sm border border-indigo-50 mb-8 w-full">
                         <Text className="text-[#818CF8] text-[10px] font-bold uppercase tracking-widest mb-4">TOTAL AMOUNT</Text>
                         <TextInput
@@ -163,7 +180,6 @@ export default function AddExpenseScreen() {
                         />
                     </View>
 
-                    {/* Categories */}
                     <View className="flex-row justify-between mb-8">
                         {CATEGORIES.map((cat) => {
                             const isSelected = category === cat.id;
@@ -172,19 +188,17 @@ export default function AddExpenseScreen() {
                                 <TouchableOpacity
                                     key={cat.id}
                                     onPress={() => setCategory(cat.id)}
-                                    className={`flex-1 py-3 px-2 rounded-full flex-row items-center justify-center mx-1 shadow-sm ${isSelected ? 'bg-[#6366F1]' : 'bg-white'
-                                        }`}
+                                    className={`flex-1 py-3 px-2 rounded-full flex-row items-center justify-center mx-1 shadow-sm ${isSelected ? 'bg-[#6366F1]' : 'bg-white'}`}
                                 >
                                     <Icon size={18} color={isSelected ? 'white' : '#475569'} />
                                     <Text className={`font-bold ml-2 text-sm ${isSelected ? 'text-white' : 'text-slate-600'}`}>
                                         {cat.label}
                                     </Text>
                                 </TouchableOpacity>
-                            )
+                            );
                         })}
                     </View>
 
-                    {/* Form Fields */}
                     <View className="space-y-4 mb-4">
                         <TextInput
                             className="bg-white rounded-[24px] px-6 py-4 text-slate-900 border border-slate-200 text-base font-medium"
@@ -201,7 +215,6 @@ export default function AddExpenseScreen() {
 
                         <TouchableOpacity className="bg-gradient-to-r from-slate-50 to-white rounded-[24px] px-6 py-4 flex-row justify-between items-center border border-transparent shadow-sm">
                             <View className="flex-row items-center">
-                                {/* Simulated Visa Card Gradient or Icon */}
                                 <View className="w-8 h-5 rounded bg-slate-200 mr-3" />
                                 <Text className="text-slate-900 font-bold text-sm">Business Visa ****4242</Text>
                             </View>
@@ -209,7 +222,6 @@ export default function AddExpenseScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Proof & Details */}
                     <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4 ml-2 mt-4">PROOF & DETAILS</Text>
 
                     <TouchableOpacity
@@ -242,7 +254,6 @@ export default function AddExpenseScreen() {
                         onChangeText={setDescription}
                     />
 
-                    {/* Tax Logic */}
                     <View className="bg-white rounded-[24px] p-4 flex-row items-center justify-between shadow-sm mb-8">
                         <View className="flex-row items-center flex-1">
                             <View className="w-10 h-10 bg-indigo-50 rounded-full items-center justify-center mr-3">
@@ -261,11 +272,9 @@ export default function AddExpenseScreen() {
                             value={isTaxDeductible}
                         />
                     </View>
-
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            {/* Sticky Check Button */}
             <View className="absolute bottom-6 left-6 right-6">
                 <TouchableOpacity
                     onPress={handleSave}
@@ -284,7 +293,6 @@ export default function AddExpenseScreen() {
                     )}
                 </TouchableOpacity>
             </View>
-
         </View>
     );
 }

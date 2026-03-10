@@ -3,10 +3,10 @@ import {
     View,
     Text,
     TouchableOpacity,
-    
     Image,
     Dimensions
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ArrowRight, Check, Calendar, CreditCard, ShieldCheck } from 'lucide-react-native';

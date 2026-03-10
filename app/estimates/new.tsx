@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { showError, showSuccess } from '../../lib/error-handler';
 import { Client, Item } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { ClientPickerModal } from '../../components/ClientPickerModal';
 
 interface NewEstimateItem {
     id: string;
@@ -35,12 +36,8 @@ export default function NewEstimate() {
 
     const [saving, setSaving] = useState(false);
 
-    // Clients State
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-    const [allClients, setAllClients] = useState<Client[]>([]);
-    const [filteredClients, setFilteredClients] = useState<Client[]>([]);
     const [isClientModalVisible, setIsClientModalVisible] = useState(false);
-    const [clientSearch, setClientSearch] = useState('');
 
     // Inventory Items state
     const [isItemModalVisible, setIsItemModalVisible] = useState(false);
@@ -56,24 +53,14 @@ export default function NewEstimate() {
 
     useEffect(() => {
         fetchProfile();
-        loadClients();
         loadInventoryItems();
     }, []);
 
     useFocusEffect(
         useCallback(() => {
-            loadClients();
             loadInventoryItems();
         }, [])
     );
-
-    const loadClients = async () => {
-        const { data } = await supabase.from('clients').select('*').order('name');
-        if (data) {
-            setAllClients(data);
-            setFilteredClients(data);
-        }
-    };
 
     const loadInventoryItems = async () => {
         const { data } = await supabase.from('items').select('*').order('name');
@@ -82,16 +69,6 @@ export default function NewEstimate() {
             setFilteredInventoryItems(data);
         }
     };
-
-    // Filters
-    useEffect(() => {
-        const result = allClients.filter(c =>
-            c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-            c.email?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-            c.phone?.includes(clientSearch)
-        );
-        setFilteredClients(result);
-    }, [clientSearch, allClients]);
 
     useEffect(() => {
         const result = inventoryItems.filter(item =>
@@ -358,52 +335,15 @@ export default function NewEstimate() {
             </View>
 
             {/* Modal Sélection Client */}
-            <Modal visible={isClientModalVisible} animationType="slide" transparent={true}>
-                <View className="flex-1 bg-slate-900/40 justify-end">
-                    <View className="bg-white h-[85%] rounded-t-[40px] overflow-hidden">
-                        <View className="px-6 py-5 border-b border-slate-50 flex-row justify-between items-center bg-white z-10">
-                            <View>
-                                <Text className="text-2xl font-black text-slate-900">Choisir un client</Text>
-                                <Text className="text-slate-400 text-sm">À qui est destiné ce devis ?</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setIsClientModalVisible(false)} className="bg-slate-100 p-2.5 rounded-full">
-                                <X size={20} color="#64748B" />
-                            </TouchableOpacity>
-                        </View>
-                        <View className="p-6 pb-2">
-                            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 h-14">
-                                <Search size={22} color="#94A3B8" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-base text-slate-900 font-medium"
-                                    placeholder="Rechercher par nom, email..."
-                                    placeholderTextColor="#CBD5E1"
-                                    value={clientSearch}
-                                    onChangeText={setClientSearch}
-                                    autoFocus
-                                />
-                            </View>
-                        </View>
-                        <FlatList
-                            data={filteredClients}
-                            keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ padding: 24, paddingTop: 10 }}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity onPress={() => { setSelectedClient(item); setIsClientModalVisible(false); }} className="bg-white border border-slate-100 p-4 rounded-3xl mb-3 flex-row items-center shadow-sm active:bg-slate-50">
-                                    <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center mr-4">
-                                        <Text className="text-blue-600 font-black text-lg">{item.name.charAt(0)}</Text>
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="text-slate-900 font-bold text-lg mb-0.5">{item.name}</Text>
-                                        <Text className="text-slate-400 text-sm">{item.email || item.phone}</Text>
-                                    </View>
-                                    <ChevronDown size={20} color="#CBD5E1" style={{ transform: [{ rotate: '-90deg' }] }} />
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </View>
-            </Modal>
+            <ClientPickerModal
+                visible={isClientModalVisible}
+                onClose={() => setIsClientModalVisible(false)}
+                onSelect={(id, name, client) => {
+                    setSelectedClient(client);
+                    setIsClientModalVisible(false);
+                }}
+                selectedClientId={selectedClient?.id}
+            />
 
             {/* Modal Sélection Article */}
             <Modal visible={isItemModalVisible} animationType="slide" transparent={true}>

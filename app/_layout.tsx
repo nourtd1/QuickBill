@@ -26,10 +26,22 @@ function RootLayoutNav() {
     const segments = useSegments();
     const router = useRouter();
     const navigationState = useRootNavigationState();
+    const { setColorScheme } = useColorScheme();
     const [loaded] = useFonts({
         // Add custom fonts here if needed, or leave empty if using system fonts
         // SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     });
+
+    // Theme persistence
+    useEffect(() => {
+        AsyncStorage.getItem('quickbill_theme').then(savedTheme => {
+            if (savedTheme) {
+                setColorScheme(savedTheme as any);
+            } else {
+                setColorScheme('system'); // default
+            }
+        });
+    }, [setColorScheme]);
 
     // Use a string representation of segments for stable effect dependencies
     const segmentsPath = segments.join('/');
@@ -117,23 +129,7 @@ function RootLayoutNav() {
             <Stack.Screen name="expenses/add" options={{ headerShown: false }} />
             <Stack.Screen name="finance/reconcile" options={{ headerShown: false }} />
 
-            <Stack.Screen name="settings/profile" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/theme" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/business" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/team" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/security" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/payment" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/language" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/tax" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/signature" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/subscription" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/whatsapp" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/help" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/contact" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/about" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/checkout" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/success" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
         </Stack>
     );
 }

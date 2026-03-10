@@ -5,10 +5,10 @@ import {
     TouchableOpacity,
     ScrollView,
     Image,
-    
     Alert,
     Dimensions
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -58,6 +58,7 @@ const PLANS = [
 
 export default function ProAccessScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [selectedPlan, setSelectedPlan] = useState('quarterly');
 
     const handlePurchase = () => {
@@ -75,10 +76,9 @@ export default function ProAccessScreen() {
     };
 
     return (
-        <View className="flex-1 bg-[#F9FAFB]">
+        <View className="flex-1 bg-[#F9FAFB]" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
-            <SafeAreaView className="flex-1">
-                <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 40) }} showsVerticalScrollIndicator={false}>
                     {/* Header */}
                     <View className="items-center relative py-4 mb-2">
                         <TouchableOpacity
@@ -232,7 +232,6 @@ export default function ProAccessScreen() {
                     </View>
 
                 </ScrollView>
-            </SafeAreaView>
         </View>
     );
 }

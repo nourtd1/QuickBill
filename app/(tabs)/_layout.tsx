@@ -67,16 +67,9 @@ export default function TabLayout() {
                 }}
             />
 
-            {/* Hidden Tabs */}
-
+            {/* Hidden Routes - Not in Tab Bar */}
             <Tabs.Screen
                 name="clients/form"
-                options={{
-                    href: null,
-                }}
-            />
-            <Tabs.Screen
-                name="items"
                 options={{
                     href: null,
                 }}

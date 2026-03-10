@@ -1,6 +1,7 @@
 export interface Profile {
     id: string; // uuid
-    business_name: string;
+    full_name?: string | null; // Nom complet de l'utilisateur (personnel)
+    business_name: string; // Nom de l'entreprise
     logo_url?: string | null;
     phone_contact?: string | null;
     address?: string | null;
@@ -35,6 +36,13 @@ export interface Client {
     address?: string | null;
     portal_token?: string | null;
     notes?: string | null;
+    // Nouveaux champs ajoutés
+    registration_number?: string | null;
+    industry?: string | null;
+    contact_person?: string | null;
+    tax_id?: string | null;
+    currency?: string | null;
+    logo_url?: string | null;
     created_at: string;
 }
 

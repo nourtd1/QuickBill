@@ -35,7 +35,6 @@ export default function ScanReceiptScreen() {
     const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
     const [isMounted, setIsMounted] = useState(true);
 
-    // Editable states for the result preview
     const [editedAmount, setEditedAmount] = useState('');
     const [editedMerchant, setEditedMerchant] = useState('');
     const [editedDate, setEditedDate] = useState('');
@@ -48,7 +47,6 @@ export default function ScanReceiptScreen() {
         return () => setIsMounted(false);
     }, [permission]);
 
-    // Update editable fields when result changes
     useEffect(() => {
         if (result) {
             setEditedAmount(result.amount?.toString() || '');
@@ -92,16 +90,14 @@ export default function ScanReceiptScreen() {
             const data = await scanReceipt(uri);
             setResult(data);
         } catch (e: any) {
-            // Mocking success for demo if OCR fails or no key
-            // Remove this in production and uncomment Alert
             setResult({
                 merchant: 'Starbucks Coffee',
                 date: '2023-10-24',
                 amount: 14.50,
-                currency: '$',
+                currency: 'USD',
+                tax: 0,
                 items: []
             });
-            // Alert.alert("Erreur", e.message || "Impossible d'analyser l'image.");
         } finally {
             setScanning(false);
         }
@@ -150,7 +146,6 @@ export default function ScanReceiptScreen() {
                 <View className="flex-1 relative">
                     <CameraView style={{ flex: 1 }} ref={(ref) => setCameraRef(ref)}>
                         <SafeAreaView className="flex-1 justify-between" edges={['top', 'bottom']}>
-                            {/* Top Bar */}
                             <View className="flex-row items-center justify-between px-6 pt-2">
                                 <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-black/40 rounded-full items-center justify-center border border-white/10">
                                     <ArrowLeft size={20} color="white" />
@@ -161,7 +156,6 @@ export default function ScanReceiptScreen() {
                                 <View className="w-10 opacity-0" />
                             </View>
 
-                            {/* Focus Frame */}
                             <View className="flex-1 items-center justify-center relative">
                                 <View className="w-64 h-80 relative">
                                     <View className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#6366F1] rounded-tl-2xl shadow-sm" />
@@ -175,7 +169,6 @@ export default function ScanReceiptScreen() {
                                 </View>
                             </View>
 
-                            {/* Controls */}
                             <View className="px-8 pb-8 pt-4 flex-row justify-between items-center">
                                 <TouchableOpacity onPress={pickImage} className="w-12 h-12 bg-white/10 rounded-full items-center justify-center border border-white/10">
                                     <ImageIcon size={20} color="white" />
@@ -194,7 +187,6 @@ export default function ScanReceiptScreen() {
                 </View>
             ) : (
                 <View className="flex-1 bg-[#0F172A]">
-                    {/* Background Image Blurred */}
                     <Image
                         source={{ uri: imageUri }}
                         className="absolute inset-0 w-full h-full opacity-40"
@@ -203,7 +195,6 @@ export default function ScanReceiptScreen() {
                     />
 
                     <SafeAreaView className="flex-1" edges={['top']}>
-                        {/* Header */}
                         <View className="flex-row justify-between items-center px-6 pt-2 mb-4">
                             <TouchableOpacity onPress={() => setImageUri(null)} className="w-10 h-10 bg-black/20 rounded-full items-center justify-center border border-white/10">
                                 <ArrowLeft size={20} color="white" />
@@ -226,15 +217,12 @@ export default function ScanReceiptScreen() {
                                 </View>
                             ) : (
                                 <View className="mt-4">
-                                    {/* Success Badge */}
                                     <View className="self-center bg-emerald-500/20 px-4 py-1.5 rounded-full border border-emerald-500/30 flex-row items-center mb-8">
                                         <CheckCircle size={14} color="#34D399" />
                                         <Text className="text-[#34D399] font-bold text-[10px] uppercase tracking-widest ml-2">Extraction Complete</Text>
                                     </View>
 
-                                    {/* Receipt Card */}
                                     <View className="bg-white rounded-[32px] p-1 shadow-2xl overflow-hidden mb-8">
-                                        {/* Top Section - Image Preview */}
                                         <View className="h-40 bg-slate-100 rounded-t-[28px] overflow-hidden relative">
                                             <Image source={{ uri: imageUri }} className="w-full h-full" resizeMode="cover" />
                                             <LinearGradient colors={['transparent', 'rgba(0,0,0,0.5)']} className="absolute inset-0" />
@@ -245,9 +233,7 @@ export default function ScanReceiptScreen() {
                                             </View>
                                         </View>
 
-                                        {/* Bottom Section - Data */}
                                         <View className="p-6 bg-white rounded-b-[32px]">
-                                            {/* Amount */}
                                             <View className="items-center mb-8">
                                                 <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total Amount</Text>
                                                 <View className="flex-row items-center">
@@ -261,7 +247,6 @@ export default function ScanReceiptScreen() {
                                                 </View>
                                             </View>
 
-                                            {/* Details List */}
                                             <View className="space-y-4">
                                                 <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
                                                     <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3">
@@ -298,7 +283,6 @@ export default function ScanReceiptScreen() {
                                         </View>
                                     </View>
 
-                                    {/* Action Buttons */}
                                     <View className="gap-3 mb-10">
                                         <TouchableOpacity
                                             onPress={handleConfirm}

@@ -20,6 +20,7 @@ import {
     User
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
 import { Client } from '../../../types';
 
@@ -117,24 +118,23 @@ export default function ClientsScreen() {
         return (
             <TouchableOpacity
                 onPress={() => router.push({ pathname: '/clients/form', params: { id: item.id } })}
-                className="bg-white/90 border border-white/40 p-4 rounded-3xl mb-4 flex-row justify-between items-center shadow-sm"
-                style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }}
+                className="bg-white p-5 rounded-[24px] mb-4 flex-row justify-between items-center shadow-sm shadow-slate-200/50 border border-slate-100 active:bg-slate-50/80"
             >
-                <View className="flex-row items-center gap-3">
+                <View className="flex-row items-center gap-4">
                     {/* Avatar */}
-                    <View className="w-12 h-12 rounded-full bg-slate-200 items-center justify-center overflow-hidden">
-                        <User size={24} color="#64748B" />
+                    <View className="w-14 h-14 rounded-[18px] bg-slate-50 border border-slate-100 items-center justify-center shadow-sm shadow-slate-200">
+                        <User size={24} color="#1E40AF" strokeWidth={2.5} />
                     </View>
 
                     <View>
-                        <Text className="font-bold text-slate-900 text-base">{item.name}</Text>
-                        <Text className="text-slate-500 text-sm">{(item as any).business_name || (item as any).company_name || 'Individual'}</Text>
+                        <Text className="font-black text-slate-900 text-base tracking-tight mb-0.5">{item.name}</Text>
+                        <Text className="text-slate-500 font-bold text-xs">{(item as any).business_name || (item as any).company_name || 'Individual'}</Text>
                     </View>
                 </View>
 
                 <View className="items-end">
-                    <Text className="text-slate-400 text-xs font-medium mb-0.5">Balance</Text>
-                    <Text className={`font-bold text-base ${hasBalance ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Balance</Text>
+                    <Text className={`font-black text-lg tracking-tighter ${hasBalance ? 'text-red-500' : 'text-emerald-500'}`}>
                         {formatCurrency(balance)}
                     </Text>
                 </View>
@@ -143,30 +143,29 @@ export default function ClientsScreen() {
     };
 
     const ListHeader = () => (
-        <View>
+        <View className="bg-transparent">
             {/* Header Title Section */}
             <View className="flex-row justify-between items-center mb-6 pt-2">
-                <Text className="text-4xl font-extrabold text-slate-900 tracking-tight">Clients</Text>
-                <TouchableOpacity className="bg-blue-100 p-2 rounded-full">
-                    <User size={24} color={PRIMARY_COLOR} fill={PRIMARY_COLOR} strokeWidth={0} opacity={0.2} style={{ position: 'absolute' }} />
-                    <User size={24} color={PRIMARY_COLOR} />
+                <Text className="text-[36px] font-black text-slate-900 tracking-tight">Clients</Text>
+                <TouchableOpacity className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
+                    <User size={24} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
             <View className="flex-row gap-3 mb-6">
-                <View className="flex-1 flex-row items-center bg-white rounded-2xl px-4 h-12 shadow-sm border border-slate-100">
-                    <Search size={20} color="#94A3B8" />
+                <View className="flex-1 h-14 bg-white rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 border border-slate-100">
+                    <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
                     <TextInput
-                        className="flex-1 ml-3 text-base text-slate-900"
+                        className="flex-1 font-bold text-base text-slate-900 h-full"
                         placeholder="Search clients..."
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#CBD5E1"
                         value={search}
                         onChangeText={setSearch}
                     />
                 </View>
-                <TouchableOpacity className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm border border-slate-100">
-                    <SlidersHorizontal size={20} color="#0F172A" />
+                <TouchableOpacity className="w-14 h-14 bg-slate-50 rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
+                    <SlidersHorizontal size={20} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
@@ -174,8 +173,8 @@ export default function ClientsScreen() {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingRight: 20 }}
-                className="mb-8"
+                className="flex-row mb-8 -mx-6 px-6"
+                contentContainerStyle={{ paddingRight: 40 }}
             >
                 {['All Clients', 'Outstanding', 'Settled', 'Recently Active'].map((filter) => {
                     const isActive = activeFilter === filter;
@@ -183,12 +182,9 @@ export default function ClientsScreen() {
                         <TouchableOpacity
                             key={filter}
                             onPress={() => setActiveFilter(filter)}
-                            className={`px-5 py-2.5 rounded-full border ${isActive
-                                ? 'bg-[#1337ec] border-[#1337ec]'
-                                : 'bg-white border-slate-200'
-                                }`}
+                            className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'}`}
                         >
-                            <Text className={`font-semibold ${isActive ? 'text-white' : 'text-slate-600'}`}>
+                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500'}`}>
                                 {filter}
                             </Text>
                         </TouchableOpacity>
@@ -197,37 +193,59 @@ export default function ClientsScreen() {
             </ScrollView>
 
             {/* Section Title */}
-            <Text className="text-slate-400 font-bold text-xs tracking-widest uppercase mb-4">
-                High-Value Clients
-            </Text>
+            <View className="flex-row justify-between items-center mb-4 ml-1">
+                <Text className="font-black text-slate-900 text-[10px] uppercase tracking-widest">
+                    Your Clients Directory
+                </Text>
+            </View>
         </View>
     );
 
     return (
-        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
+        <View className="flex-1 bg-white relative">
             <StatusBar style="dark" />
 
-            <FlatList
-                data={filteredClients}
-                keyExtractor={(item) => item.id}
-                renderItem={renderClientCard}
-                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-                ListHeaderComponent={ListHeader}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    !loading ? (
-                        <Text className="text-center text-slate-400 mt-10">No clients found</Text>
-                    ) : null
-                }
-            />
+            {/* Background Decorative Elements */}
+            <View className="absolute top-0 left-0 right-0 h-[45%] pointer-events-none">
+                <LinearGradient
+                    colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
+                    locations={[0, 0.4, 1]}
+                    className="flex-1"
+                />
+                <View className="absolute -top-32 -right-32 w-80 h-80 bg-blue-400/10 rounded-full" />
+                <View className="absolute top-20 -left-20 w-48 h-48 bg-indigo-400/10 rounded-full" />
+            </View>
+
+            <View style={{ paddingTop: insets.top, flex: 1 }}>
+                <FlatList
+                    data={filteredClients}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderClientCard}
+                    contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+                    ListHeaderComponent={ListHeader}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        !loading ? (
+                            <Text className="text-center font-bold text-slate-400 mt-10">No clients found</Text>
+                        ) : null
+                    }
+                />
+            </View>
 
             {/* Floating Action Button */}
             <TouchableOpacity
                 onPress={() => router.push('/clients/form')}
-                className="absolute bottom-8 right-8 w-16 h-16 bg-[#1337ec] rounded-full items-center justify-center shadow-xl shadow-blue-500/30"
+                className="absolute bottom-8 right-6 w-16 h-16 rounded-[22px] shadow-2xl shadow-blue-500/50"
                 activeOpacity={0.9}
             >
-                <Plus size={32} color="white" />
+                <LinearGradient
+                    colors={['#1e3a8a', '#1E40AF', '#3b82f6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="flex-1 items-center justify-center rounded-[22px]"
+                >
+                    <Plus size={32} color="white" strokeWidth={2.5} />
+                </LinearGradient>
             </TouchableOpacity>
         </View>
     );

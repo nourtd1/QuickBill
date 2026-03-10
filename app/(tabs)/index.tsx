@@ -8,6 +8,7 @@ import {
     Dimensions,
     Image,
     Platform,
+    ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -38,48 +39,38 @@ import { formatCurrency } from '../../lib/currencyEngine';
 
 const { width } = Dimensions.get('window');
 
-// --- Glass Card Component ---
-const GlassCard = ({ children, className, style, intensity = 'light' }: { children: React.ReactNode, className?: string, style?: any, intensity?: 'light' | 'heavy' }) => {
-    // Custom glass effect based on design
-    // Heavy: Main Hero card (more opaque/white)
-    // Light: Stat cards (whiter)
+// --- Premium Card Component ---
+const PremiumCard = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: any }) => {
     return (
         <View
-            className={`bg-white rounded-[32px] overflow-hidden ${className || ''}`}
-            style={[
-                {
-                    shadowColor: '#2563EB',
-                    shadowOffset: { width: 0, height: 10 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 20,
-                    elevation: 5,
-                },
-                style
-            ]}
+            className={`rounded-[32px] overflow-hidden shadow-2xl shadow-blue-900/40 ${className || ''}`}
+            style={style}
         >
-            {/* Optional gradient overlay if needed, but design looks like clean white with subtle blue tint or shadow */}
-            {intensity === 'heavy' && (
-                <LinearGradient
-                    colors={['#ffffff', '#f0f4ff']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ position: 'absolute', width: '100%', height: '100%' }}
-                />
-            )}
-            {children}
+            <LinearGradient
+                colors={['#1e3a8a', '#1E40AF', '#3b82f6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                className="absolute inset-0"
+            />
+            {/* Decorative inner circles for PremiumCard */}
+            <View className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full" />
+            <View className="absolute bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full" />
+
+            <View className="p-6 relative">
+                {children}
+            </View>
         </View>
     );
 };
 
-// --- Activity Item Component ---
 const ActivityItem = ({ icon: Icon, iconBg, iconColor, title, date, amount, status, statusColor, statusBg, isPositive = true }: any) => (
-    <TouchableOpacity className="flex-row items-center p-4 bg-white rounded-[24px] mb-3 shadow-sm border border-slate-50 active:bg-slate-50">
-        <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${iconBg}`}>
+    <TouchableOpacity className="flex-row items-center p-4 bg-white rounded-[24px] mb-3 shadow-sm shadow-slate-200/50 border border-slate-50 active:bg-slate-50">
+        <View className={`w-12 h-12 rounded-xl items-center justify-center mr-4 ${iconBg}`}>
             <Icon size={20} color={iconColor} />
         </View>
         <View className="flex-1">
-            <Text className="text-slate-900 font-bold text-base">{title}</Text>
-            <Text className="text-slate-400 text-xs font-medium mt-0.5">{date}</Text>
+            <Text className="text-slate-900 font-bold text-sm tracking-tight">{title}</Text>
+            <Text className="text-slate-400 text-xs font-bold mt-0.5">{date}</Text>
         </View>
         <View className="items-end">
             <Text className={`font-bold text-base ${isPositive ? 'text-slate-900' : 'text-slate-900'}`}>
@@ -192,8 +183,19 @@ export default function Dashboard() {
     };
 
     return (
-        <View className="flex-1 bg-[#F9FAFC] relative">
-            {/* ... (Header and Background remain same) ... */}
+        <View className="flex-1 bg-white relative">
+            <StatusBar style="dark" />
+
+            {/* Background Decorative Elements */}
+            <View className="absolute top-0 left-0 right-0 h-[55%]">
+                <LinearGradient
+                    colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
+                    locations={[0, 0.6, 1]}
+                    className="flex-1"
+                />
+                <View className="absolute -top-32 -right-32 w-80 h-80 bg-blue-400/10 rounded-full" />
+                <View className="absolute top-40 -left-20 w-48 h-48 bg-indigo-400/10 rounded-full" />
+            </View>
 
             <View className="flex-1" style={{ paddingTop: insets.top }}>
                 <ScrollView
@@ -203,28 +205,31 @@ export default function Dashboard() {
                     contentContainerStyle={{ paddingBottom: 100 }}
                 >
                     {/* Header - Pro Design */}
-                    <View className="flex-row justify-between items-center mb-8 mt-4 z-20">
+                    <View className="flex-row justify-between items-center mb-6 mt-4 z-20">
                         <View className="flex-row items-center">
                             <View className="relative mr-4">
-                                <View className="w-14 h-14 rounded-full border-[3px] border-white shadow-lg shadow-blue-200/50 overflow-hidden">
+                                <View className="w-14 h-14 rounded-[18px] border-[3px] border-white shadow-xl shadow-blue-300/40 overflow-hidden">
                                     <Image
                                         source={{ uri: profile?.logo_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' }}
                                         className="w-full h-full"
                                     />
                                 </View>
                                 {/* Online Status Dot */}
-                                <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white" />
+                                <View className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white" />
                             </View>
 
                             <View>
-                                <Text className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-0.5">
+                                <Text className="text-blue-900/60 font-black text-[10px] uppercase tracking-widest mb-0.5">
                                     {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'},
                                 </Text>
                                 <View className="flex-row items-center">
                                     <Text className="text-slate-900 text-2xl font-black tracking-tight mr-2">{userName}</Text>
-                                    <View className="bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200">
-                                        <Text className="text-[10px] font-black text-blue-700 uppercase">PRO</Text>
-                                    </View>
+                                    <LinearGradient
+                                        colors={['#1E40AF', '#1e3a8a']}
+                                        className="px-2 py-0.5 rounded-full"
+                                    >
+                                        <Text className="text-[10px] font-black text-white uppercase tracking-widest">PRO</Text>
+                                    </LinearGradient>
                                 </View>
                             </View>
                         </View>
@@ -305,70 +310,69 @@ export default function Dashboard() {
                     )}
 
                     {/* Hero Card */}
-                    <GlassCard className="mb-8" intensity="heavy">
-                        <View className="p-6 relative min-h-[180px] justify-between">
+                    <PremiumCard className="mb-6">
+                        <View className="min-h-[140px] justify-between">
                             <View className="flex-row justify-between items-start">
-                                <Text className="text-slate-500 text-base font-medium">Total Net Profit</Text>
-                                <TrendingUp size={24} color="#2563EB" />
+                                <Text className="text-blue-100 font-black text-[10px] uppercase tracking-widest">Total Net Profit</Text>
+                                <View className="w-8 h-8 rounded-full bg-white/20 items-center justify-center">
+                                    <TrendingUp size={16} color="white" />
+                                </View>
                             </View>
 
-                            <Text className="text-slate-900 text-[40px] font-extrabold tracking-tight my-2">
+                            <Text className="text-white text-[42px] font-black tracking-tighter my-2">
                                 {formatCurrency(netProfit, profile?.currency || 'USD')}
                             </Text>
 
-                            <View className="flex-row gap-3 mt-2">
-                                <View className="bg-white px-3 py-1.5 rounded-full flex-row items-center gap-1.5 border border-slate-100 shadow-sm">
-                                    <View className="w-2 h-2 rounded-full bg-emerald-500" />
-                                    <Text className="text-slate-700 text-xs font-bold">Income +{growth.toFixed(0)}%</Text>
-                                </View>
-                                {/* Active Status is okay as mock or need logic? Let's keep it static "Active" for now as it's a status */}
-                                <View className="bg-white px-3 py-1.5 rounded-full flex-row items-center gap-1.5 border border-slate-100 shadow-sm">
-                                    <View className="w-2 h-2 rounded-full bg-[#2563EB]" />
-                                    <Text className="text-slate-700 text-xs font-bold">Active</Text>
+                            <View className="flex-row gap-3 mt-1">
+                                <View className="bg-white/20 px-3 py-1.5 rounded-full flex-row items-center gap-1.5">
+                                    <View className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-500/50" />
+                                    <Text className="text-white text-[10px] font-black tracking-widest uppercase">+{growth.toFixed(0)}% Income</Text>
                                 </View>
                             </View>
                         </View>
-                    </GlassCard>
+                    </PremiumCard>
 
                     {/* Stats Row */}
                     <View className="flex-row justify-between mb-8">
                         {/* Upcoming Invoices */}
-                        <View className="bg-white rounded-[24px] p-5 w-[48%] shadow-sm border border-slate-50">
-                            <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center mb-3">
-                                <Clock size={20} color="#F97316" />
+                        <View className="bg-white rounded-[24px] p-5 w-[48%] shadow-sm shadow-slate-200/50 border border-slate-100">
+                            <View className="w-10 h-10 rounded-xl bg-orange-100 items-center justify-center mb-4">
+                                <Clock size={20} color="#F97316" strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-500 text-xs font-medium mb-1">Upcoming Invoices</Text>
-                            <Text className="text-slate-900 text-lg font-bold mb-0.5" numberOfLines={1}>
+                            <Text className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1.5">Upcoming</Text>
+                            <Text className="text-slate-900 text-xl font-black tracking-tight" numberOfLines={1}>
                                 {upcomingInvoicesAmount}
                             </Text>
-                            <Text className="text-slate-400 text-xs font-medium">pending</Text>
                         </View>
 
                         {/* Monthly Growth */}
-                        <View className="bg-white rounded-[24px] p-5 w-[48%] shadow-sm border border-slate-50">
-                            <View className={`w-10 h-10 rounded-full items-center justify-center mb-3 ${growth >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                                <TrendingUp size={20} color={growthColor} />
+                        <View className="bg-white rounded-[24px] p-5 w-[48%] shadow-sm shadow-slate-200/50 border border-slate-100">
+                            <View className={`w-10 h-10 rounded-xl items-center justify-center mb-4 ${growth >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                                <TrendingUp size={20} color={growthColor} strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-500 text-xs font-medium mb-1">Monthly Growth</Text>
+                            <Text className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1.5">Growth</Text>
                             <View className="flex-row items-center">
-                                <Text className="text-slate-900 text-lg font-bold mr-1">{monthlyGrowth}</Text>
-                                <ArrowUpRight size={16} color={growthColor} style={{ transform: [{ rotate: growth >= 0 ? '0deg' : '90deg' }] }} />
+                                <Text className="text-slate-900 text-xl font-black tracking-tight mr-1">{monthlyGrowth}</Text>
+                                <ArrowUpRight size={18} color={growthColor} strokeWidth={3} style={{ transform: [{ rotate: growth >= 0 ? '0deg' : '90deg' }] }} />
                             </View>
                         </View>
                     </View>
 
                     {/* Quick Actions */}
-                    <Text className="text-slate-900 font-bold text-lg mb-5">Quick Actions</Text>
-                    <View className="flex-row justify-between mb-8 px-2">
+                    <Text className="text-slate-900 font-black text-xs uppercase tracking-widest mb-4 ml-1">Quick Actions</Text>
+                    <View className="flex-row justify-between mb-8 px-1">
                         {/* Invoice */}
                         <TouchableOpacity
                             onPress={() => router.push('/invoice/new')}
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-[#2563EB] rounded-full items-center justify-center shadow-lg shadow-blue-200 mb-2">
-                                <Plus size={28} color="white" />
-                            </View>
-                            <Text className="text-slate-600 font-medium text-xs">Invoice</Text>
+                            <LinearGradient
+                                colors={['#1E40AF', '#1e3a8a']}
+                                className="w-16 h-16 rounded-[20px] items-center justify-center shadow-lg shadow-blue-500/40 mb-3"
+                            >
+                                <Plus size={28} color="white" strokeWidth={2.5} />
+                            </LinearGradient>
+                            <Text className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Invoice</Text>
                         </TouchableOpacity>
 
                         {/* Scan */}
@@ -376,10 +380,10 @@ export default function Dashboard() {
                             onPress={() => router.push('/expenses/scan')}
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-sm border border-slate-50 mb-2">
-                                <ScanLine size={24} color="#2563EB" />
+                            <View className="w-16 h-16 bg-white rounded-[20px] items-center justify-center shadow-sm shadow-slate-200 border border-slate-100 mb-3">
+                                <ScanLine size={24} color="#1E40AF" strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-600 font-medium text-xs">Scan</Text>
+                            <Text className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Scan</Text>
                         </TouchableOpacity>
 
                         {/* Clients */}
@@ -387,10 +391,10 @@ export default function Dashboard() {
                             onPress={() => router.push('/(tabs)/clients')}
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-sm border border-slate-50 mb-2">
-                                <Users size={24} color="#2563EB" />
+                            <View className="w-16 h-16 bg-white rounded-[20px] items-center justify-center shadow-sm shadow-slate-200 border border-slate-100 mb-3">
+                                <Users size={24} color="#1E40AF" strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-600 font-medium text-xs">Clients</Text>
+                            <Text className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Clients</Text>
                         </TouchableOpacity>
 
                         {/* Verify */}
@@ -398,18 +402,18 @@ export default function Dashboard() {
                             onPress={() => router.push('/finance/reconcile')}
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-sm border border-slate-50 mb-2">
-                                <ShieldCheck size={24} color="#2563EB" />
+                            <View className="w-16 h-16 bg-white rounded-[20px] items-center justify-center shadow-sm shadow-slate-200 border border-slate-100 mb-3">
+                                <ShieldCheck size={24} color="#1E40AF" strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-600 font-medium text-xs">Verify</Text>
+                            <Text className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Verify</Text>
                         </TouchableOpacity>
                     </View>
 
                     {/* Recent Activity */}
-                    <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-slate-900 font-bold text-lg">Recent Activity</Text>
+                    <View className="flex-row justify-between items-center mb-4 ml-1">
+                        <Text className="text-slate-900 font-black text-xs uppercase tracking-widest">Recent Activity</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/invoices')}>
-                            <Text className="text-[#2563EB] font-bold text-sm">See All</Text>
+                            <Text className="text-blue-600 font-black text-[10px] uppercase tracking-widest">See All</Text>
                         </TouchableOpacity>
                     </View>
 

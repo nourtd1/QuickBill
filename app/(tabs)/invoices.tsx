@@ -150,41 +150,41 @@ export default function InvoicesScreen() {
     };
 
     const renderHeader = () => (
-        <View className="px-5 pt-4 pb-2 bg-[#F9FAFC]">
+        <View className="px-6 pt-4 pb-2 z-10 bg-transparent">
             {/* Top Bar */}
-            <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-[32px] font-bold text-slate-900">Invoices</Text>
+            <View className="flex-row justify-between items-center mb-6 mt-4">
+                <Text className="text-[36px] font-black text-slate-900 tracking-tight">Invoices</Text>
                 <View className="flex-row gap-3">
                     <TouchableOpacity
                         onPress={() => router.push('/invoice/new')}
-                        className="bg-white w-12 h-12 rounded-full items-center justify-center shadow-sm border border-slate-100"
+                        className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100"
                     >
-                        <Plus size={24} color="#1e293b" />
+                        <Plus size={24} color="#1E40AF" strokeWidth={2.5} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => router.push('/activity')}
-                        className="bg-white w-12 h-12 rounded-full items-center justify-center shadow-sm border border-slate-100 relative"
+                        className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100 relative"
                     >
-                        <Bell size={22} color="#1e293b" />
-                        <View className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
+                        <Bell size={22} color="#0F172A" strokeWidth={2} />
+                        <View className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
                     </TouchableOpacity>
                 </View>
             </View>
 
             {/* Search & Filter Bar */}
             <View className="flex-row gap-3 mb-6">
-                <View className="flex-1 h-12 bg-white rounded-full flex-row items-center px-4 shadow-[0_2px_15px_-5px_rgba(0,0,0,0.05)] border border-slate-100">
-                    <Search size={20} color="#6366F1" className="mr-2" />
+                <View className="flex-1 h-14 bg-white rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 border border-slate-100">
+                    <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
                     <TextInput
-                        className="flex-1 font-medium text-base text-slate-800 h-full"
-                        placeholder="Search client or invoice ID"
-                        placeholderTextColor="#94a3b8"
+                        className="flex-1 font-bold text-base text-slate-900 h-full"
+                        placeholder="Search invoices..."
+                        placeholderTextColor="#CBD5E1"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                 </View>
-                <TouchableOpacity className="w-12 h-12 bg-[#2563EB] rounded-full items-center justify-center shadow-lg shadow-blue-500/30">
-                    <SlidersHorizontal size={20} color="white" />
+                <TouchableOpacity className="w-14 h-14 bg-slate-50 rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
+                    <SlidersHorizontal size={20} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
@@ -192,8 +192,8 @@ export default function InvoicesScreen() {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                className="flex-row mb-2"
-                contentContainerStyle={{ paddingRight: 20 }}
+                className="flex-row mb-2 -mx-6 px-6"
+                contentContainerStyle={{ paddingRight: 40 }}
             >
                 {['all', 'paid', 'pending', 'overdue'].map((filter) => {
                     const isActive = activeFilter === filter || (filter === 'pending' && activeFilter === 'pending_approval');
@@ -201,9 +201,9 @@ export default function InvoicesScreen() {
                         <TouchableOpacity
                             key={filter}
                             onPress={() => setActiveFilter(filter === 'pending' ? 'pending_approval' : filter as InvoiceStatus)}
-                            className={`mr-3 py-2 px-6 rounded-full border transition-all ${isActive ? 'bg-[#2563EB] border-[#2563EB]' : 'bg-white border-transparent'}`}
+                            className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'}`}
                         >
-                            <Text className={`font-bold capitalize text-sm ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500'}`}>
                                 {filter}
                             </Text>
                         </TouchableOpacity>
@@ -249,38 +249,47 @@ export default function InvoicesScreen() {
 
     // EXACT Match for the purple gradient total card
     const renderTotalCard = () => (
-        <View className="mx-5 mb-8 mt-2">
-            <LinearGradient
-                colors={['#F0F3FF', '#F5F7FF']}
-                className="rounded-[32px] p-6 border border-white max-w-full relative overflow-hidden shadow-sm"
-            >
-                {/* Purple blurry background effect */}
-                <View className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-100 rounded-full blur-[50px]" />
+        <View className="mx-6 mb-8 mt-2">
+            <View className="rounded-[32px] overflow-hidden shadow-2xl shadow-indigo-900/30 relative">
+                <LinearGradient
+                    colors={['#1e3a8a', '#1E40AF', '#3b82f6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="p-6 h-full w-full absolute inset-0"
+                />
 
-                <View className="flex-row justify-between items-start mb-2">
-                    <Text className="text-xs font-bold text-[#6366F1] uppercase tracking-widest mb-2">TOTAL OUTSTANDING</Text>
-                    <View className="w-10 h-10 bg-indigo-100 rounded-xl items-center justify-center">
-                        <Wallet size={20} color="#4F46E5" />
+                {/* Decorative Elements */}
+                <View className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full" />
+                <View className="absolute bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full" />
+
+                <View className="p-6 relative">
+                    <View className="flex-row justify-between items-start mb-4">
+                        <Text className="text-[10px] font-black text-blue-100 uppercase tracking-widest mt-1">TOTAL OUTSTANDING</Text>
+                        <View className="w-10 h-10 bg-white/20 rounded-[14px] items-center justify-center">
+                            <Wallet size={20} color="white" strokeWidth={2.5} />
+                        </View>
                     </View>
+
+                    <Text className="text-[40px] font-black text-white tracking-tighter mb-1">
+                        {formatCurrency(stats.totalOutstanding, profile?.currency || 'USD')}
+                    </Text>
+
+                    <View className="flex-row items-center mb-8">
+                        <TrendingUp size={14} color="#FCA5A5" className="mr-1.5" strokeWidth={3} />
+                        <Text className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                            Unpaid Invoices: <Text className="text-white">{invoices.filter(i => i.status === 'overdue' || i.status === 'sent').length}</Text>
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        className="w-full bg-white h-14 rounded-[20px] flex-row items-center justify-center active:scale-[0.98] shadow-sm"
+                        onPress={handleSendReminders}
+                    >
+                        <Send size={18} color="#1E40AF" className="mr-2" strokeWidth={2.5} />
+                        <Text className="text-[#1E40AF] font-black text-sm uppercase tracking-widest">Send Reminders</Text>
+                    </TouchableOpacity>
                 </View>
-
-                <Text className="text-[40px] font-black text-slate-900 tracking-tight leading-[48px] mb-2">
-                    {formatCurrency(stats.totalOutstanding, profile?.currency || 'USD')}
-                </Text>
-
-                <View className="flex-row items-center mb-6">
-                    <TrendingUp size={14} color="#EF4444" className="mr-1.5" />
-                    <Text className="text-slate-500 text-xs font-bold">Unpaid Invoices: {invoices.filter(i => i.status === 'overdue' || i.status === 'sent').length}</Text>
-                </View>
-
-                <TouchableOpacity
-                    className="w-full bg-[#2563EB] h-14 rounded-[20px] flex-row items-center justify-center shadow-xl shadow-blue-500/20 active:scale-[0.98]"
-                    onPress={handleSendReminders}
-                >
-                    <Send size={18} color="white" fill="white" className="mr-2" />
-                    <Text className="text-white font-bold text-base">Send Reminders</Text>
-                </TouchableOpacity>
-            </LinearGradient>
+            </View>
         </View>
     );
 
@@ -310,23 +319,23 @@ export default function InvoicesScreen() {
         return (
             <TouchableOpacity
                 onPress={() => router.push(`/invoice/${item.id}`)}
-                className="mx-5 mb-4 bg-white p-5 rounded-[24px] shadow-[0_2px_15px_-8px_rgba(0,0,0,0.06)] border border-slate-50 flex-row items-center active:bg-slate-50/80"
+                className="mx-6 mb-4 bg-white p-5 rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 flex-row items-center active:bg-slate-50/80"
             >
-                <View className="mr-4">
+                <View className="mr-4 shadow-sm shadow-slate-200">
                     <ClientAvatar name={customerName} size={48} />
                 </View>
 
                 <View className="flex-1 mr-2">
-                    <Text className="font-bold text-slate-900 text-base mb-1" numberOfLines={1}>{customerName}</Text>
+                    <Text className="font-black text-slate-900 text-base mb-1 tracking-tight" numberOfLines={1}>{customerName}</Text>
                     <View className="flex-row items-center">
-                        <Text className="text-xs text-slate-400 font-bold mr-1">#{item.invoice_number}</Text>
-                        <Text className="text-xs text-slate-300">•</Text>
-                        <Text className="text-xs text-slate-400 font-medium ml-1">{date}</Text>
+                        <Text className="text-xs text-slate-500 font-black">#{item.invoice_number}</Text>
+                        <Text className="text-xs text-slate-300 mx-1.5">•</Text>
+                        <Text className="text-xs text-slate-400 font-bold">{date}</Text>
                     </View>
                 </View>
 
                 <View className="items-end">
-                    <Text className="font-black text-slate-900 text-lg mb-2">
+                    <Text className="font-black text-slate-900 text-lg mb-2 tracking-tighter">
                         {formatCurrency(item.total_amount, item.currency || profile?.currency || 'USD')}
                     </Text>
                     <StatusBadge status={item.status} />
@@ -336,39 +345,53 @@ export default function InvoicesScreen() {
     };
 
     return (
-        <View className="flex-1 bg-[#F9FAFC]" style={{ paddingTop: insets.top }}>
+        <View className="flex-1 bg-white relative">
             <StatusBar style="dark" />
-            <FlatList
-                data={filteredInvoices}
-                keyExtractor={item => item.id}
-                renderItem={renderInvoiceItem}
-                ListHeaderComponent={
-                    <>
-                        <View>
-                            {renderHeader()}
-                            {renderTotalCard()}
-                            <View className="flex-row justify-between items-center px-6 mb-4">
-                                <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recent Invoices</Text>
-                                <TouchableOpacity>
-                                    <Text className="text-[#2563EB] font-bold text-xs">View All</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </>
-                }
-                ListFooterComponent={<View className="h-24" />}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />
-                }
-                ListEmptyComponent={!loading ? renderEmptyState() : null}
-            />
 
-            {loading && invoices.length === 0 && (
-                <View className="absolute inset-0 items-center justify-center bg-white/80 backdrop-blur-sm z-50">
-                    <ActivityIndicator size="large" color="#2563EB" />
-                </View>
-            )}
+            {/* Background Decorative Elements */}
+            <View className="absolute top-0 left-0 right-0 h-[45%] pointer-events-none">
+                <LinearGradient
+                    colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
+                    locations={[0, 0.4, 1]}
+                    className="flex-1"
+                />
+                <View className="absolute -top-32 -right-32 w-96 h-96 bg-blue-400/10 rounded-full" />
+                <View className="absolute top-20 -left-20 w-64 h-64 bg-indigo-400/10 rounded-full" />
+            </View>
+
+            <View style={{ paddingTop: insets.top, flex: 1 }}>
+                <FlatList
+                    data={filteredInvoices}
+                    keyExtractor={item => item.id}
+                    renderItem={renderInvoiceItem}
+                    ListHeaderComponent={
+                        <>
+                            <View>
+                                {renderHeader()}
+                                {renderTotalCard()}
+                                <View className="flex-row justify-between items-center px-7 mb-4">
+                                    <Text className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Recent Invoices</Text>
+                                    <TouchableOpacity>
+                                        <Text className="text-[#1E40AF] font-black text-[10px] uppercase tracking-widest">View All</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </>
+                    }
+                    ListFooterComponent={<View className="h-24" />}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />
+                    }
+                    ListEmptyComponent={!loading ? renderEmptyState() : null}
+                />
+
+                {loading && invoices.length === 0 && (
+                    <View className="absolute inset-0 items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+                        <ActivityIndicator size="large" color="#2563EB" />
+                    </View>
+                )}
+            </View>
         </View>
     );
 }

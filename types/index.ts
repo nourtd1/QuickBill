@@ -18,6 +18,10 @@ export interface Profile {
     bank_name?: string | null;
     bank_iban?: string | null;
     bank_swift?: string | null;
+    default_tax_rate?: number;
+    tax_inclusive?: boolean;
+    stripe_account_id?: string | null;
+    stripe_connected?: boolean;
 }
 
 export interface Customer {

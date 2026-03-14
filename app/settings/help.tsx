@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ImageBackground } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ImageBackground, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -20,10 +20,11 @@ import { StatusBar } from 'expo-status-bar';
 export default function HelpSupportScreen() {
     const router = useRouter();
 
-    const TopicRow = ({ icon: Icon, bgClass, iconColor, title, subtitle, isLast }: any) => (
+    const TopicRow = ({ icon: Icon, bgClass, iconColor, title, subtitle, isLast, onPress }: any) => (
         <TouchableOpacity
             className={`flex-row items-center p-4 bg-white ${!isLast ? 'border-b border-slate-100' : ''}`}
             activeOpacity={0.7}
+            onPress={onPress}
         >
             <View className={`w-10 h-10 rounded-full items-center justify-center mr-4 ${bgClass}`}>
                 <Icon size={20} color={iconColor} />
@@ -36,10 +37,11 @@ export default function HelpSupportScreen() {
         </TouchableOpacity>
     );
 
-    const OtherOptionRow = ({ icon: Icon, title, isLast }: any) => (
+    const OtherOptionRow = ({ icon: Icon, title, isLast, onPress }: any) => (
         <TouchableOpacity
             className={`flex-row items-center p-4 bg-white ${!isLast ? 'border-b border-slate-100' : ''}`}
             activeOpacity={0.7}
+            onPress={onPress}
         >
             <View className="w-10 h-10 rounded-full bg-slate-100 items-center justify-center mr-4">
                 <Icon size={20} color="#334155" />
@@ -49,8 +51,12 @@ export default function HelpSupportScreen() {
         </TouchableOpacity>
     );
 
-    const VideoCard = ({ title, duration, imageUri }: any) => (
-        <TouchableOpacity className="w-64 h-36 rounded-2xl overflow-hidden mr-4 relative shadow-sm" activeOpacity={0.9}>
+    const VideoCard = ({ title, duration, imageUri, onPress }: any) => (
+        <TouchableOpacity 
+            className="w-64 h-36 rounded-2xl overflow-hidden mr-4 relative shadow-sm" 
+            activeOpacity={0.9}
+            onPress={onPress}
+        >
             <ImageBackground
                 source={{ uri: imageUri }}
                 className="w-full h-full justify-center items-center"
@@ -105,7 +111,10 @@ export default function HelpSupportScreen() {
                                 <Text className="text-slate-900 font-extrabold text-xl mb-2">Need help right now?</Text>
                                 <Text className="text-slate-500 text-sm leading-5">Our support team is available 24/7</Text>
                             </View>
-                            <TouchableOpacity className="bg-blue-600 px-5 py-3 rounded-full flex-row items-center shadow-lg shadow-blue-200">
+                            <TouchableOpacity 
+                                className="bg-blue-600 px-5 py-3 rounded-full flex-row items-center shadow-lg shadow-blue-200"
+                                onPress={() => Linking.openURL('mailto:support@quickbill.com')}
+                            >
                                 <MessageCircle size={18} color="white" style={{ marginRight: 8 }} />
                                 <Text className="text-white font-bold text-sm">Contact</Text>
                             </TouchableOpacity>
@@ -125,16 +134,19 @@ export default function HelpSupportScreen() {
                                 title="Getting Started with Invoices"
                                 duration="2:45 min"
                                 imageUri="https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=600&auto=format&fit=crop"
+                                onPress={() => Alert.alert("Video Tutorial", "Playing tutorial: Getting Started with Invoices")}
                             />
                             <VideoCard
                                 title="Setting Up Payments"
                                 duration="3:12 min"
                                 imageUri="https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=600&auto=format&fit=crop"
+                                onPress={() => Alert.alert("Video Tutorial", "Playing tutorial: Setting Up Payments")}
                             />
                             <VideoCard
                                 title="Advanced Reporting"
                                 duration="4:05 min"
                                 imageUri="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop"
+                                onPress={() => Alert.alert("Video Tutorial", "Playing tutorial: Advanced Reporting")}
                             />
                         </ScrollView>
                     </View>
@@ -151,6 +163,7 @@ export default function HelpSupportScreen() {
                                 icon={CreditCard}
                                 bgClass="bg-blue-50"
                                 iconColor="#2563EB"
+                                onPress={() => Alert.alert("Article", "Guide for Billing & Subscriptions will appear here.")}
                             />
                             <TopicRow
                                 title="App Features"
@@ -158,6 +171,7 @@ export default function HelpSupportScreen() {
                                 icon={LayoutGrid}
                                 bgClass="bg-purple-50"
                                 iconColor="#9333EA"
+                                onPress={() => Alert.alert("Article", "Guide for App Features will appear here.")}
                             />
                             <TopicRow
                                 title="Troubleshooting"
@@ -166,6 +180,7 @@ export default function HelpSupportScreen() {
                                 bgClass="bg-orange-50"
                                 iconColor="#F97316"
                                 isLast
+                                onPress={() => Alert.alert("Article", "Troubleshooting steps will appear here.")}
                             />
                         </View>
                     </View>
@@ -179,11 +194,13 @@ export default function HelpSupportScreen() {
                             <OtherOptionRow
                                 title="Report a Bug"
                                 icon={Bug}
+                                onPress={() => Linking.openURL('mailto:support@quickbill.com?subject=Bug Report')}
                             />
                             <OtherOptionRow
                                 title="Send Feedback"
                                 icon={ThumbsUp}
                                 isLast
+                                onPress={() => Linking.openURL('mailto:support@quickbill.com?subject=App Feedback')}
                             />
                         </View>
                     </View>

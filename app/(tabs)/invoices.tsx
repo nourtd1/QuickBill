@@ -35,8 +35,11 @@ import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/currencyEngine';
 import { supabase } from '../../lib/supabase';
 import { useTeamRole } from '../../hooks/useTeamRole';
+import { useLanguage } from '../../context/LanguageContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+import { InvoiceListSkeleton } from '../../components/InvoiceListSkeleton';
 
 type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft' | 'pending_approval' | 'rejected' | 'all';
 
@@ -63,6 +66,7 @@ export default function InvoicesScreen() {
     const router = useRouter();
     const { getInvoices, isOffline } = useOffline();
     const { profile } = useAuth();
+    const { t, language } = useLanguage();
     const { role, isOwner, isAdmin } = useTeamRole();
     const insets = useSafeAreaInsets();
     const [invoices, setInvoices] = useState<any[]>([]);
@@ -129,11 +133,11 @@ export default function InvoicesScreen() {
     // Custom Status Badge Style matching design
     const getStatusStyle = (status: string) => {
         switch (status?.toUpperCase()) {
-            case 'PAID': return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'PAID' };
-            case 'SENT': return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'SENT' };
-            case 'OVERDUE': return { bg: 'bg-red-100', text: 'text-red-600', label: 'OVERDUE' };
-            case 'PENDING': return { bg: 'bg-orange-100', text: 'text-orange-600', label: 'PENDING' }; // Matches design "Pending" yellow/orange
-            case 'DRAFT': return { bg: 'bg-slate-100', text: 'text-slate-600', label: 'DRAFT' };
+            case 'PAID': return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: t('invoices.status.paid') };
+            case 'SENT': return { bg: 'bg-blue-100', text: 'text-blue-700', label: t('invoices.status.sent') };
+            case 'OVERDUE': return { bg: 'bg-red-100', text: 'text-red-600', label: t('invoices.status.overdue') };
+            case 'PENDING': return { bg: 'bg-orange-100', text: 'text-orange-600', label: t('invoices.status.pending') }; 
+            case 'DRAFT': return { bg: 'bg-slate-100', text: 'text-slate-600', label: t('invoices.status.draft') };
             default: return { bg: 'bg-slate-100', text: 'text-slate-600', label: status };
         }
     };
@@ -153,7 +157,7 @@ export default function InvoicesScreen() {
         <View className="px-6 pt-4 pb-2 z-10 bg-transparent">
             {/* Top Bar */}
             <View className="flex-row justify-between items-center mb-6 mt-4">
-                <Text className="text-[36px] font-black text-slate-900 tracking-tight">Invoices</Text>
+                <Text className="text-[36px] font-black text-slate-900 tracking-tight">{t('invoices.title')}</Text>
                 <View className="flex-row gap-3">
                     <TouchableOpacity
                         onPress={() => router.push('/invoice/new')}
@@ -177,7 +181,7 @@ export default function InvoicesScreen() {
                     <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
                     <TextInput
                         className="flex-1 font-bold text-base text-slate-900 h-full"
-                        placeholder="Search invoices..."
+                        placeholder={t('invoices.search_placeholder')}
                         placeholderTextColor="#CBD5E1"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -204,7 +208,7 @@ export default function InvoicesScreen() {
                             className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'}`}
                         >
                             <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500'}`}>
-                                {filter}
+                                {t(`invoices.filters.${filter}`)}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -221,7 +225,7 @@ export default function InvoicesScreen() {
         );
 
         if (unpaidInvoices.length === 0) {
-            Alert.alert("No Reminders Needed", "There are no unpaid invoices with client emails found.");
+            Alert.alert(t('invoices.no_reminders_title', { defaultValue: 'No Reminders Needed' }), t('invoices.no_reminders_desc', { defaultValue: 'There are no unpaid invoices with client emails found.' }));
             return;
         }
 
@@ -229,7 +233,7 @@ export default function InvoicesScreen() {
         const emails = [...new Set(unpaidInvoices.map(inv => inv.customer.email))];
 
         if (emails.length === 0) {
-            Alert.alert("Missing Emails", "Unpaid invoices found, but no client emails are attached.");
+            Alert.alert(t('invoices.missing_emails_title', { defaultValue: 'Missing Emails' }), t('invoices.missing_emails_desc', { defaultValue: 'Unpaid invoices found, but no client emails are attached.' }));
             return;
         }
 
@@ -243,7 +247,7 @@ export default function InvoicesScreen() {
         if (canOpen) {
             await Linking.openURL(url);
         } else {
-            Alert.alert("Error", "Could not open email client.");
+            Alert.alert(t('common.error'), t('invoices.email_client_error', { defaultValue: 'Could not open email client.' }));
         }
     };
 
@@ -264,7 +268,7 @@ export default function InvoicesScreen() {
 
                 <View className="p-6 relative">
                     <View className="flex-row justify-between items-start mb-4">
-                        <Text className="text-[10px] font-black text-blue-100 uppercase tracking-widest mt-1">TOTAL OUTSTANDING</Text>
+                        <Text className="text-[10px] font-black text-blue-100 uppercase tracking-widest mt-1">{t('invoices.total_outstanding')}</Text>
                         <View className="w-10 h-10 bg-white/20 rounded-[14px] items-center justify-center">
                             <Wallet size={20} color="white" strokeWidth={2.5} />
                         </View>
@@ -277,7 +281,7 @@ export default function InvoicesScreen() {
                     <View className="flex-row items-center mb-8">
                         <TrendingUp size={14} color="#FCA5A5" className="mr-1.5" strokeWidth={3} />
                         <Text className="text-white/80 text-[10px] font-black uppercase tracking-widest">
-                            Unpaid Invoices: <Text className="text-white">{invoices.filter(i => i.status === 'overdue' || i.status === 'sent').length}</Text>
+                            {t('invoices.unpaid_count')} <Text className="text-white">{invoices.filter(i => i.status === 'overdue' || i.status === 'sent').length}</Text>
                         </Text>
                     </View>
 
@@ -286,7 +290,7 @@ export default function InvoicesScreen() {
                         onPress={handleSendReminders}
                     >
                         <Send size={18} color="#1E40AF" className="mr-2" strokeWidth={2.5} />
-                        <Text className="text-[#1E40AF] font-black text-sm uppercase tracking-widest">Send Reminders</Text>
+                        <Text className="text-[#1E40AF] font-black text-sm uppercase tracking-widest">{t('invoices.send_reminders')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -298,15 +302,15 @@ export default function InvoicesScreen() {
             <View className="w-20 h-20 bg-slate-100 rounded-full items-center justify-center mb-6">
                 <FileText size={32} color="#94a3b8" />
             </View>
-            <Text className="text-xl font-bold text-slate-900 mb-2">No Invoices Found</Text>
+            <Text className="text-xl font-bold text-slate-900 mb-2">{t('invoices.no_invoices')}</Text>
             <Text className="text-slate-500 font-medium text-center px-10">
-                You don't have any invoices matching the current filter criteria.
+                {t('invoices.empty_desc')}
             </Text>
             <TouchableOpacity
                 onPress={() => { setActiveFilter('all'); setSearchQuery(''); }}
                 className="mt-6 px-6 py-3 bg-slate-900 rounded-full"
             >
-                <Text className="text-white font-bold text-sm">Clear Filters</Text>
+                <Text className="text-white font-bold text-sm">{t('invoices.clear_filters')}</Text>
             </TouchableOpacity>
         </View>
     );
@@ -314,7 +318,7 @@ export default function InvoicesScreen() {
     // List Item matched to design
     const renderInvoiceItem = ({ item }: { item: any }) => {
         const customerName = item.customer?.name || 'Unknown Client';
-        const date = new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const date = new Date(item.created_at).toLocaleDateString(language === 'fr-FR' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
         return (
             <TouchableOpacity
@@ -344,6 +348,10 @@ export default function InvoicesScreen() {
         );
     };
 
+    if (loading && invoices.length === 0) {
+        return <InvoiceListSkeleton />;
+    }
+
     return (
         <View className="flex-1 bg-white relative">
             <StatusBar style="dark" />
@@ -370,9 +378,9 @@ export default function InvoicesScreen() {
                                 {renderHeader()}
                                 {renderTotalCard()}
                                 <View className="flex-row justify-between items-center px-7 mb-4">
-                                    <Text className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Recent Invoices</Text>
+                                    <Text className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{t('invoices.recent_invoices')}</Text>
                                     <TouchableOpacity>
-                                        <Text className="text-[#1E40AF] font-black text-[10px] uppercase tracking-widest">View All</Text>
+                                        <Text className="text-[#1E40AF] font-black text-[10px] uppercase tracking-widest">{t('common.view_all')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -386,11 +394,6 @@ export default function InvoicesScreen() {
                     ListEmptyComponent={!loading ? renderEmptyState() : null}
                 />
 
-                {loading && invoices.length === 0 && (
-                    <View className="absolute inset-0 items-center justify-center bg-white/80 backdrop-blur-sm z-50">
-                        <ActivityIndicator size="large" color="#2563EB" />
-                    </View>
-                )}
             </View>
         </View>
     );

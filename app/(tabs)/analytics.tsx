@@ -27,6 +27,8 @@ import { useProfile } from '../../hooks/useProfile';
 import { formatCurrency } from '../../lib/currencyEngine';
 import { COLORS } from '../../constants/colors';
 import { supabase } from '../../lib/supabase';
+import { useLanguage } from '../../context/LanguageContext';
+import { AnalyticsSkeleton } from '../../components/AnalyticsSkeleton';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -34,6 +36,7 @@ export default function AnalyticsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [selectedPeriod, setSelectedPeriod] = useState('Month');
+    const { t, language } = useLanguage();
 
     // Real Data Hooks
     const { profile } = useProfile();
@@ -130,9 +133,9 @@ export default function AnalyticsScreen() {
             if (total > 0) {
                 // Simple breakdown - you can enhance this based on your data structure
                 setRevenueBreakdown([
-                    { label: 'Services', value: total * 0.6, color: COLORS.primary, percent: '60%' },
-                    { label: 'Products', value: total * 0.25, color: '#6366f1', percent: '25%' },
-                    { label: 'Other', value: total * 0.15, color: '#a5b4fc', percent: '15%' }
+                    { label: t('analytics.breakdown.Services'), value: total * 0.6, color: COLORS.primary, percent: '60%' },
+                    { label: t('analytics.breakdown.Products'), value: total * 0.25, color: '#6366f1', percent: '25%' },
+                    { label: t('analytics.breakdown.Other'), value: total * 0.15, color: '#a5b4fc', percent: '15%' }
                 ]);
             }
         } catch (error) {
@@ -192,7 +195,7 @@ export default function AnalyticsScreen() {
                         className={`flex-1 py-2 items-center rounded-lg ${isActive ? 'bg-white shadow-sm' : ''}`}
                     >
                         <Text className={`text-sm font-semibold ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                            {period}
+                            {t(`analytics.periods.${period}`)}
                         </Text>
                     </TouchableOpacity>
                 );
@@ -206,7 +209,7 @@ export default function AnalyticsScreen() {
                 <View className="w-10 h-10 bg-blue-100 rounded-xl items-center justify-center mr-3">
                     <TrendingUp size={20} color={COLORS.primary} />
                 </View>
-                <Text className="text-2xl font-bold text-slate-900">Analytics</Text>
+                <Text className="text-2xl font-bold text-slate-900">{t('analytics.title')}</Text>
             </View>
             <TouchableOpacity
                 onPress={() => router.push('/activity')}
@@ -221,12 +224,7 @@ export default function AnalyticsScreen() {
     );
 
     if (loading && !monthlyRevenue) {
-        return (
-            <View className="flex-1 bg-[#F9FAFC] items-center justify-center" style={{ paddingTop: insets.top }}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text className="text-slate-400 mt-4 font-medium">Loading analytics...</Text>
-            </View>
-        );
+        return <AnalyticsSkeleton />;
     }
 
     return (
@@ -249,7 +247,7 @@ export default function AnalyticsScreen() {
                     {/* Income Card */}
                     <View className="flex-1 bg-white p-5 rounded-2xl shadow-sm border border-slate-50">
                         <View className="flex-row items-center justify-between mb-2">
-                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">Income</Text>
+                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('analytics.income')}</Text>
                             <View className="bg-emerald-50 p-1.5 rounded-full">
                                 <ArrowUpRight size={14} color="#10b981" />
                             </View>
@@ -266,14 +264,14 @@ export default function AnalyticsScreen() {
                             <Text className={`text-xs font-bold ml-1 ${periodMetrics.growthRate >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                 {periodMetrics.growthRate >= 0 ? '+' : ''}{periodMetrics.growthRate.toFixed(1)}%
                             </Text>
-                            <Text className="text-slate-400 text-[10px] ml-1">vs last {selectedPeriod.toLowerCase()}</Text>
+                            <Text className="text-slate-400 text-[10px] ml-1">{t('analytics.vs_last_period', { period: t(`analytics.periods.${selectedPeriod}`).toLowerCase() })}</Text>
                         </View>
                     </View>
 
                     {/* Expenses Card */}
                     <View className="flex-1 bg-white p-5 rounded-2xl shadow-sm border border-slate-50">
                         <View className="flex-row items-center justify-between mb-2">
-                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses</Text>
+                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('analytics.expenses')}</Text>
                             <View className="bg-rose-50 p-1.5 rounded-full">
                                 <ArrowDownRight size={14} color="#f43f5e" />
                             </View>
@@ -283,7 +281,7 @@ export default function AnalyticsScreen() {
                         </Text>
                         <View className="flex-row items-center">
                             <Text className="text-slate-500 text-xs font-medium">
-                                {((periodMetrics.expenses / periodMetrics.income) * 100).toFixed(0)}% of income
+                                {((periodMetrics.expenses / periodMetrics.income) * 100).toFixed(0)}% {t('analytics.of_income', { defaultValue: language === 'fr-FR' ? 'des revenus' : 'of income' })}
                             </Text>
                         </View>
                     </View>
@@ -294,17 +292,17 @@ export default function AnalyticsScreen() {
                     <View className="mx-4 bg-white rounded-3xl p-5 shadow-sm border border-slate-50 mb-6">
                         <View className="flex-row justify-between items-center mb-6">
                             <View>
-                                <Text className="text-lg font-bold text-slate-900">Income vs Expenses</Text>
-                                <Text className="text-xs text-slate-400">Last 6 months trend</Text>
+                                <Text className="text-lg font-bold text-slate-900">{t('analytics.income_vs_expenses')}</Text>
+                                <Text className="text-xs text-slate-400">{t('analytics.last_6_months')}</Text>
                             </View>
                             <View className="flex-row gap-3">
                                 <View className="flex-row items-center">
                                     <View className="w-2.5 h-2.5 rounded-full mr-1.5" style={{ backgroundColor: COLORS.primary }} />
-                                    <Text className="text-[10px] font-bold text-slate-400 uppercase">Income</Text>
+                                    <Text className="text-[10px] font-bold text-slate-400 uppercase">{t('analytics.income')}</Text>
                                 </View>
                                 <View className="flex-row items-center">
                                     <View className="w-2.5 h-2.5 rounded-full bg-slate-300 mr-1.5" />
-                                    <Text className="text-[10px] font-bold text-slate-400 uppercase">Expenses</Text>
+                                    <Text className="text-[10px] font-bold text-slate-400 uppercase">{t('analytics.expenses')}</Text>
                                 </View>
                             </View>
                         </View>
@@ -339,12 +337,12 @@ export default function AnalyticsScreen() {
                 {/* Revenue Breakdown */}
                 {revenueBreakdown.length > 0 && (
                     <View className="mx-4 bg-white rounded-3xl p-6 shadow-sm border border-slate-50 mb-6">
-                        <Text className="text-lg font-bold text-slate-900 mb-6">Revenue Breakdown</Text>
+                        <Text className="text-lg font-bold text-slate-900 mb-6">{t('analytics.revenue_breakdown')}</Text>
 
                         <View className="flex-row items-center justify-between">
                             <View className="items-center justify-center relative">
                                 <View className="absolute z-10 items-center justify-center">
-                                    <Text className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Total</Text>
+                                    <Text className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">{t('analytics.total')}</Text>
                                     <Text className="text-xl font-black text-slate-900">
                                         {formatCurrency(monthlyRevenue, profile?.currency || 'USD')}
                                     </Text>
@@ -385,9 +383,9 @@ export default function AnalyticsScreen() {
                 {/* Top Clients Section */}
                 <View className="mx-4 mb-8">
                     <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-lg font-bold text-slate-900">Top Clients</Text>
+                        <Text className="text-lg font-bold text-slate-900">{t('analytics.top_clients')}</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/clients')}>
-                            <Text className="text-blue-600 font-bold text-sm">View All</Text>
+                            <Text className="text-blue-600 font-bold text-sm">{t('common.view_all')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -404,7 +402,9 @@ export default function AnalyticsScreen() {
                                 <View className="flex-1">
                                     <Text className="text-slate-900 font-bold text-base">{client.name}</Text>
                                     <Text className="text-slate-400 text-xs font-medium">
-                                        {client.invoiceCount} invoice{client.invoiceCount !== 1 ? 's' : ''}
+                                        {client.invoiceCount === 1 
+                                            ? t('analytics.invoices_count', { count: 1 }) 
+                                            : t('analytics.invoices_count_plural', { count: client.invoiceCount })}
                                     </Text>
                                 </View>
                                 <View className="items-end">
@@ -412,7 +412,7 @@ export default function AnalyticsScreen() {
                                         {formatCurrency(client.revenue, profile?.currency || 'USD')}
                                     </Text>
                                     <View className="bg-emerald-100 px-2 py-0.5 rounded-full mt-1">
-                                        <Text className="text-emerald-700 text-[10px] font-bold uppercase">Paid</Text>
+                                        <Text className="text-emerald-700 text-[10px] font-bold uppercase">{t('home.paid')}</Text>
                                     </View>
                                 </View>
                             </TouchableOpacity>
@@ -422,15 +422,15 @@ export default function AnalyticsScreen() {
                             <View className="w-16 h-16 rounded-full bg-slate-100 items-center justify-center mb-4">
                                 <User size={32} color="#94A3B8" />
                             </View>
-                            <Text className="text-slate-900 font-bold text-base mb-2">No Client Data Yet</Text>
+                            <Text className="text-slate-900 font-bold text-base mb-2">{t('analytics.no_data')}</Text>
                             <Text className="text-slate-500 text-sm text-center mb-4">
-                                Start creating invoices to see your top clients
+                                {t('analytics.no_data_desc')}
                             </Text>
                             <TouchableOpacity
                                 onPress={() => router.push('/invoice/new')}
                                 className="bg-blue-600 px-6 py-3 rounded-full"
                             >
-                                <Text className="text-white font-bold">Create Invoice</Text>
+                                <Text className="text-white font-bold">{t('analytics.create_invoice')}</Text>
                             </TouchableOpacity>
                         </View>
                     )}

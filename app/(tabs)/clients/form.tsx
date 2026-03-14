@@ -41,6 +41,9 @@ import { uploadImage } from '../../../lib/upload';
 import { showSuccess, showError } from '../../../lib/error-handler';
 import { COLORS } from '../../../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import { FormSkeleton } from '../../../components/FormSkeleton';
+import { useLanguage } from '../../../context/LanguageContext';
 
 // Country Codes - African countries first, then rest of the world
 const COUNTRY_CODES = [
@@ -230,6 +233,7 @@ export default function ClientFormScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { user } = useAuth();
+    const { t, language } = useLanguage();
     const isEditing = !!id;
     const insets = useSafeAreaInsets();
 
@@ -393,7 +397,7 @@ export default function ClientFormScreen() {
                     .update(clientData)
                     .eq('id', id);
                 if (error) throw error;
-                showSuccess('Client updated successfully');
+                showSuccess(t('business_profile.update_success'), t('common.success'), t);
             } else {
                 const { error } = await supabase
                     .from('clients')
@@ -403,13 +407,14 @@ export default function ClientFormScreen() {
                         portal_token: ExpoCrypto.randomUUID()
                     }]);
                 if (error) throw error;
-                showSuccess('Client created successfully');
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                showSuccess(t('personal_info.update_success'), t('common.success'), t);
             }
 
             router.back();
         } catch (error: any) {
             console.error('Save error:', error);
-            showError(error, 'Failed to save client');
+            showError(error, t('business_profile.update_error'), t);
         } finally {
             setLoading(false);
         }
@@ -431,12 +436,7 @@ export default function ClientFormScreen() {
     );
 
     if (fetching) {
-        return (
-            <View className="flex-1 items-center justify-center bg-[#F9FAFC]">
-                <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text className="text-slate-400 mt-4 font-medium">Loading client...</Text>
-            </View>
-        );
+        return <FormSkeleton />;
     }
 
     return (

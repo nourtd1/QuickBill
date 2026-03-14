@@ -12,8 +12,10 @@ import { useColorScheme } from 'nativewind';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
 import { OfflineProvider } from '../context/OfflineContext';
+import { LanguageProvider } from '../context/LanguageContext';
 import { validateEnv } from '../lib/env';
 import ConfigError from '../components/ConfigError';
+import { OfflineIndicator } from '../components/OfflineIndicator';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -106,31 +108,34 @@ function RootLayoutNav() {
     }
 
     return (
-        <Stack screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#EFF6FF' },
-            headerStyle: { backgroundColor: '#EFF6FF' },
-            headerShadowVisible: false,
-        }}>
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
-            <Stack.Screen name="setup" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="activity" options={{ headerShown: false }} />
-            <Stack.Screen name="items/form" options={{ headerShown: false }} />
-            <Stack.Screen name="estimates/index" options={{ headerShown: false }} />
-            <Stack.Screen name="estimates/new" options={{ headerShown: false }} />
-            <Stack.Screen name="estimates/[id]" options={{ presentation: 'modal', headerShown: false }} />
-            <Stack.Screen name="invoice/new" options={{ presentation: 'modal', headerShown: false }} />
-            <Stack.Screen name="invoice/[id]" options={{ presentation: 'modal', headerShown: false }} />
+        <>
+            <Stack screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#EFF6FF' },
+                headerStyle: { backgroundColor: '#EFF6FF' },
+                headerShadowVisible: false,
+            }}>
+                <Stack.Screen name="auth" options={{ headerShown: false }} />
+                <Stack.Screen name="setup" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+                <Stack.Screen name="activity" options={{ headerShown: false }} />
+                <Stack.Screen name="items/form" options={{ headerShown: false }} />
+                <Stack.Screen name="estimates/index" options={{ headerShown: false }} />
+                <Stack.Screen name="estimates/new" options={{ headerShown: false }} />
+                <Stack.Screen name="estimates/[id]" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="invoice/new" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="invoice/[id]" options={{ presentation: 'modal', headerShown: false }} />
 
-            {/* Added Missing Pages to prevent RNSScreen crashes */}
-            <Stack.Screen name="expenses/scan" options={{ headerShown: false }} />
-            <Stack.Screen name="expenses/add" options={{ headerShown: false }} />
-            <Stack.Screen name="finance/reconcile" options={{ headerShown: false }} />
+                {/* Added Missing Pages to prevent RNSScreen crashes */}
+                <Stack.Screen name="expenses/scan" options={{ headerShown: false }} />
+                <Stack.Screen name="expenses/add" options={{ headerShown: false }} />
+                <Stack.Screen name="finance/reconcile" options={{ headerShown: false }} />
 
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
-        </Stack>
+                <Stack.Screen name="settings" options={{ headerShown: false }} />
+            </Stack>
+            <OfflineIndicator />
+        </>
     );
 }
 
@@ -167,7 +172,9 @@ export default function RootLayout() {
                 <AuthProvider>
                     <PreferencesProvider>
                         <OfflineProvider>
-                            <RootLayoutNav />
+                            <LanguageProvider>
+                                <RootLayoutNav />
+                            </LanguageProvider>
                         </OfflineProvider>
                     </PreferencesProvider>
                 </AuthProvider>

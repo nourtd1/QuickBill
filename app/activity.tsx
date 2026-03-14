@@ -20,6 +20,7 @@ import {
     Filter
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useLanguage } from '../context/LanguageContext';
 
 // Mock Data matching the screenshot
 const ACTIVITY_DATA = [
@@ -114,6 +115,50 @@ const ACTIVITY_DATA = [
 export default function ActivityScreen() {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
+    const { t } = useLanguage();
+
+    // Mapping mock data to translations
+    const translatedActivityData = [
+        {
+            title: t('activity.sections.today'),
+            data: ACTIVITY_DATA[0].data.map(item => ({
+                ...item,
+                title: t(`activity.types.${item.type}`),
+                subtitle: t(`activity.subtitles.${item.type}`, {
+                    name: item.type === 'invoice_paid' ? 'Acme Corp' : item.type === 'invoice_created' ? 'Global Tech' : item.type === 'client_added' ? 'Design Studio Ltd' : '',
+                    amount: item.type === 'invoice_paid' ? '$1,200' : item.type === 'invoice_created' ? '$3,450' : '',
+                    number: item.type === 'payment_overdue' ? '1023' : '',
+                    days: item.type === 'payment_overdue' ? '5' : ''
+                })
+            }))
+        },
+        {
+            title: t('activity.sections.yesterday'),
+            data: ACTIVITY_DATA[1].data.map(item => ({
+                ...item,
+                title: t(`activity.types.${item.type}`),
+                subtitle: t(`activity.subtitles.${item.type}`, {
+                    name: item.type === 'client_added' ? 'Design Studio Ltd' : '',
+                    amount: '',
+                    number: '',
+                    days: ''
+                })
+            }))
+        },
+        {
+            title: t('activity.sections.last_week'),
+            data: ACTIVITY_DATA[2].data.map(item => ({
+                ...item,
+                title: t(`activity.types.${item.type}`),
+                subtitle: t(`activity.subtitles.${item.type}`, {
+                    name: item.id === '6' ? 'WebFlow Project' : 'Stark Ind',
+                    amount: item.id === '6' ? '$850' : '',
+                    number: '',
+                    days: ''
+                })
+            }))
+        }
+    ];
 
     return (
         <View className="flex-1 bg-[#F8F9FE]">
@@ -129,7 +174,7 @@ export default function ActivityScreen() {
                             <ArrowLeft size={24} color="#1e293b" />
                         </TouchableOpacity>
 
-                        <Text className="text-xl font-bold text-slate-900">Activity</Text>
+                        <Text className="text-xl font-bold text-slate-900">{t('activity.title')}</Text>
 
                         <TouchableOpacity
                             className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-sm border border-slate-100"
@@ -143,7 +188,7 @@ export default function ActivityScreen() {
                         {/* <Search size={20} color="#94a3b8" className="mr-3" /> */}
                         <TextInput
                             className="flex-1 text-base text-slate-700 font-medium h-6 p-0"
-                            placeholder="Search events, clients, or amounts..."
+                            placeholder={t('activity.search_placeholder')}
                             placeholderTextColor="#94a3b8"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
@@ -151,7 +196,7 @@ export default function ActivityScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
-                        {ACTIVITY_DATA.map((section, index) => (
+                        {translatedActivityData.map((section, index) => (
                             <View key={section.title} className="mb-6">
                                 <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 ml-1">
                                     {section.title}

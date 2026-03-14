@@ -4,7 +4,7 @@
 
 export interface ValidationResult {
     isValid: boolean;
-    error?: string;
+    errorKey?: string;
 }
 
 /**
@@ -12,12 +12,12 @@ export interface ValidationResult {
  */
 export function validateEmail(email: string): ValidationResult {
     if (!email || email.trim().length === 0) {
-        return { isValid: false, error: 'L\'email est requis' };
+        return { isValid: false, errorKey: 'validation.required' };
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-        return { isValid: false, error: 'Format d\'email invalide' };
+        return { isValid: false, errorKey: 'validation.email_invalid' };
     }
 
     return { isValid: true };
@@ -28,26 +28,26 @@ export function validateEmail(email: string): ValidationResult {
  */
 export function validatePassword(password: string): ValidationResult {
     if (!password || password.length === 0) {
-        return { isValid: false, error: 'Le mot de passe est requis' };
+        return { isValid: false, errorKey: 'validation.required' };
     }
 
     if (password.length < 6) {
-        return { isValid: false, error: 'Le mot de passe doit contenir au moins 6 caractères' };
+        return { isValid: false, errorKey: 'validation.password_too_short' };
     }
 
     return { isValid: true };
 }
 
 /**
- * Validates a customer name
+ * Validates a person's name
  */
-export function validateCustomerName(name: string): ValidationResult {
+export function validateName(name: string): ValidationResult {
     if (!name || name.trim().length === 0) {
-        return { isValid: false, error: 'Le nom du client est requis' };
+        return { isValid: false, errorKey: 'validation.required' };
     }
 
     if (name.trim().length < 2) {
-        return { isValid: false, error: 'Le nom doit contenir au moins 2 caractères' };
+        return { isValid: false, errorKey: 'validation.name_too_short' };
     }
 
     return { isValid: true };
@@ -60,20 +60,20 @@ export function validateInvoiceItems(
     items: { description: string; quantity: number; unitPrice: number }[]
 ): ValidationResult {
     if (!items || items.length === 0) {
-        return { isValid: false, error: 'Au moins un article est requis' };
+        return { isValid: false, errorKey: 'validation.item_required' };
     }
 
     for (const item of items) {
         if (!item.description || item.description.trim().length === 0) {
-            return { isValid: false, error: 'Tous les articles doivent avoir une description' };
+            return { isValid: false, errorKey: 'validation.item_desc_required' };
         }
 
         if (item.quantity <= 0) {
-            return { isValid: false, error: 'La quantité doit être supérieure à 0' };
+            return { isValid: false, errorKey: 'validation.quantity_positive' };
         }
 
         if (item.unitPrice < 0) {
-            return { isValid: false, error: 'Le prix unitaire ne peut pas être négatif' };
+            return { isValid: false, errorKey: 'validation.price_non_negative' };
         }
     }
 
@@ -85,18 +85,18 @@ export function validateInvoiceItems(
  */
 export function validateTotalAmount(amount: number): ValidationResult {
     if (amount <= 0) {
-        return { isValid: false, error: 'Le montant total doit être supérieur à 0' };
+        return { isValid: false, errorKey: 'validation.amount_positive' };
     }
 
     if (amount > 1000000000) {
-        return { isValid: false, error: 'Le montant est trop élevé' };
+        return { isValid: false, errorKey: 'validation.amount_too_high' };
     }
 
     return { isValid: true };
 }
 
 /**
- * Validates a phone number (basic validation)
+ * Validates a phone number
  */
 export function validatePhone(phone: string): ValidationResult {
     if (!phone || phone.trim().length === 0) {
@@ -104,8 +104,8 @@ export function validatePhone(phone: string): ValidationResult {
     }
 
     const phoneRegex = /^[\d\s\+\-\(\)]+$/;
-    if (!phoneRegex.test(phone.trim())) {
-        return { isValid: false, error: 'Format de téléphone invalide' };
+    if (!phoneRegex.test(phone.trim()) || phone.trim().length < 6) {
+        return { isValid: false, errorKey: 'validation.phone_invalid' };
     }
 
     return { isValid: true };
@@ -116,11 +116,11 @@ export function validatePhone(phone: string): ValidationResult {
  */
 export function validateBusinessName(name: string): ValidationResult {
     if (!name || name.trim().length === 0) {
-        return { isValid: false, error: 'Le nom du business est requis' };
+        return { isValid: false, errorKey: 'validation.required' };
     }
 
     if (name.trim().length < 2) {
-        return { isValid: false, error: 'Le nom doit contenir au moins 2 caractères' };
+        return { isValid: false, errorKey: 'validation.name_too_short' };
     }
 
     return { isValid: true };
@@ -131,13 +131,12 @@ export function validateBusinessName(name: string): ValidationResult {
  */
 export function validateCurrency(currency: string): ValidationResult {
     if (!currency || currency.trim().length === 0) {
-        return { isValid: false, error: 'La devise est requise' };
+        return { isValid: false, errorKey: 'validation.required' };
     }
 
-    if (currency.trim().length < 3 || currency.trim().length > 3) {
-        return { isValid: false, error: 'La devise doit être un code à 3 lettres (ex: RWF, USD, EUR)' };
+    if (currency.trim().length !== 3) {
+        return { isValid: false, errorKey: 'validation.currency_invalid' };
     }
 
     return { isValid: true };
 }
-

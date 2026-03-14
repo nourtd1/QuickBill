@@ -30,12 +30,14 @@ import {
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useClients } from '../../hooks/useClients';
 import { useInvoice } from '../../hooks/useInvoice';
 import { useProfile } from '../../hooks/useProfile';
 import { COLORS } from '../../constants/colors';
 import { showSuccess, showError } from '../../lib/error-handler';
 import { ClientPickerModal } from '../../components/ClientPickerModal';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface InvoiceItemState {
     id: string;
@@ -49,6 +51,7 @@ export default function NewInvoiceScreen() {
     const { data: clients } = useClients();
     const { createInvoice, saving: isSaving } = useInvoice();
     const { profile } = useProfile();
+    const { t, language } = useLanguage();
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams();
 
@@ -61,7 +64,7 @@ export default function NewInvoiceScreen() {
         return d.toISOString().split('T')[0];
     });
     const [notes, setNotes] = useState('');
-    const [terms, setTerms] = useState('Payment due within 30 days');
+    const [terms, setTerms] = useState(t('invoice_form.default_terms'));
 
     // Generate invoice number on mount
     useEffect(() => {
@@ -82,8 +85,15 @@ export default function NewInvoiceScreen() {
     const [clientModalVisible, setClientModalVisible] = useState(false);
 
     // Tax and Discount
-    const [taxRate, setTaxRate] = useState('18'); // Default 18% VAT
+    const [taxRate, setTaxRate] = useState(profile?.default_tax_rate ? String(profile.default_tax_rate) : '18'); 
     const [discount, setDiscount] = useState('0');
+
+    // Sync tax rate if profile loads later
+    useEffect(() => {
+        if (profile?.default_tax_rate) {
+            setTaxRate(String(profile.default_tax_rate));
+        }
+    }, [profile]);
 
     // Calculations
     const subtotal = items.reduce((acc, item) => {
@@ -95,6 +105,7 @@ export default function NewInvoiceScreen() {
 
     // Handlers
     const addItem = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setItems([
             ...items,
             { id: Date.now().toString(), description: '', quantity: '1', unit_price: '0' }
@@ -106,18 +117,19 @@ export default function NewInvoiceScreen() {
     };
 
     const removeItem = (id: string) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setItems(items.filter(i => i.id !== id));
     };
 
     const handleCreate = async () => {
         if (!selectedClientId) {
-            showError(new Error('Please select a client'), 'Client Required');
+            showError(new Error(t('invoice_form.client_required_msg')), t('invoice_form.client_required'), t);
             return;
         }
 
         const validItems = items.filter(item => item.description.trim() !== '');
         if (validItems.length === 0) {
-            showError(new Error('Please add at least one item'), 'Items Required');
+            showError(new Error(t('invoice_form.items_required_msg')), t('invoice_form.items_required'), t);
             return;
         }
 
@@ -135,16 +147,17 @@ export default function NewInvoiceScreen() {
                 selectedClientId
             );
 
-            showSuccess('Invoice created successfully!');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showSuccess(t('invoice_form.success_msg'), t('common.success'), t);
             router.back();
         } catch (error: any) {
-            showError(error, 'Failed to create invoice');
+            showError(error, t('invoice_form.error_create'), t);
         }
     };
 
     const formatCurrency = (amount: number) => {
         const currency = profile?.currency || 'USD';
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat(language === 'fr-FR' ? 'fr-FR' : 'en-US', {
             style: 'currency',
             currency: currency,
         }).format(amount);
@@ -161,7 +174,7 @@ export default function NewInvoiceScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
                     <ArrowLeft size={24} color="#0F172A" />
                 </TouchableOpacity>
-                <Text className="text-xl font-bold text-slate-900">New Invoice</Text>
+                <Text className="text-xl font-bold text-slate-900">{t('invoice_form.new_title')}</Text>
                 <View className="w-10" />
             </View>
 
@@ -175,7 +188,7 @@ export default function NewInvoiceScreen() {
                 >
                     {/* Client Selector */}
                     <View className="mb-6 mt-2">
-                        <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 ml-1">CLIENT</Text>
+                        <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 ml-1">{t('invoice_form.client')}</Text>
                         <TouchableOpacity
                             onPress={() => setClientModalVisible(true)}
                             className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex-row justify-between items-center"
@@ -186,7 +199,7 @@ export default function NewInvoiceScreen() {
                                 </View>
                                 <View className="flex-1">
                                     <Text className="text-slate-900 font-bold text-base">
-                                        {selectedClient?.name || 'Select a client'}
+                                        {selectedClient?.name || t('invoice_form.select_client')}
                                     </Text>
                                     {selectedClient?.email && (
                                         <Text className="text-slate-400 text-sm mt-0.5">{selectedClient.email}</Text>
@@ -211,8 +224,8 @@ export default function NewInvoiceScreen() {
                                         <FileText size={20} color="white" />
                                     </View>
                                     <View>
-                                        <Text className="text-slate-900 font-bold text-base">Invoice Number</Text>
-                                        <Text className="text-slate-500 text-xs">Auto-generated • Editable</Text>
+                                        <Text className="text-slate-900 font-bold text-base">{t('invoice_form.invoice_number')}</Text>
+                                        <Text className="text-slate-500 text-xs">{t('invoice_form.auto_generated')}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -228,7 +241,7 @@ export default function NewInvoiceScreen() {
                             <View className="flex-row items-center mt-2 ml-1">
                                 <Text className="text-blue-600 text-lg mr-1">💡</Text>
                                 <Text className="text-slate-600 text-xs font-medium">
-                                    Tip: Keep it unique for easy tracking
+                                    {t('invoice_form.tip')}
                                 </Text>
                             </View>
                         </LinearGradient>
@@ -238,7 +251,7 @@ export default function NewInvoiceScreen() {
                     <View className="flex-row justify-between mb-8 gap-4">
                         {/* Issue Date */}
                         <View className="flex-1">
-                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Issue Date</Text>
+                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">{t('invoice_form.issue_date')}</Text>
                             <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center border border-slate-100 shadow-sm">
                                 <Calendar size={18} color="#94A3B8" />
                                 <TextInput
@@ -252,7 +265,7 @@ export default function NewInvoiceScreen() {
                         </View>
                         {/* Due Date */}
                         <View className="flex-1">
-                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">Due Date</Text>
+                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">{t('invoice_form.due_date')}</Text>
                             <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center border border-slate-100 shadow-sm">
                                 <Calendar size={18} color="#94A3B8" />
                                 <TextInput
@@ -268,13 +281,13 @@ export default function NewInvoiceScreen() {
 
                     {/* Items & Services Header */}
                     <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-lg font-bold text-slate-900">Items & Services</Text>
+                        <Text className="text-lg font-bold text-slate-900">{t('invoice_form.items_services')}</Text>
                         <TouchableOpacity
                             onPress={addItem}
                             className="bg-blue-100 px-4 py-2 rounded-full flex-row items-center"
                         >
                             <Plus size={16} color={COLORS.primary} />
-                            <Text className="text-blue-600 text-sm font-bold ml-1">Add Item</Text>
+                            <Text className="text-blue-600 text-sm font-bold ml-1">{t('invoice_form.add_item')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -291,7 +304,7 @@ export default function NewInvoiceScreen() {
                                         <View className="w-10 h-10 rounded-full bg-slate-100 items-center justify-center mr-3">
                                             <Tag size={18} color="#64748B" />
                                         </View>
-                                        <Text className="text-slate-400 text-xs font-bold">ITEM #{index + 1}</Text>
+                                        <Text className="text-slate-400 text-xs font-bold">{t('invoice_form.item_label', { index: index + 1 })}</Text>
                                     </View>
                                     {items.length > 1 && (
                                         <TouchableOpacity
@@ -305,7 +318,7 @@ export default function NewInvoiceScreen() {
 
                                 {/* Description */}
                                 <View className="mb-3">
-                                    <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">Description</Text>
+                                    <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">{t('invoice_form.description')}</Text>
                                     <TextInput
                                         value={item.description}
                                         onChangeText={(text) => updateItem(item.id, 'description', text)}
@@ -318,7 +331,7 @@ export default function NewInvoiceScreen() {
                                 {/* Quantity and Price */}
                                 <View className="flex-row gap-3">
                                     <View className="flex-1">
-                                        <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">Quantity</Text>
+                                        <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">{t('invoice_form.quantity')}</Text>
                                         <View className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
                                             <TextInput
                                                 value={item.quantity}
@@ -328,10 +341,10 @@ export default function NewInvoiceScreen() {
                                                 placeholderTextColor="#CBD5E1"
                                                 keyboardType="numeric"
                                             />
-                                        </View>
+                                         </View>
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">Unit Price</Text>
+                                        <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">{t('invoice_form.unit_price')}</Text>
                                         <View className="bg-slate-50 rounded-xl px-4 py-3 flex-row items-center border border-slate-100">
                                             <DollarSign size={16} color="#94A3B8" />
                                             <TextInput
@@ -348,7 +361,7 @@ export default function NewInvoiceScreen() {
 
                                 {/* Item Total */}
                                 <View className="mt-3 pt-3 border-t border-slate-100 flex-row justify-between items-center">
-                                    <Text className="text-slate-500 font-semibold">Item Total</Text>
+                                    <Text className="text-slate-500 font-semibold">{t('invoice_form.item_total')}</Text>
                                     <Text className="text-slate-900 font-black text-lg">
                                         {formatCurrency((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0))}
                                     </Text>
@@ -364,34 +377,34 @@ export default function NewInvoiceScreen() {
                             <View className="bg-blue-600 rounded-full p-1 mr-2">
                                 <Plus size={14} color="white" />
                             </View>
-                            <Text className="text-slate-600 font-semibold">Add Another Item</Text>
+                            <Text className="text-slate-600 font-semibold">{t('invoice_form.add_another')}</Text>
                         </TouchableOpacity>
                     </View>
 
                     {/* Summary Card */}
                     <View className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6">
-                        <Text className="text-slate-900 font-bold text-lg mb-4">Invoice Summary</Text>
+                        <Text className="text-slate-900 font-bold text-lg mb-4">{t('invoice_form.summary')}</Text>
 
                         <View className="flex-row justify-between mb-3">
-                            <Text className="text-slate-600 font-medium">Subtotal</Text>
+                            <Text className="text-slate-600 font-medium">{t('invoice_form.subtotal')}</Text>
                             <Text className="text-slate-900 font-bold">{formatCurrency(subtotal)}</Text>
                         </View>
 
                         <View className="flex-row justify-between mb-3 items-center">
                             <View className="flex-row items-center">
                                 <Percent size={16} color="#94A3B8" />
-                                <Text className="text-slate-600 font-medium ml-2">Tax (18% VAT)</Text>
+                                <Text className="text-slate-600 font-medium ml-2">{t('invoice_form.tax', { rate: taxRate })}</Text>
                             </View>
                             <Text className="text-slate-900 font-bold">{formatCurrency(taxAmount)}</Text>
                         </View>
 
                         <View className="flex-row justify-between mb-6">
-                            <Text className="text-slate-600 font-medium">Discount</Text>
+                            <Text className="text-slate-600 font-medium">{t('invoice_form.discount')}</Text>
                             <Text className="text-emerald-600 font-bold">-{formatCurrency(discountAmount)}</Text>
                         </View>
 
                         <View className="flex-row justify-between items-center pt-4 border-t-2 border-slate-100">
-                            <Text className="text-slate-900 font-bold text-lg">Total Amount</Text>
+                            <Text className="text-slate-900 font-bold text-lg">{t('invoice_form.total_amount')}</Text>
                             <Text className="text-blue-600 font-black text-2xl">{formatCurrency(totalAmount)}</Text>
                         </View>
                     </View>
@@ -414,7 +427,7 @@ export default function NewInvoiceScreen() {
                         ) : (
                             <>
                                 <Check size={20} color="white" strokeWidth={2.5} />
-                                <Text className="text-white font-bold text-lg ml-2">Create Invoice</Text>
+                                <Text className="text-white font-bold text-lg ml-2">{t('invoice_form.create_btn')}</Text>
                             </>
                         )}
                     </TouchableOpacity>

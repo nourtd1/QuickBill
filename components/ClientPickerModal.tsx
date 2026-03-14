@@ -4,6 +4,7 @@ import { User, Check, Search, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useClients } from '../hooks/useClients';
+import { useLanguage } from '../context/LanguageContext';
 import { Client } from '../types';
 
 interface ClientPickerModalProps {
@@ -17,6 +18,7 @@ export function ClientPickerModal({ visible, onClose, onSelect, selectedClientId
     const { data: clients } = useClients();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { t } = useLanguage();
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -40,8 +42,8 @@ export function ClientPickerModal({ visible, onClose, onSelect, selectedClientId
                 >
                     <View className="px-6 py-5 border-b border-slate-50 flex-row justify-between items-center bg-white z-10 rounded-t-[32px]">
                         <View>
-                            <Text className="text-xl font-bold text-slate-900">Select Client</Text>
-                            <Text className="text-slate-400 text-sm">Choose who this is for</Text>
+                            <Text className="text-xl font-bold text-slate-900">{t('client_picker.title')}</Text>
+                            <Text className="text-slate-400 text-sm">{t('client_picker.subtitle')}</Text>
                         </View>
                         <TouchableOpacity onPress={onClose} className="bg-slate-100 p-2.5 rounded-full">
                             <X size={20} color="#64748B" />
@@ -53,7 +55,7 @@ export function ClientPickerModal({ visible, onClose, onSelect, selectedClientId
                             <Search size={22} color="#94A3B8" />
                             <TextInput
                                 className="flex-1 ml-3 text-base text-slate-900 font-medium"
-                                placeholder="Search by name, email..."
+                                placeholder={t('client_picker.search_placeholder')}
                                 placeholderTextColor="#CBD5E1"
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
@@ -93,9 +95,9 @@ export function ClientPickerModal({ visible, onClose, onSelect, selectedClientId
                                 <View className="w-16 h-16 rounded-full bg-slate-100 items-center justify-center mb-4">
                                     <User size={32} color="#94A3B8" />
                                 </View>
-                                <Text className="text-slate-900 font-bold text-lg mb-2">No Clients Found</Text>
+                                <Text className="text-slate-900 font-bold text-lg mb-2">{t('client_picker.no_clients')}</Text>
                                 <Text className="text-slate-500 text-center mb-6 px-8">
-                                    Create your first client to start invoicing
+                                    {t('client_picker.no_clients_desc')}
                                 </Text>
                                 <TouchableOpacity
                                     onPress={() => {
@@ -104,14 +106,14 @@ export function ClientPickerModal({ visible, onClose, onSelect, selectedClientId
                                     }}
                                     className="bg-blue-600 px-6 py-3 rounded-full"
                                 >
-                                    <Text className="text-white font-bold">Add Client</Text>
+                                    <Text className="text-white font-bold">{t('client_picker.add_client')}</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
                         {searchQuery && filteredClients.length === 0 && (
                             <View className="py-10 items-center">
                                 <Text className="text-slate-500 text-center">
-                                    No clients match your search.
+                                    {t('client_picker.no_results')}
                                 </Text>
                             </View>
                         )}

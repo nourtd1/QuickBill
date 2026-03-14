@@ -23,11 +23,14 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
 import { Client } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 
 // Constants
 const PRIMARY_COLOR = '#2563EB'; // Blue-600
 const BG_LIGHT = '#F9FAFC';
 const BG_DARK = '#101322';
+
+import { ClientListSkeleton } from '../../../components/ClientListSkeleton';
 
 export default function ClientsScreen() {
     const router = useRouter();
@@ -38,6 +41,7 @@ export default function ClientsScreen() {
     const [activeFilter, setActiveFilter] = useState('All Clients');
     const [statsMap, setStatsMap] = useState<Record<string, { total: number; unpaid: number; count: number }>>({});
     const insets = useSafeAreaInsets();
+    const { t, language } = useLanguage();
 
     const fetchClients = async () => {
         try {
@@ -105,7 +109,7 @@ export default function ClientsScreen() {
     }, [search, clients, activeFilter, statsMap]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat(language === 'fr-FR' ? 'fr-FR' : 'en-US', {
             style: 'currency',
             currency: 'USD',
         }).format(amount);
@@ -128,12 +132,12 @@ export default function ClientsScreen() {
 
                     <View>
                         <Text className="font-black text-slate-900 text-base tracking-tight mb-0.5">{item.name}</Text>
-                        <Text className="text-slate-500 font-bold text-xs">{(item as any).business_name || (item as any).company_name || 'Individual'}</Text>
+                        <Text className="text-slate-500 font-bold text-xs">{(item as any).business_name || (item as any).company_name || t('clients.individual')}</Text>
                     </View>
                 </View>
 
                 <View className="items-end">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Balance</Text>
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{t('clients.balance')}</Text>
                     <Text className={`font-black text-lg tracking-tighter ${hasBalance ? 'text-red-500' : 'text-emerald-500'}`}>
                         {formatCurrency(balance)}
                     </Text>
@@ -146,7 +150,7 @@ export default function ClientsScreen() {
         <View className="bg-transparent">
             {/* Header Title Section */}
             <View className="flex-row justify-between items-center mb-6 pt-2">
-                <Text className="text-[36px] font-black text-slate-900 tracking-tight">Clients</Text>
+                <Text className="text-[36px] font-black text-slate-900 tracking-tight">{t('clients.title')}</Text>
                 <TouchableOpacity className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
                     <User size={24} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
@@ -158,7 +162,7 @@ export default function ClientsScreen() {
                     <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
                     <TextInput
                         className="flex-1 font-bold text-base text-slate-900 h-full"
-                        placeholder="Search clients..."
+                        placeholder={t('clients.search_placeholder')}
                         placeholderTextColor="#CBD5E1"
                         value={search}
                         onChangeText={setSearch}
@@ -178,6 +182,7 @@ export default function ClientsScreen() {
             >
                 {['All Clients', 'Outstanding', 'Settled', 'Recently Active'].map((filter) => {
                     const isActive = activeFilter === filter;
+                    const filterKey = filter === 'All Clients' ? 'all' : filter === 'Outstanding' ? 'outstanding' : filter === 'Settled' ? 'settled' : 'active';
                     return (
                         <TouchableOpacity
                             key={filter}
@@ -185,7 +190,7 @@ export default function ClientsScreen() {
                             className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'}`}
                         >
                             <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500'}`}>
-                                {filter}
+                                {t(`clients.filters.${filterKey}`)}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -195,11 +200,15 @@ export default function ClientsScreen() {
             {/* Section Title */}
             <View className="flex-row justify-between items-center mb-4 ml-1">
                 <Text className="font-black text-slate-900 text-[10px] uppercase tracking-widest">
-                    Your Clients Directory
+                    {t('clients.directory')}
                 </Text>
             </View>
         </View>
     );
+
+    if (loading && clients.length === 0) {
+        return <ClientListSkeleton />;
+    }
 
     return (
         <View className="flex-1 bg-white relative">
@@ -226,7 +235,7 @@ export default function ClientsScreen() {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         !loading ? (
-                            <Text className="text-center font-bold text-slate-400 mt-10">No clients found</Text>
+                            <Text className="text-center font-bold text-slate-400 mt-10">{t('clients.no_clients')}</Text>
                         ) : null
                     }
                 />

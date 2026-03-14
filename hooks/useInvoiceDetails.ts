@@ -25,9 +25,11 @@ export function useInvoiceDetails(id: string) {
                 .select(`
                     *,
                     customer:clients (*),
-                    items:invoice_items (*)
+                    items:invoice_items (*),
+                    whatsapp_history:whatsapp_messages(*)
                 `)
                 .eq('id', id)
+                .order('created_at', { foreignTable: 'whatsapp_messages', ascending: false })
                 .single();
 
             if (error) {
@@ -36,10 +38,11 @@ export function useInvoiceDetails(id: string) {
             }
 
             // Transform Supabase response to typed format
-            const typedData: InvoiceWithRelations = {
+            const typedData: InvoiceWithRelations & { whatsapp_history?: any[] } = {
                 ...data,
                 customer: Array.isArray(data.customer) ? data.customer[0] : data.customer,
                 items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : []),
+                whatsapp_history: data.whatsapp_history || []
             };
 
             setInvoice(typedData);

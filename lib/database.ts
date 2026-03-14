@@ -117,5 +117,77 @@ export const initDatabase = async () => {
     );
   `);
 
-  console.log('Local SQLite Database Initialized (Schema V2)');
+  // --- MIGRATIONS (V3) ---
+  // Ensure 'clients' has all necessary columns
+  await addColumnIfMissing(db, 'clients', 'notes', 'TEXT');
+  await addColumnIfMissing(db, 'clients', 'registration_number', 'TEXT');
+  await addColumnIfMissing(db, 'clients', 'industry', 'TEXT');
+  await addColumnIfMissing(db, 'clients', 'contact_person', 'TEXT');
+  await addColumnIfMissing(db, 'clients', 'tax_id', 'TEXT');
+  await addColumnIfMissing(db, 'clients', 'currency', "TEXT DEFAULT 'USD'");
+  await addColumnIfMissing(db, 'clients', 'logo_url', 'TEXT');
+
+  // Ensure 'invoices' has all necessary columns
+  await addColumnIfMissing(db, 'invoices', 'issue_date', 'TEXT');
+  await addColumnIfMissing(db, 'invoices', 'discount', 'NUMERIC DEFAULT 0');
+  await addColumnIfMissing(db, 'invoices', 'tax_amount', 'NUMERIC DEFAULT 0');
+  await addColumnIfMissing(db, 'invoices', 'notes', 'TEXT');
+  await addColumnIfMissing(db, 'invoices', 'terms', 'TEXT');
+  
+  // Supabase uses 'share_token', local used 'public_link_token'. Add 'share_token' for sync compatibility.
+  await addColumnIfMissing(db, 'invoices', 'share_token', 'TEXT');
+
+  // --- PHASE 2 MIGRATIONS ---
+  await addColumnIfMissing(db, 'profiles', 'whatsapp_template', 'TEXT');
+  await addColumnIfMissing(db, 'profiles', 'reminders_enabled', 'INTEGER DEFAULT 0');
+  await addColumnIfMissing(db, 'profiles', 'reminder_intervals', 'TEXT DEFAULT "[7, 14, 30]"');
+  await addColumnIfMissing(db, 'profiles', 'reminder_template', 'TEXT');
+  // Sync: Supabase profiles can have 'phone', 'expo_push_token', 'currency'
+  await addColumnIfMissing(db, 'profiles', 'phone', 'TEXT');
+  await addColumnIfMissing(db, 'profiles', 'expo_push_token', 'TEXT');
+  await addColumnIfMissing(db, 'profiles', 'full_name', 'TEXT');
+  await addColumnIfMissing(db, 'profiles', 'currency', 'TEXT');
+
+  // Sync: Supabase invoices can have 'created_by'
+  await addColumnIfMissing(db, 'invoices', 'created_by', 'TEXT');
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS whatsapp_messages (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      invoice_id TEXT,
+      client_id TEXT,
+      message TEXT NOT NULL,
+      type TEXT DEFAULT 'invoice_share',
+      status TEXT DEFAULT 'sent',
+      sync_status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 7. INDEXES for Performance
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_invoices_sync_status ON invoices(sync_status);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_clients_sync_status ON clients(sync_status);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_expenses_sync_status ON expenses(sync_status);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_sync ON whatsapp_messages(sync_status);');
+
+  if (__DEV__) console.log('Local SQLite Database Initialized (Schema V3 with Phase 2)');
 };
+
+/**
+ * Helper to safely add columns to existing tables
+ */
+async function addColumnIfMissing(db: SQLite.SQLiteDatabase, table: string, column: string, type: string) {
+  try {
+    const result = await db.getAllAsync(`PRAGMA table_info(${table})`);
+    const exists = result.some((col: any) => col.name === column);
+    if (!exists) {
+      if (__DEV__) console.log(`Adding column ${column} to ${table}...`);
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+    }
+  } catch (error) {
+    console.error(`Error adding column ${column} to ${table}:`, error);
+  }
+}

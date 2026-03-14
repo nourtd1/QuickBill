@@ -13,6 +13,7 @@ import {
     MessageCircle
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useLanguage } from '../../context/LanguageContext';
 
 const SettingsNotificationRow = ({ icon: Icon, iconColor, iconBg, title, subtitle, value, onToggle }: any) => (
     <View className="flex-row items-center justify-between py-4 px-4 bg-white">
@@ -47,6 +48,7 @@ const SectionHeader = ({ title, extra }: { title: string, extra?: React.ReactNod
 
 export default function NotificationsSettingsScreen() {
     const router = useRouter();
+    const { t } = useLanguage();
 
     const [invoicePaid, setInvoicePaid] = useState(true);
     const [overdueReminders, setOverdueReminders] = useState(true);
@@ -69,12 +71,12 @@ export default function NotificationsSettingsScreen() {
                         >
                             <ArrowLeft size={24} color="#0F172A" />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-slate-900">Notifications</Text>
+                        <Text className="text-2xl font-bold text-slate-900">{t('notifications.title')}</Text>
                     </View>
 
                     <TouchableOpacity
                         className="w-10 h-10 rounded-full bg-white items-center justify-center shadow-sm border border-slate-100"
-                        onPress={() => Alert.alert("Mark all read", "All notifications marked as read.")}
+                        onPress={() => Alert.alert(t('notifications.mark_all_read'), t('notifications.mark_all_read_msg'))}
                     >
                         <CheckCheck size={20} color="#2563EB" />
                     </TouchableOpacity>
@@ -84,10 +86,10 @@ export default function NotificationsSettingsScreen() {
 
                     {/* PUSH NOTIFICATIONS */}
                     <SectionHeader
-                        title="PUSH NOTIFICATIONS"
+                        title={t('notifications.sections.push')}
                         extra={
                             <View className="bg-blue-100 px-2.5 py-1 rounded-full">
-                                <Text className="text-[10px] font-bold text-blue-700 uppercase">Recommended</Text>
+                                <Text className="text-[10px] font-bold text-blue-700 uppercase">{t('notifications.recommended')}</Text>
                             </View>
                         }
                     />
@@ -96,8 +98,8 @@ export default function NotificationsSettingsScreen() {
                             icon={Banknote}
                             iconColor="#2563EB"
                             iconBg="bg-blue-50"
-                            title="Invoice Paid"
-                            subtitle="Get notified when you receive payments"
+                            title={t('notifications.invoice_paid')}
+                            subtitle={t('notifications.invoice_paid_desc')}
                             value={invoicePaid}
                             onToggle={setInvoicePaid}
                         />
@@ -106,8 +108,8 @@ export default function NotificationsSettingsScreen() {
                             icon={AlertTriangle}
                             iconColor="#EA580C"
                             iconBg="bg-orange-50"
-                            title="Overdue Reminders"
-                            subtitle="Alerts for unpaid client invoices"
+                            title={t('notifications.overdue_reminders')}
+                            subtitle={t('notifications.overdue_reminders_desc')}
                             value={overdueReminders}
                             onToggle={setOverdueReminders}
                         />
@@ -116,22 +118,22 @@ export default function NotificationsSettingsScreen() {
                             icon={MessageSquare}
                             iconColor="#9333EA"
                             iconBg="bg-purple-50"
-                            title="New Messages"
-                            subtitle="Direct messages from clients"
+                            title={t('notifications.new_messages')}
+                            subtitle={t('notifications.new_messages_desc')}
                             value={newMessages}
                             onToggle={setNewMessages}
                         />
                     </View>
 
                     {/* EMAIL UPDATES */}
-                    <SectionHeader title="EMAIL UPDATES" />
+                    <SectionHeader title={t('notifications.sections.email')} />
                     <View className="bg-white rounded-3xl mx-4 overflow-hidden mb-2 shadow-sm border border-slate-50">
                         <SettingsNotificationRow
                             icon={Mail}
                             iconColor="#4F46E5"
                             iconBg="bg-indigo-50"
-                            title="Weekly Summary"
-                            subtitle="Performance report every Monday"
+                            title={t('notifications.weekly_summary')}
+                            subtitle={t('notifications.weekly_summary_desc')}
                             value={weeklySummary}
                             onToggle={setWeeklySummary}
                         />
@@ -140,22 +142,22 @@ export default function NotificationsSettingsScreen() {
                             icon={Megaphone}
                             iconColor="#06B6D4" // Cyan
                             iconBg="bg-cyan-50"
-                            title="Product Updates"
-                            subtitle="News about QuickBill features"
+                            title={t('notifications.product_updates')}
+                            subtitle={t('notifications.product_updates_desc')}
                             value={productUpdates}
                             onToggle={setProductUpdates}
                         />
                     </View>
 
                     {/* SMS ALERTS */}
-                    <SectionHeader title="SMS ALERTS" />
+                    <SectionHeader title={t('notifications.sections.sms')} />
                     <View className="bg-white rounded-3xl mx-4 overflow-hidden mb-4 shadow-sm border border-slate-50">
                         <SettingsNotificationRow
                             icon={MessageCircle}
                             iconColor="#10B981" // Emerald
                             iconBg="bg-emerald-50"
-                            title="Urgent Security Alerts"
-                            subtitle="Login attempts from new devices"
+                            title={t('notifications.security_alerts')}
+                            subtitle={t('notifications.security_alerts_desc')}
                             value={urgentSecurityAlerts}
                             onToggle={setUrgentSecurityAlerts}
                         />
@@ -163,7 +165,7 @@ export default function NotificationsSettingsScreen() {
 
                     <View className="px-6 mb-10">
                         <Text className="text-slate-400 text-xs leading-5 text-center">
-                            SMS notifications may incur charges from your carrier. We only send critical security alerts via SMS by default.
+                            {t('notifications.sms_note')}
                         </Text>
                     </View>
 

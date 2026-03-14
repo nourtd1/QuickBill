@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send, AlertCircle, MoreHorizontal } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Clock, MessageCircle, Globe, Wallet, Copy, Send, AlertCircle, MoreHorizontal, MessageSquare } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
@@ -15,9 +15,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useTeamRole } from '../../hooks/useTeamRole';
 import { useInvoiceDetails } from '../../hooks/useInvoiceDetails';
 import { generateInvoiceHTML } from '../../lib/generate-html';
+import { generateWhatsAppLink } from '../../lib/whatsappService';
 import { showError } from '../../lib/error-handler';
+import { useLanguage } from '../../context/LanguageContext';
 import QRCode from 'qrcode';
 import ChatModal from '../../components/ChatModal';
+import { InvoiceDetailSkeleton } from '../../components/InvoiceDetailSkeleton';
 
 export default function InvoiceDetails() {
     const { id } = useLocalSearchParams();
@@ -28,6 +31,7 @@ export default function InvoiceDetails() {
     const [sharing, setSharing] = useState(false);
     const [chatVisible, setChatVisible] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const { t, language } = useLanguage();
 
     const { chat } = useLocalSearchParams();
 
@@ -74,8 +78,8 @@ export default function InvoiceDetails() {
         if (!profile || !profile.business_name) {
             await refreshProfile();
             Alert.alert(
-                "Profil requis",
-                "Vous devez configurer le nom de votre business avant de partager une facture."
+                t('invoice_details.profile_required'),
+                t('invoice_details.profile_required_msg')
             );
             return;
         }
@@ -86,10 +90,10 @@ export default function InvoiceDetails() {
             const items = invoice.items || [];
 
             const invoiceData = {
-                title: 'FACTURE',
+                title: language === 'fr-FR' ? 'FACTURE' : 'INVOICE',
                 invoiceNumber: invoice.invoice_number,
-                date: new Date(invoice.created_at).toLocaleDateString(),
-                customerName: customer?.name || "Client",
+                date: new Date(invoice.created_at).toLocaleDateString(language === 'fr-FR' ? 'fr-FR' : 'en-US'),
+                customerName: customer?.name || (language === 'fr-FR' ? 'Client' : 'Customer'),
                 businessName: profile.business_name || "Business",
                 businessPhone: profile.phone_contact || "",
                 currency: profile.currency || "RWF",
@@ -114,10 +118,10 @@ export default function InvoiceDetails() {
                 await Sharing.shareAsync(uri, {
                     UTI: '.pdf',
                     mimeType: 'application/pdf',
-                    dialogTitle: `Facture ${invoice.invoice_number}`
+                    dialogTitle: t('invoice_details.share_dialog', { number: invoice.invoice_number })
                 });
             } else {
-                Alert.alert("Succès", `PDF généré : ${uri}`);
+                Alert.alert(t('common.success'), t('invoice_details.pdf_generated', { uri }));
             }
         } catch (error) {
             showError(error);
@@ -131,43 +135,53 @@ export default function InvoiceDetails() {
         const customer = invoice.customer;
 
         if (!customer?.phone) {
-            Alert.alert("Info manquante", "Ajoutez un numéro de téléphone à ce client.");
+            Alert.alert(t('invoice_details.missing_info'), t('invoice_details.missing_phone'));
             return;
         }
 
-        const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
-        let message = profile.whatsapp_template || "Bonjour {client}, voici votre facture {numero} de {montant} {devise}.";
-        message = message
-            .replace('{client}', customer.name)
-            .replace('{numero}', invoice.invoice_number)
-            .replace('{montant}', invoice.total_amount.toLocaleString())
-            .replace('{devise}', profile.currency || 'RWF');
-
-        const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-
+        const publicUrl = `https://quickbill.app/public/invoice/${invoice.share_token}`;
+        
         try {
+            const { url, message } = await generateWhatsAppLink({
+                phone: customer.phone,
+                clientName: customer.name,
+                invoiceNumber: invoice.invoice_number,
+                amount: invoice.total_amount,
+                currency: profile.currency || (language === 'fr-FR' ? 'RWF' : 'USD'),
+                publicUrl,
+                template: profile.whatsapp_template,
+                defaultTemplate: t('invoice_details.whatsapp_template'),
+                locale: language
+            });
+
+            // Log the message for history
+            const { logWhatsAppMessage } = await import('../../lib/whatsappService');
+            await logWhatsAppMessage({
+                user_id: profile.id,
+                invoice_id: invoice.id,
+                client_id: customer.id,
+                message,
+                type: 'invoice_share'
+            });
+
             await Linking.openURL(url);
         } catch (error) {
-            Alert.alert("Erreur", "Impossible d'ouvrir WhatsApp.");
+            Alert.alert(t('common.error'), language === 'fr-FR' ? "Impossible d'ouvrir WhatsApp." : "Could not open WhatsApp.");
         }
     };
 
     const handleCopyWebLink = async () => {
         if (!invoice?.share_token) {
-            Alert.alert("Erreur", "Lien indisponible.");
+            Alert.alert(t('common.error'), t('invoice_details.link_unavailable'));
             return;
         }
         const publicUrl = `https://quickbill.app/public/invoice/${invoice.share_token}`;
         await Clipboard.setStringAsync(publicUrl);
-        Alert.alert("Lien copié !", "Vous pouvez l'envoyer à votre client.");
+        Alert.alert(t('invoice_details.link_copied'), t('invoice_details.link_copied_msg'));
     };
 
     if (loading || !invoice) {
-        return (
-            <View className="flex-1 items-center justify-center bg-slate-50">
-                <ActivityIndicator size="large" color="#1E40AF" />
-            </View>
-        );
+        return <InvoiceDetailSkeleton />;
     }
 
     const isPaid = invoice.status === 'PAID';
@@ -192,15 +206,15 @@ export default function InvoiceDetails() {
                     >
                         <ArrowLeft size={20} color="white" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-black text-white tracking-tight">Détails</Text>
+                    <Text className="text-xl font-black text-white tracking-tight">{t('invoice_details.title')}</Text>
 
                     {(isAdmin || isOwner) ? (
                         <TouchableOpacity
                             onPress={() => {
-                                Alert.alert("Options de la Facture", "Que voulez-vous faire ?", [
-                                    { text: "Annuler", style: "cancel" },
+                                Alert.alert(t('invoice_details.delete_confirm'), t('invoice_details.delete_msg'), [
+                                    { text: t('invoice_details.cancel'), style: "cancel" },
                                     {
-                                        text: "Supprimer", style: "destructive", onPress: async () => {
+                                        text: t('invoice_details.delete'), style: "destructive", onPress: async () => {
                                             const { error } = await supabase.from('invoices').delete().eq('id', id);
                                             if (error) showError(error);
                                             else {
@@ -226,7 +240,7 @@ export default function InvoiceDetails() {
                 >
                     {/* Invoice Number & Status */}
                     <View className="items-center mb-6">
-                        <Text className="text-white/80 text-sm font-medium uppercase tracking-widest mb-1">Facture N°</Text>
+                        <Text className="text-white/80 text-sm font-medium uppercase tracking-widest mb-1">{t('invoice_details.invoice_no')}</Text>
                         <Text className="text-white text-2xl font-black tracking-tight">{invoice.invoice_number}</Text>
                     </View>
 
@@ -244,10 +258,10 @@ export default function InvoiceDetails() {
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
-                                            État du paiement
+                                            {t('invoice_details.payment_status')}
                                         </Text>
                                         <Text className={`text-lg font-bold ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                            {isPaid ? 'Payée' : 'En attente'}
+                                            {isPaid ? t('invoice_details.paid') : t('invoice_details.pending')}
                                         </Text>
                                     </View>
                                 </View>
@@ -267,10 +281,10 @@ export default function InvoiceDetails() {
                         <View className="bg-amber-50 p-5 rounded-3xl border border-amber-100 mb-6">
                             <View className="flex-row items-center mb-3">
                                 <AlertCircle size={20} color="#D97706" />
-                                <Text className="text-amber-900 font-black text-lg ml-2">Approbation Requise</Text>
+                                <Text className="text-amber-900 font-black text-lg ml-2">{t('invoice_details.approval_required')}</Text>
                             </View>
                             <Text className="text-amber-700/80 text-sm font-medium mb-4">
-                                Cette facture a été créée par un vendeur et nécessite votre validation avant d'être envoyée.
+                                {t('invoice_details.approval_desc')}
                             </Text>
                             <View className="flex-row gap-3">
                                 <TouchableOpacity
@@ -278,23 +292,23 @@ export default function InvoiceDetails() {
                                         const { error } = await supabase.from('invoices').update({ status: 'UNPAID' }).eq('id', id);
                                         if (error) showError(error);
                                         else {
-                                            Alert.alert("Validée", "La facture est prête à être envoyée.");
-                                            router.replace('/(tabs)/invoices'); // Refresh by navigating or just let realtime/hook handle it? Hook might not listen real time.
+                                            Alert.alert(t('common.success'), t('invoice_details.validated_msg'));
+                                            router.replace('/(tabs)/invoices');
                                         }
                                     }}
                                     className="flex-1 bg-emerald-500 py-3 rounded-xl items-center shadow-lg shadow-emerald-200"
                                 >
-                                    <Text className="text-white font-black uppercase tracking-wider text-xs">Valider</Text>
+                                    <Text className="text-white font-black uppercase tracking-wider text-xs">{t('invoice_details.validate')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={async () => {
                                         const { error } = await supabase.from('invoices').update({ status: 'REJECTED' }).eq('id', id);
                                         if (error) showError(error);
-                                        else Alert.alert("Rejetée", "La facture a été rejetée.");
+                                        else Alert.alert(t('common.success'), t('invoice_details.rejected_msg'));
                                     }}
                                     className="flex-1 bg-white border border-red-200 py-3 rounded-xl items-center"
                                 >
-                                    <Text className="text-red-500 font-black uppercase tracking-wider text-xs">Rejeter</Text>
+                                    <Text className="text-red-500 font-black uppercase tracking-wider text-xs">{t('invoice_details.reject')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -303,7 +317,7 @@ export default function InvoiceDetails() {
                     {invoice.status === 'PENDING_APPROVAL' && !isAdmin && !isOwner && (
                         <View className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-6 flex-row items-center">
                             <Clock size={20} color="#2563EB" />
-                            <Text className="text-blue-800 font-bold ml-3 flex-1">En attente de validation par un manager.</Text>
+                            <Text className="text-blue-800 font-bold ml-3 flex-1">{t('invoice_details.pending_manager')}</Text>
                         </View>
                     )}
 
@@ -313,16 +327,16 @@ export default function InvoiceDetails() {
                         <View className="p-6 bg-slate-50 border-b border-slate-100">
                             <View className="flex-row justify-between items-start">
                                 <View>
-                                    <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Client</Text>
-                                    <Text className="text-xl font-bold text-slate-900">{invoice.customer?.name || 'Client Inconnu'}</Text>
+                                    <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">{t('invoice_details.client')}</Text>
+                                    <Text className="text-xl font-bold text-slate-900">{invoice.customer?.name || t('invoice_details.client_unknown')}</Text>
                                     {invoice.customer?.phone && (
                                         <Text className="text-slate-500 text-sm mt-1">{invoice.customer.phone}</Text>
                                     )}
                                 </View>
                                 <View className="items-end">
-                                    <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Date</Text>
+                                    <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">{t('invoice_details.date')}</Text>
                                     <Text className="text-base font-semibold text-slate-700">
-                                        {new Date(invoice.created_at).toLocaleDateString()}
+                                        {new Date(invoice.created_at).toLocaleDateString(language === 'fr-FR' ? 'fr-FR' : 'en-US')}
                                     </Text>
                                 </View>
                             </View>
@@ -330,15 +344,15 @@ export default function InvoiceDetails() {
 
                         {/* Items List */}
                         <View className="p-6">
-                            <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-4">Articles</Text>
+                            <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-4">{t('invoice_details.items')}</Text>
                             {(invoice.items || []).map((item, idx) => (
                                 <View key={idx} className="flex-row justify-between items-center mb-4 last:mb-0">
                                     <View className="flex-1 mr-4">
                                         <Text className="text-slate-800 font-semibold text-base mb-0.5">{item.description}</Text>
-                                        <Text className="text-slate-400 text-xs">Qté: {item.quantity} × {item.unit_price.toLocaleString()}</Text>
+                                        <Text className="text-slate-400 text-xs">{t('invoice_details.qte')}: {item.quantity} × {item.unit_price.toLocaleString(language === 'fr-FR' ? 'fr-FR' : 'en-US')}</Text>
                                     </View>
                                     <Text className="text-slate-900 font-bold text-base">
-                                        {(item.quantity * item.unit_price).toLocaleString()}
+                                        {(item.quantity * item.unit_price).toLocaleString(language === 'fr-FR' ? 'fr-FR' : 'en-US')}
                                     </Text>
                                 </View>
                             ))}
@@ -348,15 +362,47 @@ export default function InvoiceDetails() {
 
                             {/* Total Section */}
                             <View className="flex-row justify-between items-center">
-                                <Text className="text-slate-500 font-medium text-lg">Total à payer</Text>
+                                <Text className="text-slate-500 font-medium text-lg">{t('invoice_details.total_to_pay')}</Text>
                                 <View className="items-end">
                                     <Text className="text-3xl font-black text-primary">
-                                        {invoice.total_amount.toLocaleString()}
+                                        {invoice.total_amount.toLocaleString(language === 'fr-FR' ? 'fr-FR' : 'en-US')}
                                     </Text>
                                     <Text className="text-slate-400 text-sm font-semibold">{currency}</Text>
                                 </View>
                             </View>
                         </View>
+                    </View>
+
+                    {/* WhatsApp History Section */}
+                    <View className="bg-white rounded-3xl p-6 shadow-sm mb-6 border border-slate-100">
+                        <View className="flex-row items-center mb-4">
+                            <View className="w-8 h-8 bg-emerald-100 rounded-lg items-center justify-center mr-3">
+                                <MessageSquare size={16} color="#059669" />
+                            </View>
+                            <Text className="text-slate-800 font-bold text-base">{t('invoice_details.whatsapp_history')}</Text>
+                        </View>
+
+                        {(invoice as any).whatsapp_history && (invoice as any).whatsapp_history.length > 0 ? (
+                            (invoice as any).whatsapp_history.map((msg: any, idx: number) => (
+                                <View key={msg.id || idx} className={`p-4 rounded-2xl bg-slate-50 mb-3 last:mb-0 border border-slate-100 ${language === 'ar-SA' ? 'items-end' : 'items-start'}`}>
+                                    <Text className={`text-slate-700 text-xs font-medium mb-2 ${language === 'ar-SA' ? 'text-right' : 'text-left'}`}>
+                                        {msg.message}
+                                    </Text>
+                                    <View className="flex-row justify-between w-full mt-1">
+                                        <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                                            {msg.type === 'reminder' ? '📅 RAPPEL' : '📤 ENVOI'}
+                                        </Text>
+                                        <Text className="text-slate-400 text-[10px] font-medium">
+                                            {new Date(msg.created_at).toLocaleString(language === 'fr-FR' ? 'fr-FR' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))
+                        ) : (
+                            <View className="items-center py-6">
+                                <Text className="text-slate-400 text-sm font-medium italic">{t('invoice_details.no_history')}</Text>
+                            </View>
+                        )}
                     </View>
 
                 </ScrollView>

@@ -8,14 +8,20 @@ export interface LocalInvoice {
     user_id: string;
     customer_id: string | null;
     invoice_number: string;
-    status: 'draft' | 'sent' | 'paid' | 'overdue';
+    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'PAID' | 'UNPAID' | 'SENT' | 'DRAFT' | 'OVERDUE' | 'PENDING_APPROVAL' | 'REJECTED';
     currency: string;
     exchange_rate: number;
     subtotal: number;
     tax_rate: number;
+    tax_amount: number;
+    discount: number;
     total_amount: number;
+    issue_date: string | null;
     due_date: string | null;
+    notes?: string | null;
+    terms?: string | null;
     public_link_token?: string | null;
+    share_token?: string | null;
     created_at: string;
     updated_at: string;
     sync_status: 'synced' | 'pending' | 'error';
@@ -80,9 +86,10 @@ export const saveInvoiceLocally = async (
     await db.runAsync(
         `INSERT INTO invoices (
       id, user_id, customer_id, invoice_number, status, currency, exchange_rate, 
-      subtotal, tax_rate, total_amount, due_date, public_link_token, 
+      subtotal, tax_rate, tax_amount, discount, total_amount, issue_date, due_date, 
+      notes, terms, public_link_token, share_token, 
       sync_status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             invoiceId,
             invoiceData.user_id,
@@ -93,9 +100,15 @@ export const saveInvoiceLocally = async (
             invoiceData.exchange_rate,
             invoiceData.subtotal,
             invoiceData.tax_rate,
+            invoiceData.tax_amount || 0,
+            invoiceData.discount || 0,
             invoiceData.total_amount,
+            invoiceData.issue_date || now.split('T')[0],
             invoiceData.due_date,
+            invoiceData.notes || null,
+            invoiceData.terms || null,
             invoiceData.public_link_token || null,
+            invoiceData.share_token || invoiceData.public_link_token || null,
             'pending',
             now,
             now
@@ -197,16 +210,51 @@ export const getAllInvoicesLocal = async (userId: string) => {
  * Save a new client locally
  */
 export const saveClientLocally = async (
-    clientData: { user_id: string; name: string; email?: string; phone?: string; address?: string }
+    clientData: { 
+        user_id: string; 
+        name: string; 
+        email?: string; 
+        phone?: string; 
+        address?: string;
+        notes?: string;
+        registration_number?: string;
+        industry?: string;
+        contact_person?: string;
+        tax_id?: string;
+        currency?: string;
+        logo_url?: string;
+        portal_token?: string;
+    }
 ): Promise<string> => {
     const db = await getDBConnection();
     const id = generateUUID();
     const now = new Date().toISOString();
 
     await db.runAsync(
-        `INSERT INTO clients (id, user_id, name, email, phone, address, sync_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-        [id, clientData.user_id, clientData.name, clientData.email || null, clientData.phone || null, clientData.address || null, now, now]
+        `INSERT INTO clients (
+            id, user_id, name, email, phone, address, notes, 
+            registration_number, industry, contact_person, tax_id, 
+            currency, logo_url, portal_token, sync_status, created_at, updated_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        [
+            id, 
+            clientData.user_id, 
+            clientData.name, 
+            clientData.email || null, 
+            clientData.phone || null, 
+            clientData.address || null,
+            clientData.notes || null,
+            clientData.registration_number || null,
+            clientData.industry || null,
+            clientData.contact_person || null,
+            clientData.tax_id || null,
+            clientData.currency || 'USD',
+            clientData.logo_url || null,
+            clientData.portal_token || null,
+            now, 
+            now
+        ]
     );
 
     return id;

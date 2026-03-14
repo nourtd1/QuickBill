@@ -6,7 +6,8 @@ import {
     ScrollView,
     Image,
     Alert,
-    Dimensions
+    Dimensions,
+    Linking
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -228,9 +229,9 @@ export default function ProAccessScreen() {
 
                 {/* Footer Links */}
                 <View className="flex-row justify-center items-center space-x-4 mb-4">
-                    <TouchableOpacity><Text className="text-slate-400 dark:text-slate-500 text-[10px] font-bold">Terms of Service</Text></TouchableOpacity>
-                    <TouchableOpacity><Text className="text-[#A855F7] dark:text-purple-400 text-[10px] font-bold">Restore Purchase</Text></TouchableOpacity>
-                    <TouchableOpacity><Text className="text-slate-400 dark:text-slate-500 text-[10px] font-bold">Privacy Policy</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://quickbill.com/terms')}><Text className="text-slate-400 dark:text-slate-500 text-[10px] font-bold">Terms of Service</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => Alert.alert("Restore Purchase", "Searching for previous purchases...")}><Text className="text-[#A855F7] dark:text-purple-400 text-[10px] font-bold">Restore Purchase</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://quickbill.com/privacy')}><Text className="text-slate-400 dark:text-slate-500 text-[10px] font-bold">Privacy Policy</Text></TouchableOpacity>
                 </View>
 
             </ScrollView>

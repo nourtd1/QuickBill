@@ -41,6 +41,7 @@ import { COLORS } from '../../constants/colors';
 import { useColorScheme } from 'nativewind';
 import { sendEmailChangeVerification } from '../../lib/email';
 import { supabase } from '../../lib/supabase';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Country Codes - African countries first, then rest of the world
 const COUNTRY_CODES = [
@@ -154,6 +155,7 @@ export default function ProfileScreen() {
     const { user } = useAuth();
     const { profile, loading: profileLoading, fetchProfile, updateProfile } = useProfile();
     const { colorScheme } = useColorScheme();
+    const { t, language } = useLanguage();
 
     const [fullName, setFullName] = useState('');
     const [countryCode, setCountryCode] = useState('+250'); // Default to Rwanda
@@ -205,7 +207,7 @@ export default function ProfileScreen() {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (permissionResult.granted === false) {
-            Alert.alert("Permission Required", "Please allow gallery access to change avatar.");
+            Alert.alert(t('personal_info.permission_required'), t('personal_info.permission_msg'));
             return;
         }
 
@@ -226,9 +228,9 @@ export default function ProfileScreen() {
         try {
             const publicUrl = await uploadImage(uri, 'avatars');
             setAvatarUrl(publicUrl);
-            showSuccess('Avatar uploaded successfully');
+            showSuccess(t('personal_info.upload_success'));
         } catch (error: any) {
-            showError(error, 'Upload failed');
+            showError(error, t('personal_info.upload_error'));
         } finally {
             setUploading(false);
         }
@@ -236,7 +238,7 @@ export default function ProfileScreen() {
 
     const handleSave = async () => {
         if (!fullName.trim()) {
-            Alert.alert('Error', 'Name cannot be empty');
+            Alert.alert(t('personal_info.error_title'), t('personal_info.empty_name'));
             return;
         }
 
@@ -246,7 +248,7 @@ export default function ProfileScreen() {
         if (fullPhoneNumber) {
             const phoneValidation = validatePhone(fullPhoneNumber);
             if (!phoneValidation.isValid) {
-                Alert.alert('Error', phoneValidation.error);
+                Alert.alert(t('personal_info.error_title'), phoneValidation.error);
                 return;
             }
         }
@@ -260,13 +262,13 @@ export default function ProfileScreen() {
             });
 
             if (error) {
-                showError(error, "Update Failed");
+                showError(error, t('personal_info.update_error'));
             } else {
-                showSuccess("Profile Updated!");
+                showSuccess(t('personal_info.update_success'));
                 router.back();
             }
         } catch (error) {
-            showError(error, "Update Failed");
+            showError(error, t('personal_info.update_error'));
         } finally {
             setSaving(false);
         }
@@ -274,26 +276,23 @@ export default function ProfileScreen() {
 
     const handleEmailChange = () => {
         Alert.prompt(
-            "Changer d'Email",
-            "Entrez votre nouvelle adresse email. Nous vous enverrons un code de confirmation via EmailJS.",
+            t('personal_info.change_email.title'),
+            t('personal_info.change_email.desc'),
             [
-                { text: "Annuler", style: "cancel" },
+                { text: t('common.cancel'), style: "cancel" },
                 {
-                    text: "Envoyer",
+                    text: t('personal_info.change_email.send'),
                     onPress: async (newEmail?: string) => {
                         if (newEmail && newEmail.includes('@')) {
                             const code = Math.floor(100000 + Math.random() * 900000).toString();
                             await sendEmailChangeVerification(newEmail, code);
 
-                            // Optionally, update supabase email (disabled in demo to not break dev login)
-                            /* 
-                            const { error } = await supabase.auth.updateUser({ email: newEmail });
-                            if (error) Alert.alert("Erreur", error.message);
-                            */
-
-                            Alert.alert('Vérification Envoyée', `Nous avons simulé l'envoi du code (\${code}) à \${newEmail}.`);
+                            Alert.alert(
+                                t('personal_info.change_email.verification_sent'),
+                                t('personal_info.change_email.simulation_msg', { code, email: newEmail })
+                            );
                         } else {
-                            Alert.alert('Erreur', 'Email invalide');
+                            Alert.alert(t('personal_info.error_title'), t('personal_info.change_email.invalid_email'));
                         }
                     }
                 }
@@ -328,7 +327,7 @@ export default function ProfileScreen() {
                     >
                         <ArrowLeft size={20} color={colorScheme === 'dark' ? '#F8FAFC' : '#1E293B'} />
                     </TouchableOpacity>
-                    <Text className="text-lg font-bold text-slate-900 dark:text-white">Personal Info</Text>
+                    <Text className="text-lg font-bold text-slate-900 dark:text-white">{t('personal_info.title')}</Text>
                     <View style={{ width: 40 }} />
                 </View>
 
@@ -396,7 +395,7 @@ export default function ProfileScreen() {
                             <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 rounded-full mt-1 border border-blue-100 dark:border-blue-800/30">
                                 <BadgeCheck size={14} color="#2563EB" style={{ marginRight: 6 }} />
                                 <Text className="text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">
-                                    Business Profile
+                                    {t('personal_info.business_profile')}
                                 </Text>
                             </View>
                         </View>
@@ -406,7 +405,7 @@ export default function ProfileScreen() {
                             {/* Full Name */}
                             <View>
                                 <Text className="text-xs font-bold uppercase tracking-wider mb-2 ml-1 text-slate-500 dark:text-slate-400">
-                                    Full Name
+                                    {t('personal_info.full_name')}
                                 </Text>
                                 <View className="flex-row items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 shadow-sm">
                                     <User size={20} color={colorScheme === 'dark' ? '#64748B' : '#64748B'} style={{ marginRight: 12 }} />
@@ -424,11 +423,11 @@ export default function ProfileScreen() {
                             <View className="mt-6">
                                 <View className="flex-row items-center justify-between mb-2 ml-1">
                                     <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                        Email Address
+                                        {t('personal_info.email_address')}
                                     </Text>
                                     <TouchableOpacity onPress={handleEmailChange}>
                                         <Text className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                            Modifier
+                                            {t('personal_info.modify_btn')}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
@@ -444,14 +443,14 @@ export default function ProfileScreen() {
                                     <Shield size={16} color={colorScheme === 'dark' ? '#64748B' : '#64748B'} />
                                 </View>
                                 <Text className="text-[10px] mt-1.5 ml-1 text-slate-400 dark:text-slate-500">
-                                    Cet email est sécurisé. Cliquez sur "Modifier" pour le changer avec vérification.
+                                    {t('personal_info.security_note')}
                                 </Text>
                             </View>
 
                             {/* Phone Number with Country Code Selector */}
                             <View className="mt-6">
                                 <Text className="text-xs font-bold uppercase tracking-wider mb-2 ml-1 text-slate-500 dark:text-slate-400">
-                                    Phone Number
+                                    {t('personal_info.phone_number')}
                                 </Text>
                                 <View className="flex-row items-center space-x-2">
                                     {/* Country Code Selector */}
@@ -487,12 +486,12 @@ export default function ProfileScreen() {
                             {/* Account Created - Info Only */}
                             <View className="mt-6 mb-8">
                                 <Text className="text-xs font-bold uppercase tracking-wider mb-2 ml-1 text-slate-500 dark:text-slate-400">
-                                    Joined Date
+                                    {t('personal_info.joined_date')}
                                 </Text>
                                 <View className="flex-row items-center bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 opacity-80">
                                     <Calendar size={20} color={colorScheme === 'dark' ? '#64748B' : '#64748B'} style={{ marginRight: 12 }} />
                                     <Text className="flex-1 font-medium text-base text-slate-600 dark:text-slate-400">
-                                        {new Date(user?.created_at || Date.now()).toLocaleDateString(undefined, {
+                                        {new Date(user?.created_at || Date.now()).toLocaleDateString(language === 'fr-FR' ? 'fr-FR' : 'en-US', {
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric'
@@ -517,7 +516,7 @@ export default function ProfileScreen() {
                         ) : (
                             <>
                                 <Save size={20} color="white" style={{ marginRight: 8 }} />
-                                <Text className="text-white font-bold text-lg">Save Changes</Text>
+                                <Text className="text-white font-bold text-lg">{t('personal_info.save_btn')}</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -536,7 +535,7 @@ export default function ProfileScreen() {
                         {/* Modal Header */}
                         <View className="flex-row items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
                             <Text className="text-xl font-bold text-slate-900 dark:text-white">
-                                Select Country Code
+                                {t('personal_info.country_modal.title')}
                             </Text>
                             <TouchableOpacity
                                 onPress={() => {
@@ -555,7 +554,7 @@ export default function ProfileScreen() {
                                 <Search size={18} color={colorScheme === 'dark' ? '#94A3B8' : '#94A3B8'} style={{ marginRight: 8 }} />
                                 <TextInput
                                     className="flex-1 text-base text-slate-800 dark:text-white"
-                                    placeholder="Search country or code..."
+                                    placeholder={t('personal_info.country_modal.search_placeholder')}
                                     placeholderTextColor={colorScheme === 'dark' ? '#94A3B8' : '#94A3B8'}
                                     value={countrySearchQuery}
                                     onChangeText={setCountrySearchQuery}

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
+import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,7 +26,9 @@ import {
     MessageCircleQuestion,
     LogOut,
     ChevronRight,
-    Crown
+    Crown,
+    MessageSquare,
+    TrendingUp
 } from 'lucide-react-native';
 
 const ICON_SIZE = 20;
@@ -34,6 +37,7 @@ export default function SettingsScreen() {
     const router = useRouter();
     const { signOut, user } = useAuth();
     const { profile, updateProfile, fetchProfile } = useProfile();
+    const { t } = useLanguage();
     const { colorScheme } = useColorScheme();
     const insets = useSafeAreaInsets();
     const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
@@ -52,7 +56,7 @@ export default function SettingsScreen() {
             }
         } catch (error) {
             console.error('Error starting image picker:', error);
-            Alert.alert('Erreur', 'Impossible de lancer la galerie d\'images.');
+            Alert.alert(t('settings.alert_error'), t('settings.gallery_error'));
         }
     };
 
@@ -67,10 +71,10 @@ export default function SettingsScreen() {
             const { error: updateError } = await updateProfile({ logo_url: publicUrl });
             if (updateError) throw updateError;
 
-            Alert.alert("Succès", "Photo de profil mise à jour avec succès.");
+            Alert.alert(t('common.success'), t('settings.avatar_success'));
         } catch (error: any) {
             console.error('Error uploading image:', error);
-            Alert.alert("Erreur", "Le téléchargement a échoué. Vérifiez votre connexion et vos permissions.");
+            Alert.alert(t('settings.alert_error'), t('settings.upload_failed'));
         } finally {
             setUploadingAvatar(false);
         }
@@ -187,7 +191,7 @@ export default function SettingsScreen() {
             <View className="flex-1">
                 {/* Header */}
                 <View className="flex-row justify-between items-center px-6 pt-2 pb-4">
-                    <Text className="text-3xl font-extrabold text-slate-900 dark:text-white">Settings</Text>
+                    <Text className="text-3xl font-extrabold text-slate-900 dark:text-white">{t('settings.title')}</Text>
                     <TouchableOpacity
                         onPress={() => router.push('/settings/help')}
                         className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full items-center justify-center shadow-sm"
@@ -254,91 +258,112 @@ export default function SettingsScreen() {
                         <View className="flex-row items-center bg-[#1337ec]/10 dark:bg-[#1337ec]/20 px-3 py-1 rounded-full mt-2">
                             <BadgeCheck size={12} color={colorScheme === 'dark' ? '#93C5FD' : '#1337ec'} style={{ marginRight: 4 }} />
                             <Text className="text-[#1337ec] dark:text-blue-300 text-xs font-bold uppercase tracking-wide">
-                                Premium Member
+                                {t('settings.pro_badge')}
                             </Text>
                         </View>
                     </View>
 
                     {/* Group: Account */}
-                    <Section title="Account">
+                    <Section title={t('settings.account')}>
                         <SettingItemWithColor
                             icon={Crown}
                             bgClass="bg-amber-100" // using amber/gold for premium feel
                             textTwColor="text-amber-600" // needs helper support or use hex in helper
-                            label="Pro Access"
+                            label={t('settings.pro_access')}
                             onPress={() => router.push('/settings/subscription')}
                         />
                         <SettingItemWithColor
                             icon={User}
                             bgClass="bg-blue-50"
                             textTwColor="text-blue-600"
-                            label="Personal Info"
+                            label={t('settings.personal_info')}
                             onPress={() => router.push('/settings/personal-info')}
                         />
                         <SettingItemWithColor
                             icon={Lock}
                             bgClass="bg-purple-50"
                             textTwColor="text-purple-600"
-                            label="Security"
+                            label={t('settings.security')}
                             onPress={() => router.push('/settings/security')}
                         />
                         <SettingItemWithColor
                             icon={Bell}
                             bgClass="bg-orange-50"
                             textTwColor="text-orange-600"
-                            label="Notifications"
+                            label={t('settings.notifications')}
                             isLast
                             onPress={() => router.push('/settings/notifications')}
                         />
                     </Section>
 
                     {/* Group: Business */}
-                    <Section title="Business">
+                    <Section title={t('settings.business')}>
                         <SettingItemWithColor
                             icon={Briefcase}
                             bgClass="bg-indigo-50"
                             textTwColor="text-indigo-600"
-                            label="Business Profile"
+                            label={t('settings.business_profile')}
                             onPress={() => router.push('/settings/business')}
                         />
                         <SettingItemWithColor
                             icon={Receipt}
                             bgClass="bg-emerald-50"
                             textTwColor="text-emerald-600"
-                            label="Tax Settings"
+                            label={t('settings.tax_settings')}
                             onPress={() => router.push('/settings/tax')}
                         />
                         <SettingItemWithColor
                             icon={CreditCard}
                             bgClass="bg-cyan-50"
                             textTwColor="text-cyan-600"
-                            label="Payment Methods"
-                            isLast
+                            label={t('settings.payment_methods')}
                             onPress={() => router.push('/settings/payment')}
+                        />
+                        <SettingItemWithColor
+                            icon={MessageSquare}
+                            bgClass="bg-emerald-50"
+                            textTwColor="text-emerald-600"
+                            label={t('whatsapp_settings.title')}
+                            onPress={() => router.push('/settings/whatsapp')}
+                        />
+                        <SettingItemWithColor
+                            icon={TrendingUp}
+                            bgClass="bg-emerald-50"
+                            textTwColor="text-emerald-600"
+                            label="WhatsApp Stats"
+                            onPress={() => router.push('/stats/whatsapp')}
+                        />
+                        <SettingItemWithColor
+                            icon={Bell}
+                            bgClass="bg-blue-50"
+                            textTwColor="text-blue-600"
+                            label={t('reminders.title')}
+                            isLast
+                            onPress={() => router.push('/settings/reminders')}
                         />
                     </Section>
 
                     {/* Group: App */}
-                    <Section title="App">
+                    <Section title={t('settings.app')}>
                         <SettingItemWithColor
                             icon={Moon}
                             bgClass="bg-slate-100"
                             textTwColor="text-slate-600"
-                            label="Theme"
+                            label={t('settings.theme')}
                             onPress={() => router.push('/settings/theme')}
                         />
                         <SettingItemWithColor
                             icon={Globe}
                             bgClass="bg-sky-50"
                             textTwColor="text-sky-600"
-                            label="Language"
+                            label={t('settings.language')}
                             onPress={() => router.push('/settings/language')}
                         />
                         <SettingItemWithColor
                             icon={MessageCircleQuestion}
                             bgClass="bg-teal-50"
                             textTwColor="text-teal-600"
-                            label="Help & Support"
+                            label={t('settings.help_support')}
                             isLast
                             onPress={() => router.push('/settings/help')}
                         />
@@ -350,7 +375,7 @@ export default function SettingsScreen() {
                         className="bg-red-50 dark:bg-red-900/20 flex-row items-center justify-center p-4 rounded-2xl mb-8"
                     >
                         <LogOut size={20} color="#DC2626" style={{ marginRight: 8 }} />
-                        <Text className="text-red-600 dark:text-red-400 font-bold text-base">Log Out</Text>
+                        <Text className="text-red-600 dark:text-red-400 font-bold text-base">{t('settings.log_out')}</Text>
                     </TouchableOpacity>
 
                     <Text className="text-center text-slate-300 dark:text-slate-600 text-xs font-medium pb-8">

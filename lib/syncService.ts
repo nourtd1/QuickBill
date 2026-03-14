@@ -37,7 +37,7 @@ const prepareForCloud = (row: any) => {
  */
 export const syncLocalChanges = async () => {
     const db = await getDBConnection();
-    console.log('🔄 Starting PUSH sync...');
+    if (__DEV__) console.log('🔄 Starting PUSH sync...');
 
     for (const table of SYNC_TABLES) {
         try {
@@ -46,7 +46,7 @@ export const syncLocalChanges = async () => {
 
             if (pendingRows.length === 0) continue;
 
-            console.log(`📤 Pushing ${pendingRows.length} rows to ${table}`);
+            if (__DEV__) console.log(`📤 Pushing ${pendingRows.length} rows to ${table}`);
 
             // Process in batches or one-by-one? 
             // Upsert supports batch. Let's do batch for performance.
@@ -75,7 +75,7 @@ export const syncLocalChanges = async () => {
                     `UPDATE ${table} SET sync_status = 'synced' WHERE id IN (${placeholders})`,
                     ...ids
                 );
-                console.log(`✅ Synced ${table} successfully`);
+                if (__DEV__) console.log(`✅ Synced ${table} successfully`);
             }
         } catch (e) {
             console.error(`❌ Critical error pushing ${table}`, e);
@@ -88,7 +88,7 @@ export const syncLocalChanges = async () => {
  */
 export const fetchRemoteChanges = async () => {
     const db = await getDBConnection();
-    console.log('🔄 Starting PULL sync...');
+    if (__DEV__) console.log('🔄 Starting PULL sync...');
 
     const newSyncTime = new Date().toISOString(); // Capture start time
     const fallbackSyncDate = getFallbackSyncDate();
@@ -129,28 +129,32 @@ export const fetchRemoteChanges = async () => {
             }
 
             if (data && data.length > 0) {
-                console.log(`📥 Received ${data.length} updates for ${table}`);
+                if (__DEV__) console.log(`📥 Received ${data.length} updates for ${table}`);
 
-                // Insert or Replace into Local SQLite
-                for (const row of data) {
-                    const columns = Object.keys(row);
-                    // Add sync_status = 'synced' because it comes from cloud
-                    const columnsWithSync = [...columns, 'sync_status'];
-                    const values = Object.values(row);
-                    const valuesWithSync = [...values, 'synced'];
+                // Disable FK during pull so invoices can sync before their clients exist locally
+                await db.execAsync('PRAGMA foreign_keys = OFF;');
 
-                    const placeholders = valuesWithSync.map(() => '?').join(',');
-                    const updateSet = columns.map(c => `${c} = excluded.${c}`).join(', ');
+                try {
+                    for (const row of data) {
+                        const columns = Object.keys(row);
+                        const columnsWithSync = [...columns, 'sync_status'];
+                        const values = Object.values(row);
+                        const valuesWithSync = [...values, 'synced'];
 
-                    const sql = `
+                        const placeholders = valuesWithSync.map(() => '?').join(',');
+                        const updateSet = columns.map((c: string) => `${c} = excluded.${c}`).join(', ');
+
+                        const sql = `
             INSERT INTO ${table} (${columnsWithSync.join(', ')})
             VALUES (${placeholders})
             ON CONFLICT(id) DO UPDATE SET
             ${updateSet},
             sync_status = 'synced';
           `;
-
-                    await db.runAsync(sql, ...(valuesWithSync as any[]));
+                        await db.runAsync(sql, ...(valuesWithSync as any[]));
+                    }
+                } finally {
+                    await db.execAsync('PRAGMA foreign_keys = ON;');
                 }
             }
 
@@ -180,7 +184,7 @@ export const runSynchronization = async () => {
         // 1. Check Auth (we need user_id typically, but RLS handles it on Supabase side)
         const session = await supabase.auth.getSession();
         if (!session.data.session) {
-            console.log('⏹️ Sync skipped: No active session');
+            if (__DEV__) console.log('⏹️ Sync skipped: No active session');
             return;
         }
 
@@ -190,7 +194,7 @@ export const runSynchronization = async () => {
         // 3. Pull Remote Changes
         await fetchRemoteChanges();
 
-        console.log('✅ Synchronization completed');
+        if (__DEV__) console.log('✅ Synchronization completed');
     } catch (error) {
         console.error('❌ Synchronization failed:', error);
         throw error;

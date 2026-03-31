@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { runSynchronization } from '../lib/syncService';
 import { AppState, AppStateStatus } from 'react-native';
@@ -8,10 +8,19 @@ export const useSync = () => {
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(0); // For future granular progress support
 
+    const isSyncingRef = useRef(false);
+    const lastAutoSyncAtRef = useRef<number>(0);
+    const AUTO_SYNC_COOLDOWN_MS = 15000;
+
     // Function to manually trigger sync
     const startSync = useCallback(async () => {
-        if (isSyncing) return;
+        if (isSyncingRef.current || isSyncing) return;
 
+        const now = Date.now();
+        if (now - lastAutoSyncAtRef.current < AUTO_SYNC_COOLDOWN_MS) return;
+        lastAutoSyncAtRef.current = now;
+
+        isSyncingRef.current = true;
         setIsSyncing(true);
         setError(null);
         setProgress(0.1);
@@ -31,6 +40,7 @@ export const useSync = () => {
             setError(e.message || 'Sync failed');
         } finally {
             setIsSyncing(false);
+            isSyncingRef.current = false;
         }
     }, [isSyncing]);
 

@@ -150,7 +150,7 @@ export default function NewEstimate() {
                     user_id: user?.id,
                     customer_id: selectedClient.id,
                     estimate_number: estimateNumber,
-                    status: 'DRAFT',
+                    status: 'draft',
                     total_amount: total,
                     currency: profile?.currency || 'RWF'
                 })

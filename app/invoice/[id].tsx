@@ -184,7 +184,7 @@ export default function InvoiceDetails() {
         return <InvoiceDetailSkeleton />;
     }
 
-    const isPaid = invoice.status === 'PAID';
+    const isPaid = invoice.status === 'paid';
     const currency = profile?.currency || 'RWF';
 
     return (
@@ -289,7 +289,7 @@ export default function InvoiceDetails() {
                             <View className="flex-row gap-3">
                                 <TouchableOpacity
                                     onPress={async () => {
-                                        const { error } = await supabase.from('invoices').update({ status: 'UNPAID' }).eq('id', id);
+                                        const { error } = await supabase.from('invoices').update({ status: 'unpaid' }).eq('id', id);
                                         if (error) showError(error);
                                         else {
                                             Alert.alert(t('common.success'), t('invoice_details.validated_msg'));

@@ -56,7 +56,7 @@ export const initiateMobileMoneyPayment = async (
 
 /**
  * For Demo purposes: Simulates the client validating the push on their phone.
- * Call this after 5 seconds to force the invoice to PAID.
+ * Call this after 5 seconds to force the invoice to paid.
  */
 export const simulateUserValidation = async (invoiceId: string, provider: string) => {
     try {

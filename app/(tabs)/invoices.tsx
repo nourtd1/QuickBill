@@ -36,12 +36,13 @@ import { formatCurrency } from '../../lib/currencyEngine';
 import { supabase } from '../../lib/supabase';
 import { useTeamRole } from '../../hooks/useTeamRole';
 import { useLanguage } from '../../context/LanguageContext';
+import { useColorScheme } from 'nativewind';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 import { InvoiceListSkeleton } from '../../components/InvoiceListSkeleton';
 
-type InvoiceStatus = 'paid' | 'sent' | 'overdue' | 'draft' | 'pending_approval' | 'rejected' | 'all';
+type InvoiceStatus = 'paid' | 'unpaid' | 'sent' | 'overdue' | 'draft' | 'pending_approval' | 'rejected' | 'all';
 
 // Component for Avatar Display
 const ClientAvatar = ({ name, size = 48 }: { name: string, size?: number }) => {
@@ -68,6 +69,7 @@ export default function InvoicesScreen() {
     const { profile } = useAuth();
     const { t, language } = useLanguage();
     const { role, isOwner, isAdmin } = useTeamRole();
+    const { colorScheme } = useColorScheme();
     const insets = useSafeAreaInsets();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ export default function InvoicesScreen() {
 
     const stats = useMemo(() => {
         const totalOutstanding = invoices
-            .filter(inv => inv.status !== 'paid' && inv.status !== 'PAID')
+            .filter(inv => inv.status !== 'paid')
             .reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
         return { totalOutstanding };
     }, [invoices]);
@@ -132,21 +134,23 @@ export default function InvoicesScreen() {
 
     // Custom Status Badge Style matching design
     const getStatusStyle = (status: string) => {
-        switch (status?.toUpperCase()) {
-            case 'PAID': return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: t('invoices.status.paid') };
-            case 'SENT': return { bg: 'bg-blue-100', text: 'text-blue-700', label: t('invoices.status.sent') };
-            case 'OVERDUE': return { bg: 'bg-red-100', text: 'text-red-600', label: t('invoices.status.overdue') };
-            case 'PENDING': return { bg: 'bg-orange-100', text: 'text-orange-600', label: t('invoices.status.pending') }; 
-            case 'DRAFT': return { bg: 'bg-slate-100', text: 'text-slate-600', label: t('invoices.status.draft') };
-            default: return { bg: 'bg-slate-100', text: 'text-slate-600', label: status };
+        switch (status) {
+            case 'paid': return { bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500', label: t('invoices.status.paid') };
+            case 'unpaid': return { bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-500', label: t('invoices.status.unpaid') };
+            case 'sent': return { bg: 'bg-blue-50', text: 'text-blue-600', dot: 'bg-blue-500', label: t('invoices.status.sent') };
+            case 'overdue': return { bg: 'bg-rose-50', text: 'text-rose-600', dot: 'bg-rose-500', label: t('invoices.status.overdue') };
+            case 'pending_approval': return { bg: 'bg-violet-50', text: 'text-violet-600', dot: 'bg-violet-500', label: t('invoices.status.pending') };
+            case 'draft': return { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-400', label: t('invoices.status.draft') };
+            default: return { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-400', label: status };
         }
     };
 
     const StatusBadge = ({ status }: { status: string }) => {
         const style = getStatusStyle(status);
         return (
-            <View className={`px-3 py-1.5 rounded-lg ${style.bg}`}>
-                <Text className={`text-[10px] font-bold ${style.text} uppercase tracking-wide`}>
+            <View className={`flex-row items-center px-2.5 py-1 rounded-full ${style.bg}`}>
+                <View className={`w-1.5 h-1.5 rounded-full mr-1.5 ${style.dot}`} />
+                <Text className={`text-[10px] font-black tracking-tight ${style.text}`}>
                     {style.label}
                 </Text>
             </View>
@@ -157,19 +161,19 @@ export default function InvoicesScreen() {
         <View className="px-6 pt-4 pb-2 z-10 bg-transparent">
             {/* Top Bar */}
             <View className="flex-row justify-between items-center mb-6 mt-4">
-                <Text className="text-[36px] font-black text-slate-900 tracking-tight">{t('invoices.title')}</Text>
+                <Text className="text-[36px] font-black text-slate-900 dark:text-white tracking-tight" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t('invoices.title')}</Text>
                 <View className="flex-row gap-3">
                     <TouchableOpacity
                         onPress={() => router.push('/invoice/new')}
-                        className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100"
+                        className="bg-white dark:bg-[#151a2e] w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10"
                     >
                         <Plus size={24} color="#1E40AF" strokeWidth={2.5} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => router.push('/activity')}
-                        className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100 relative"
+                        className="bg-white dark:bg-[#151a2e] w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10 relative"
                     >
-                        <Bell size={22} color="#0F172A" strokeWidth={2} />
+                        <Bell size={22} color={colorScheme === 'dark' ? '#F8FAFC' : '#0F172A'} strokeWidth={2} />
                         <View className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
                     </TouchableOpacity>
                 </View>
@@ -177,17 +181,17 @@ export default function InvoicesScreen() {
 
             {/* Search & Filter Bar */}
             <View className="flex-row gap-3 mb-6">
-                <View className="flex-1 h-14 bg-white rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 border border-slate-100">
+                <View className="flex-1 h-14 bg-white dark:bg-[#151a2e] rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
                     <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
                     <TextInput
-                        className="flex-1 font-bold text-base text-slate-900 h-full"
+                        className="flex-1 font-bold text-base text-slate-900 dark:text-white h-full"
                         placeholder={t('invoices.search_placeholder')}
                         placeholderTextColor="#CBD5E1"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                 </View>
-                <TouchableOpacity className="w-14 h-14 bg-slate-50 rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
+                <TouchableOpacity className="w-14 h-14 bg-slate-50 dark:bg-[#151a2e] rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
                     <SlidersHorizontal size={20} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
@@ -199,15 +203,15 @@ export default function InvoicesScreen() {
                 className="flex-row mb-2 -mx-6 px-6"
                 contentContainerStyle={{ paddingRight: 40 }}
             >
-                {['all', 'paid', 'pending', 'overdue'].map((filter) => {
+                {['all', 'unpaid', 'paid', 'sent', 'overdue', 'pending'].map((filter) => {
                     const isActive = activeFilter === filter || (filter === 'pending' && activeFilter === 'pending_approval');
                     return (
                         <TouchableOpacity
                             key={filter}
                             onPress={() => setActiveFilter(filter === 'pending' ? 'pending_approval' : filter as InvoiceStatus)}
-                            className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'}`}
+                            className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white dark:bg-[#151a2e] border-slate-100 dark:border-white/10 shadow-sm shadow-slate-200/50 dark:shadow-black/60'}`}
                         >
-                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-300'}`}>
                                 {t(`invoices.filters.${filter}`)}
                             </Text>
                         </TouchableOpacity>
@@ -274,7 +278,7 @@ export default function InvoicesScreen() {
                         </View>
                     </View>
 
-                    <Text className="text-[40px] font-black text-white tracking-tighter mb-1">
+                    <Text className="text-[40px] font-black text-white tracking-tighter mb-1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                         {formatCurrency(stats.totalOutstanding, profile?.currency || 'USD')}
                     </Text>
 
@@ -286,7 +290,7 @@ export default function InvoicesScreen() {
                     </View>
 
                     <TouchableOpacity
-                        className="w-full bg-white h-14 rounded-[20px] flex-row items-center justify-center active:scale-[0.98] shadow-sm"
+                        className="w-full bg-white dark:bg-slate-800 h-14 rounded-[20px] flex-row items-center justify-center active:scale-[0.98] shadow-sm"
                         onPress={handleSendReminders}
                     >
                         <Send size={18} color="#1E40AF" className="mr-2" strokeWidth={2.5} />
@@ -299,10 +303,10 @@ export default function InvoicesScreen() {
 
     const renderEmptyState = () => (
         <View className="items-center justify-center py-20 px-4">
-            <View className="w-20 h-20 bg-slate-100 rounded-full items-center justify-center mb-6">
+            <View className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center mb-6">
                 <FileText size={32} color="#94a3b8" />
             </View>
-            <Text className="text-xl font-bold text-slate-900 mb-2">{t('invoices.no_invoices')}</Text>
+            <Text className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('invoices.no_invoices')}</Text>
             <Text className="text-slate-500 font-medium text-center px-10">
                 {t('invoices.empty_desc')}
             </Text>
@@ -323,14 +327,14 @@ export default function InvoicesScreen() {
         return (
             <TouchableOpacity
                 onPress={() => router.push(`/invoice/${item.id}`)}
-                className="mx-6 mb-4 bg-white p-5 rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 flex-row items-center active:bg-slate-50/80"
+                className="mx-6 mb-4 bg-white dark:bg-slate-800 p-5 rounded-[24px] shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 flex-row items-center active:bg-slate-50/80 dark:active:bg-slate-700/50"
             >
                 <View className="mr-4 shadow-sm shadow-slate-200">
                     <ClientAvatar name={customerName} size={48} />
                 </View>
 
                 <View className="flex-1 mr-2">
-                    <Text className="font-black text-slate-900 text-base mb-1 tracking-tight" numberOfLines={1}>{customerName}</Text>
+                    <Text className="font-black text-slate-900 dark:text-white text-base mb-1 tracking-tight" numberOfLines={1}>{customerName}</Text>
                     <View className="flex-row items-center">
                         <Text className="text-xs text-slate-500 font-black">#{item.invoice_number}</Text>
                         <Text className="text-xs text-slate-300 mx-1.5">•</Text>
@@ -339,7 +343,7 @@ export default function InvoicesScreen() {
                 </View>
 
                 <View className="items-end">
-                    <Text className="font-black text-slate-900 text-lg mb-2 tracking-tighter">
+                    <Text className="font-black text-slate-900 dark:text-white text-lg mb-2 tracking-tighter">
                         {formatCurrency(item.total_amount, item.currency || profile?.currency || 'USD')}
                     </Text>
                     <StatusBadge status={item.status} />
@@ -353,18 +357,32 @@ export default function InvoicesScreen() {
     }
 
     return (
-        <View className="flex-1 bg-white relative">
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-white dark:bg-[#0a0f1e] relative">
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
             {/* Background Decorative Elements */}
             <View className="absolute top-0 left-0 right-0 h-[45%] pointer-events-none">
-                <LinearGradient
-                    colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
-                    locations={[0, 0.4, 1]}
-                    className="flex-1"
-                />
-                <View className="absolute -top-32 -right-32 w-96 h-96 bg-blue-400/10 rounded-full" />
-                <View className="absolute top-20 -left-20 w-64 h-64 bg-indigo-400/10 rounded-full" />
+                {colorScheme === 'dark' ? (
+                    <>
+                        <LinearGradient
+                            colors={['rgba(19,55,236,0.5)', 'rgba(10,15,30,0.98)', '#050816']}
+                            locations={[0, 0.45, 1]}
+                            className="flex-1"
+                        />
+                        <View className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-500/25 rounded-full" />
+                        <View className="absolute top-20 -left-20 w-64 h-64 bg-blue-500/20 rounded-full" />
+                    </>
+                ) : (
+                    <>
+                        <LinearGradient
+                            colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
+                            locations={[0, 0.4, 1]}
+                            className="flex-1"
+                        />
+                        <View className="absolute -top-32 -right-32 w-96 h-96 bg-blue-400/10 rounded-full" />
+                        <View className="absolute top-20 -left-20 w-64 h-64 bg-indigo-400/10 rounded-full" />
+                    </>
+                )}
             </View>
 
             <View style={{ paddingTop: insets.top, flex: 1 }}>
@@ -378,7 +396,7 @@ export default function InvoicesScreen() {
                                 {renderHeader()}
                                 {renderTotalCard()}
                                 <View className="flex-row justify-between items-center px-7 mb-4">
-                                    <Text className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{t('invoices.recent_invoices')}</Text>
+                                    <Text className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{t('invoices.recent_invoices')}</Text>
                                     <TouchableOpacity>
                                         <Text className="text-[#1E40AF] font-black text-[10px] uppercase tracking-widest">{t('common.view_all')}</Text>
                                     </TouchableOpacity>

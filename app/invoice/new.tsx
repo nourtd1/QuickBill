@@ -7,9 +7,7 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Alert,
-    ActivityIndicator,
-    Modal
+    ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,11 +21,9 @@ import {
     Check,
     FileText,
     DollarSign,
-    Percent,
-    Tag,
-    Layers,
-    Box
+    Percent
 } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -85,10 +81,14 @@ export default function NewInvoiceScreen() {
     const [clientModalVisible, setClientModalVisible] = useState(false);
 
     // Tax and Discount
-    const [taxRate, setTaxRate] = useState(profile?.default_tax_rate ? String(profile.default_tax_rate) : '18'); 
+    const [taxRate, setTaxRate] = useState(profile?.default_tax_rate ? String(profile.default_tax_rate) : '18');
     const [discount, setDiscount] = useState('0');
 
-    // Sync tax rate if profile loads later
+    // Date pickers
+    const [showIssueDatePicker, setShowIssueDatePicker] = useState(false);
+    const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+
+    // Sync tax rate & currency defaults if profile loads later
     useEffect(() => {
         if (profile?.default_tax_rate) {
             setTaxRate(String(profile.default_tax_rate));
@@ -102,6 +102,15 @@ export default function NewInvoiceScreen() {
     const taxAmount = subtotal * (parseFloat(taxRate) / 100);
     const discountAmount = parseFloat(discount) || 0;
     const totalAmount = subtotal + taxAmount - discountAmount;
+
+    const parseNumber = (value: string) => {
+        const n = parseFloat(value.replace(',', '.'));
+        return isNaN(n) ? 0 : n;
+    };
+
+    const formatDateForInput = (date: Date) => {
+        return date.toISOString().split('T')[0];
+    };
 
     // Handlers
     const addItem = () => {
@@ -136,15 +145,30 @@ export default function NewInvoiceScreen() {
         try {
             const formattedItems = validItems.map(i => ({
                 description: i.description.trim(),
-                quantity: parseFloat(i.quantity) || 0,
-                unitPrice: parseFloat(i.unit_price) || 0
+                quantity: parseNumber(i.quantity),
+                unitPrice: parseNumber(i.unit_price)
             }));
 
+            const customerName = clients?.find(c => c.id === selectedClientId)?.name || 'Unknown Client';
+
             await createInvoice(
-                clients?.find(c => c.id === selectedClientId)?.name || 'Unknown Client',
+                customerName,
                 formattedItems,
                 totalAmount,
-                selectedClientId
+                selectedClientId,
+                'unpaid',
+                {
+                    invoiceNumber,
+                    issueDate,
+                    dueDate,
+                    currency: profile?.currency || 'RWF',
+                    subtotal,
+                    taxRate: parseNumber(taxRate),
+                    taxAmount,
+                    discount: discountAmount,
+                    notes,
+                    terms
+                }
             );
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -186,230 +210,263 @@ export default function NewInvoiceScreen() {
                     className="flex-1 px-6 pt-2"
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Client Selector */}
-                    <View className="mb-6 mt-2">
-                        <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 ml-1">{t('invoice_form.client')}</Text>
-                        <TouchableOpacity
-                            onPress={() => setClientModalVisible(true)}
-                            className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex-row justify-between items-center"
-                        >
-                            <View className="flex-row items-center flex-1">
-                                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
-                                    <User size={20} color={COLORS.primary} />
+                    {/* Meta Data Section - Grouped List */}
+                    <View className="mt-4 mb-6">
+                        <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 ml-1">
+                            {t('invoice_form.meta_section') || 'DÉTAILS'}
+                        </Text>
+                        <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                            {/* Client row */}
+                            <TouchableOpacity
+                                onPress={() => setClientModalVisible(true)}
+                                className="flex-row items-center px-4 py-4"
+                            >
+                                <View className="w-9 h-9 rounded-full bg-blue-100 items-center justify-center mr-3">
+                                    <User size={18} color={COLORS.primary} />
                                 </View>
                                 <View className="flex-1">
-                                    <Text className="text-slate-900 font-bold text-base">
+                                    <Text className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
+                                        {t('invoice_form.client')}
+                                    </Text>
+                                    <Text className="text-slate-900 font-semibold mt-0.5" numberOfLines={1}>
                                         {selectedClient?.name || t('invoice_form.select_client')}
                                     </Text>
-                                    {selectedClient?.email && (
-                                        <Text className="text-slate-400 text-sm mt-0.5">{selectedClient.email}</Text>
-                                    )}
                                 </View>
-                            </View>
-                            <ChevronRight size={20} color="#CBD5E1" />
-                        </TouchableOpacity>
-                    </View>
+                                <ChevronRight size={18} color="#CBD5E1" />
+                            </TouchableOpacity>
 
-                    {/* Invoice Number Card */}
-                    <View className="rounded-2xl mb-6 overflow-hidden shadow-sm">
-                        <LinearGradient
-                            colors={['#EFF6FF', '#E0E7FF']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            className="p-5 border-2 border-blue-100"
-                        >
-                            <View className="flex-row items-center justify-between mb-3">
-                                <View className="flex-row items-center">
-                                    <View className="w-10 h-10 rounded-full bg-blue-600 items-center justify-center mr-3 shadow-lg shadow-blue-500/30">
-                                        <FileText size={20} color="white" />
-                                    </View>
-                                    <View>
-                                        <Text className="text-slate-900 font-bold text-base">{t('invoice_form.invoice_number')}</Text>
-                                        <Text className="text-slate-500 text-xs">{t('invoice_form.auto_generated')}</Text>
-                                    </View>
+                            <View className="h-px bg-slate-100" />
+
+                            {/* Invoice number row */}
+                            <View className="flex-row items-center px-4 py-3">
+                                <View className="flex-1 mr-3">
+                                    <Text className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
+                                        {t('invoice_form.invoice_number')}
+                                    </Text>
                                 </View>
-                            </View>
-                            <View className="bg-white rounded-xl px-4 py-3 border border-blue-200 shadow-sm">
-                                <TextInput
-                                    className="text-slate-900 text-lg font-bold"
-                                    value={invoiceNumber}
-                                    onChangeText={setInvoiceNumber}
-                                    placeholder="INV-2026-001"
-                                    placeholderTextColor="#CBD5E1"
-                                />
-                            </View>
-                            <View className="flex-row items-center mt-2 ml-1">
-                                <Text className="text-blue-600 text-lg mr-1">💡</Text>
-                                <Text className="text-slate-600 text-xs font-medium">
-                                    {t('invoice_form.tip')}
-                                </Text>
-                            </View>
-                        </LinearGradient>
-                    </View>
-
-                    {/* Dates */}
-                    <View className="flex-row justify-between mb-8 gap-4">
-                        {/* Issue Date */}
-                        <View className="flex-1">
-                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">{t('invoice_form.issue_date')}</Text>
-                            <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center border border-slate-100 shadow-sm">
-                                <Calendar size={18} color="#94A3B8" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-slate-900 font-semibold"
-                                    value={issueDate}
-                                    onChangeText={setIssueDate}
-                                    placeholder="YYYY-MM-DD"
-                                    placeholderTextColor="#CBD5E1"
-                                />
-                            </View>
-                        </View>
-                        {/* Due Date */}
-                        <View className="flex-1">
-                            <Text className="text-slate-600 text-sm font-semibold mb-2 ml-1">{t('invoice_form.due_date')}</Text>
-                            <View className="bg-white rounded-2xl px-4 py-4 flex-row items-center border border-slate-100 shadow-sm">
-                                <Calendar size={18} color="#94A3B8" />
-                                <TextInput
-                                    className="flex-1 ml-3 text-slate-900 font-semibold"
-                                    value={dueDate}
-                                    onChangeText={setDueDate}
-                                    placeholder="YYYY-MM-DD"
-                                    placeholderTextColor="#CBD5E1"
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Items & Services Header */}
-                    <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-lg font-bold text-slate-900">{t('invoice_form.items_services')}</Text>
-                        <TouchableOpacity
-                            onPress={addItem}
-                            className="bg-blue-100 px-4 py-2 rounded-full flex-row items-center"
-                        >
-                            <Plus size={16} color={COLORS.primary} />
-                            <Text className="text-blue-600 text-sm font-bold ml-1">{t('invoice_form.add_item')}</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Items List */}
-                    <View className="mb-8">
-                        {items.map((item, index) => (
-                            <View
-                                key={item.id}
-                                className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-slate-100"
-                            >
-                                {/* Item Header */}
-                                <View className="flex-row items-center justify-between mb-3">
-                                    <View className="flex-row items-center flex-1">
-                                        <View className="w-10 h-10 rounded-full bg-slate-100 items-center justify-center mr-3">
-                                            <Tag size={18} color="#64748B" />
-                                        </View>
-                                        <Text className="text-slate-400 text-xs font-bold">{t('invoice_form.item_label', { index: index + 1 })}</Text>
-                                    </View>
-                                    {items.length > 1 && (
-                                        <TouchableOpacity
-                                            onPress={() => removeItem(item.id)}
-                                            className="bg-red-50 p-2 rounded-full"
-                                        >
-                                            <Trash2 size={16} color="#EF4444" />
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-
-                                {/* Description */}
-                                <View className="mb-3">
-                                    <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">{t('invoice_form.description')}</Text>
+                                <View className="flex-row items-center flex-[1.3]">
+                                    <FileText size={16} color="#94A3B8" />
                                     <TextInput
-                                        value={item.description}
-                                        onChangeText={(text) => updateItem(item.id, 'description', text)}
-                                        className="bg-slate-50 rounded-xl px-4 py-3 text-slate-900 font-semibold border border-slate-100"
-                                        placeholder="e.g. Web Development Services"
+                                        className="ml-2 flex-1 text-right text-slate-900 font-semibold"
+                                        value={invoiceNumber}
+                                        onChangeText={setInvoiceNumber}
+                                        placeholder="INV-2026-001"
                                         placeholderTextColor="#CBD5E1"
                                     />
                                 </View>
+                            </View>
 
-                                {/* Quantity and Price */}
-                                <View className="flex-row gap-3">
-                                    <View className="flex-1">
-                                        <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">{t('invoice_form.quantity')}</Text>
-                                        <View className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
-                                            <TextInput
-                                                value={item.quantity}
-                                                onChangeText={(text) => updateItem(item.id, 'quantity', text)}
-                                                className="text-slate-900 font-bold text-center"
-                                                placeholder="1"
-                                                placeholderTextColor="#CBD5E1"
-                                                keyboardType="numeric"
-                                            />
-                                         </View>
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="text-slate-600 text-xs font-semibold mb-2 ml-1">{t('invoice_form.unit_price')}</Text>
-                                        <View className="bg-slate-50 rounded-xl px-4 py-3 flex-row items-center border border-slate-100">
-                                            <DollarSign size={16} color="#94A3B8" />
-                                            <TextInput
-                                                value={item.unit_price}
-                                                onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
-                                                className="flex-1 text-slate-900 font-bold"
-                                                placeholder="0.00"
-                                                placeholderTextColor="#CBD5E1"
-                                                keyboardType="numeric"
-                                            />
-                                        </View>
-                                    </View>
+                            <View className="h-px bg-slate-100" />
+
+                            {/* Issue date row */}
+                            <TouchableOpacity
+                                onPress={() => setShowIssueDatePicker(true)}
+                                className="flex-row items-center px-4 py-3"
+                            >
+                                <View className="flex-1 mr-3">
+                                    <Text className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
+                                        {t('invoice_form.issue_date')}
+                                    </Text>
                                 </View>
+                                <View className="flex-row items-center flex-[1.3] justify-end">
+                                    <Calendar size={16} color="#94A3B8" />
+                                    <Text className="ml-2 text-slate-900 font-semibold">
+                                        {issueDate}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
 
-                                {/* Item Total */}
-                                <View className="mt-3 pt-3 border-t border-slate-100 flex-row justify-between items-center">
-                                    <Text className="text-slate-500 font-semibold">{t('invoice_form.item_total')}</Text>
-                                    <Text className="text-slate-900 font-black text-lg">
-                                        {formatCurrency((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0))}
+                            <View className="h-px bg-slate-100" />
+
+                            {/* Due date row */}
+                            <TouchableOpacity
+                                onPress={() => setShowDueDatePicker(true)}
+                                className="flex-row items-center px-4 py-3"
+                            >
+                                <View className="flex-1 mr-3">
+                                    <Text className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
+                                        {t('invoice_form.due_date')}
+                                    </Text>
+                                </View>
+                                <View className="flex-row items-center flex-[1.3] justify-end">
+                                    <Calendar size={16} color="#94A3B8" />
+                                    <Text className="ml-2 text-slate-900 font-semibold">
+                                        {dueDate}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Items Section - Compact rows */}
+                    <View className="mb-6">
+                        <View className="flex-row justify-between items-center mb-2">
+                            <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest ml-1">
+                                {t('invoice_form.items_services')}
+                            </Text>
+                            <TouchableOpacity onPress={addItem}>
+                                <Text className="text-blue-600 text-xs font-semibold">
+                                    + {t('invoice_form.add_item')}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View className="bg-white rounded-2xl border border-slate-100">
+                            {items.map((item, index) => {
+                                const lineTotal = parseNumber(item.quantity) * parseNumber(item.unit_price);
+                                const isLast = index === items.length - 1;
+                                return (
+                                    <View key={item.id}>
+                                        <View className="flex-row items-center px-4 py-3">
+                                            <View className="flex-1 mr-2">
+                                                <TextInput
+                                                    value={item.description}
+                                                    onChangeText={(text) => updateItem(item.id, 'description', text)}
+                                                    placeholder={t('invoice_form.description_placeholder') || 'Article / Service'}
+                                                    placeholderTextColor="#CBD5E1"
+                                                    className="text-slate-900 font-semibold"
+                                                />
+                                                <View className="flex-row items-center mt-1">
+                                                    <TextInput
+                                                        value={item.quantity}
+                                                        onChangeText={(text) => updateItem(item.id, 'quantity', text)}
+                                                        placeholder="1"
+                                                        placeholderTextColor="#CBD5E1"
+                                                        keyboardType="numeric"
+                                                        className="w-12 text-[13px] text-slate-600"
+                                                    />
+                                                    <Text className="text-slate-400 mx-1 text-[13px]">x</Text>
+                                                    <View className="flex-row items-center">
+                                                        <DollarSign size={12} color="#94A3B8" />
+                                                        <TextInput
+                                                            value={item.unit_price}
+                                                            onChangeText={(text) => updateItem(item.id, 'unit_price', text)}
+                                                            placeholder="0.00"
+                                                            placeholderTextColor="#CBD5E1"
+                                                            keyboardType="numeric"
+                                                            className="ml-1 w-16 text-[13px] text-slate-600"
+                                                        />
+                                                    </View>
+                                                </View>
+                                            </View>
+                                            <View className="items-end">
+                                                <Text className="text-slate-900 font-bold text-sm">
+                                                    {formatCurrency(lineTotal)}
+                                                </Text>
+                                                {items.length > 1 && (
+                                                    <TouchableOpacity
+                                                        onPress={() => removeItem(item.id)}
+                                                        className="mt-2"
+                                                    >
+                                                        <Trash2 size={16} color="#CBD5E1" />
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        </View>
+                                        {!isLast && <View className="h-px bg-slate-100" />}
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* Notes / Terms (optional, compact) */}
+                    <View className="mb-6">
+                        <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                            <View className="px-4 py-3 border-b border-slate-100">
+                                <Text className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest mb-1">
+                                    {t('invoice_form.notes_label') || 'NOTES'}
+                                </Text>
+                                <TextInput
+                                    value={notes}
+                                    onChangeText={setNotes}
+                                    placeholder={t('invoice_form.notes_placeholder') || ''}
+                                    placeholderTextColor="#CBD5E1"
+                                    multiline
+                                    className="text-slate-900 text-sm"
+                                />
+                            </View>
+                            <View className="px-4 py-3">
+                                <Text className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest mb-1">
+                                    {t('invoice_form.terms_label') || 'CONDITIONS'}
+                                </Text>
+                                <TextInput
+                                    value={terms}
+                                    onChangeText={setTerms}
+                                    placeholder={t('invoice_form.terms_placeholder') || ''}
+                                    placeholderTextColor="#CBD5E1"
+                                    multiline
+                                    className="text-slate-900 text-sm"
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Financial Summary */}
+                    <View className="mb-8">
+                        <View className="bg-white rounded-2xl border border-slate-100 p-4">
+                            <View className="flex-row justify-between items-center mb-2">
+                                <Text className="text-slate-600 text-sm">{t('invoice_form.subtotal')}</Text>
+                                <Text className="text-slate-900 font-semibold">
+                                    {formatCurrency(subtotal)}
+                                </Text>
+                            </View>
+
+                            <View className="flex-row justify-between items-center mb-2">
+                                <View className="flex-row items-center">
+                                    <Percent size={14} color="#94A3B8" />
+                                    <Text className="text-slate-600 text-sm ml-2">
+                                        {t('invoice_form.tax_short') || 'TVA'}
+                                    </Text>
+                                </View>
+                                <View className="flex-row items-center">
+                                    <TextInput
+                                        value={taxRate}
+                                        onChangeText={setTaxRate}
+                                        keyboardType="numeric"
+                                        className="w-12 text-right text-slate-900 font-semibold mr-1"
+                                    />
+                                    <Text className="text-slate-500 text-sm mr-2">%</Text>
+                                    <Text className="text-slate-900 font-semibold">
+                                        {formatCurrency(taxAmount)}
                                     </Text>
                                 </View>
                             </View>
-                        ))}
 
-                        {/* Add New Item Button */}
-                        <TouchableOpacity
-                            onPress={addItem}
-                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl items-center justify-center flex-row bg-slate-50"
-                        >
-                            <View className="bg-blue-600 rounded-full p-1 mr-2">
-                                <Plus size={14} color="white" />
+                            <View className="flex-row justify-between items-center mb-2">
+                                <Text className="text-slate-600 text-sm">
+                                    {t('invoice_form.discount')}
+                                </Text>
+                                <View className="flex-row items-center">
+                                    <TextInput
+                                        value={discount}
+                                        onChangeText={setDiscount}
+                                        keyboardType="numeric"
+                                        className="w-16 text-right text-slate-900 font-semibold mr-1"
+                                    />
+                                    <Text className="text-slate-500 text-sm mr-2">
+                                        {profile?.currency || 'USD'}
+                                    </Text>
+                                    <Text className="text-emerald-600 font-semibold">
+                                        -{formatCurrency(discountAmount)}
+                                    </Text>
+                                </View>
                             </View>
-                            <Text className="text-slate-600 font-semibold">{t('invoice_form.add_another')}</Text>
-                        </TouchableOpacity>
-                    </View>
 
-                    {/* Summary Card */}
-                    <View className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6">
-                        <Text className="text-slate-900 font-bold text-lg mb-4">{t('invoice_form.summary')}</Text>
+                            <View className="h-px bg-slate-100 my-3" />
 
-                        <View className="flex-row justify-between mb-3">
-                            <Text className="text-slate-600 font-medium">{t('invoice_form.subtotal')}</Text>
-                            <Text className="text-slate-900 font-bold">{formatCurrency(subtotal)}</Text>
-                        </View>
-
-                        <View className="flex-row justify-between mb-3 items-center">
-                            <View className="flex-row items-center">
-                                <Percent size={16} color="#94A3B8" />
-                                <Text className="text-slate-600 font-medium ml-2">{t('invoice_form.tax', { rate: taxRate })}</Text>
+                            <View className="flex-row justify-between items-center">
+                                <Text className="text-slate-900 font-semibold text-base">
+                                    {t('invoice_form.total_amount')}
+                                </Text>
+                                <Text className="text-blue-600 font-black text-xl">
+                                    {formatCurrency(totalAmount)}
+                                </Text>
                             </View>
-                            <Text className="text-slate-900 font-bold">{formatCurrency(taxAmount)}</Text>
-                        </View>
-
-                        <View className="flex-row justify-between mb-6">
-                            <Text className="text-slate-600 font-medium">{t('invoice_form.discount')}</Text>
-                            <Text className="text-emerald-600 font-bold">-{formatCurrency(discountAmount)}</Text>
-                        </View>
-
-                        <View className="flex-row justify-between items-center pt-4 border-t-2 border-slate-100">
-                            <Text className="text-slate-900 font-bold text-lg">{t('invoice_form.total_amount')}</Text>
-                            <Text className="text-blue-600 font-black text-2xl">{formatCurrency(totalAmount)}</Text>
                         </View>
                     </View>
 
-                </ScrollView >
+                </ScrollView>
 
                 {/* Footer Main Button */}
                 <View
@@ -444,6 +501,38 @@ export default function NewInvoiceScreen() {
                 }}
                 selectedClientId={selectedClientId}
             />
+
+            {/* Native Date Pickers */}
+            {showIssueDatePicker && (
+                <DateTimePicker
+                    value={new Date(issueDate)}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={(event, selectedDate) => {
+                        if (Platform.OS !== 'ios') {
+                            setShowIssueDatePicker(false);
+                        }
+                        if (selectedDate) {
+                            setIssueDate(formatDateForInput(selectedDate));
+                        }
+                    }}
+                />
+            )}
+            {showDueDatePicker && (
+                <DateTimePicker
+                    value={new Date(dueDate)}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={(event, selectedDate) => {
+                        if (Platform.OS !== 'ios') {
+                            setShowDueDatePicker(false);
+                        }
+                        if (selectedDate) {
+                            setDueDate(formatDateForInput(selectedDate));
+                        }
+                    }}
+                />
+            )}
         </View >
     );
 }

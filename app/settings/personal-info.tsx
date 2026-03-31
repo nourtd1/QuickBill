@@ -42,6 +42,8 @@ import { useColorScheme } from 'nativewind';
 import { sendEmailChangeVerification } from '../../lib/email';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
+import { saveImageLocally } from '../../lib/localServices';
+import { getInitials } from '../../lib/profile';
 
 // Country Codes - African countries first, then rest of the world
 const COUNTRY_CODES = [
@@ -167,15 +169,6 @@ export default function ProfileScreen() {
     const [showCountryCodeModal, setShowCountryCodeModal] = useState(false);
     const [countrySearchQuery, setCountrySearchQuery] = useState('');
 
-    const getInitials = (name: string) => {
-        if (!name) return 'U';
-        const parts = name.trim().split(' ');
-        if (parts.length >= 2) {
-            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-        }
-        return name.substring(0, 2).toUpperCase();
-    };
-
     useEffect(() => {
         fetchProfile();
     }, []);
@@ -226,8 +219,20 @@ export default function ProfileScreen() {
     const handleUpload = async (uri: string) => {
         setUploading(true);
         try {
-            const publicUrl = await uploadImage(uri, 'avatars');
-            setAvatarUrl(publicUrl);
+            // Persist immediately for offline-first UX.
+            const localUri = await saveImageLocally(uri);
+            setAvatarUrl(localUri);
+
+            // Best effort cloud upload; local URI remains valid if network is unavailable.
+            try {
+                const publicUrl = await uploadImage(uri, 'avatars');
+                if (publicUrl) {
+                    setAvatarUrl(publicUrl);
+                }
+            } catch {
+                // Silent: save action will persist local URI in SQLite and sync later.
+            }
+
             showSuccess(t('personal_info.upload_success'));
         } catch (error: any) {
             showError(error, t('personal_info.upload_error'));
@@ -413,7 +418,7 @@ export default function ProfileScreen() {
                                         className="flex-1 font-semibold text-base text-slate-800 dark:text-white"
                                         value={fullName}
                                         onChangeText={setFullName}
-                                        placeholder="Alex Sterling"
+                                        placeholder={t('personal_info.full_name')}
                                         placeholderTextColor={colorScheme === 'dark' ? '#94A3B8' : '#94A3B8'}
                                     />
                                 </View>

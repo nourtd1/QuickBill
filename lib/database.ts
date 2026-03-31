@@ -1,6 +1,9 @@
 import * as SQLite from 'expo-sqlite';
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
+let isReady = false;
+
+export const getIsDBReady = () => isReady;
 
 export const getDBConnection = async (): Promise<SQLite.SQLiteDatabase> => {
   if (dbInstance) {
@@ -108,6 +111,7 @@ export const initDatabase = async () => {
       user_id TEXT NOT NULL,
       amount NUMERIC NOT NULL,
       category TEXT,
+      merchant TEXT,
       description TEXT,
       date TEXT,
       receipt_url TEXT,
@@ -137,6 +141,10 @@ export const initDatabase = async () => {
   // Supabase uses 'share_token', local used 'public_link_token'. Add 'share_token' for sync compatibility.
   await addColumnIfMissing(db, 'invoices', 'share_token', 'TEXT');
 
+  // Ensure 'expenses' has merchant and updated_at
+  await addColumnIfMissing(db, 'expenses', 'merchant', 'TEXT');
+  await addColumnIfMissing(db, 'expenses', 'updated_at', "TEXT DEFAULT CURRENT_TIMESTAMP");
+
   // --- PHASE 2 MIGRATIONS ---
   await addColumnIfMissing(db, 'profiles', 'whatsapp_template', 'TEXT');
   await addColumnIfMissing(db, 'profiles', 'reminders_enabled', 'INTEGER DEFAULT 0');
@@ -147,6 +155,7 @@ export const initDatabase = async () => {
   await addColumnIfMissing(db, 'profiles', 'expo_push_token', 'TEXT');
   await addColumnIfMissing(db, 'profiles', 'full_name', 'TEXT');
   await addColumnIfMissing(db, 'profiles', 'currency', 'TEXT');
+  await addColumnIfMissing(db, 'profiles', 'signature_url', 'TEXT');
 
   // Sync: Supabase invoices can have 'created_by'
   await addColumnIfMissing(db, 'invoices', 'created_by', 'TEXT');
@@ -165,14 +174,35 @@ export const initDatabase = async () => {
     );
   `);
 
-  // 7. INDEXES for Performance
+  // 7. NOTIFICATIONS
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      type TEXT DEFAULT 'general', -- 'payment', 'invoice', 'system'
+      read_status INTEGER DEFAULT 0, -- 0 for unread, 1 for read
+      data TEXT, -- JSON string for extra info
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  
+  // 7. Data Normalization (V3)
+  // Assure que tous les statuts existants dans SQLite sont en minuscules
+  await db.execAsync(`UPDATE invoices SET status = LOWER(status) WHERE status != LOWER(status);`);
+
+  // 8. INDEXES for Performance
   await db.execAsync('CREATE INDEX IF NOT EXISTS idx_invoices_sync_status ON invoices(sync_status);');
   await db.execAsync('CREATE INDEX IF NOT EXISTS idx_clients_sync_status ON clients(sync_status);');
   await db.execAsync('CREATE INDEX IF NOT EXISTS idx_expenses_sync_status ON expenses(sync_status);');
   await db.execAsync('CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);');
   await db.execAsync('CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);');
   await db.execAsync('CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_sync ON whatsapp_messages(sync_status);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_notifications_read_status ON notifications(read_status);');
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);');
 
+  isReady = true;
   if (__DEV__) console.log('Local SQLite Database Initialized (Schema V3 with Phase 2)');
 };
 

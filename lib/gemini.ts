@@ -20,7 +20,14 @@ export const processAudioWithGemini = async (uri: string): Promise<any> => {
             contents: [{
                 parts: [
                     {
-                        text: "Tu es un assistant comptable. Analyse cet enregistrement vocal et extrais les détails de la facture. Retourne UNIQUEMENT un objet JSON valide (sans Markdown) avec cette structure : { \"amount\": number (numeric only), \"customerName\": string, \"description\": string }. Si une information manque, devine-la ou mets null."
+                        text: `Tu es un assistant comptable intelligent. Analyse cet enregistrement vocal où un utilisateur dicte les informations d'une facture à créer. 
+Ton objectif est d'extraire les éléments essentiels avec une précision absolue. 
+Retourne UNIQUEMENT un objet JSON valide (aucun bloc markdown, aucune explication) avec cette structure exacte : 
+{
+  "amount": number (Le montant total de la facture, nombre uniquement, pas de texte, null si absent),
+  "customerName": string (Le nom du client, null si non précisé),
+  "description": string (Une courte description de la prestation ou des articles facturés, null si non précisé)
+}.`
                     },
                     {
                         inline_data: {
@@ -36,7 +43,7 @@ export const processAudioWithGemini = async (uri: string): Promise<any> => {
         };
 
         // 3. Call Gemini API
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -74,7 +81,23 @@ export const processReceiptWithGemini = async (base64Image: string, mimeType: st
             contents: [{
                 parts: [
                     {
-                        text: "Analyse ce ticket de caisse ou cette facture. Extrais les informations suivantes au format JSON uniquement (sans markdown) : { \"merchant\": string, \"date\": string (YYYY-MM-DD), \"amount\": number, \"currency\": string (ex: RWF, EUR, USD), \"tax\": number (null si absent), \"items\": [{ \"description\": string, \"amount\": number }] }. Si une info est illisible, mets null (ou devine logiquement le total)."
+                        text: `Tu es un expert comptable spécialisé dans l'extraction de données et la reconnaissance optique de caractères (OCR). Analyse attentivement cette image. 
+Il peut s'agir d'une facture formelle classique, d'un simple ticket de caisse papier, d'une note manuscrite, ou même d'une capture d'écran d'un texte reçu (SMS, WhatsApp, conversation) décrivant une vente ou un service.
+Ton objectif est d'extraire de manière exhaustive et précise les données financières, peu importe l'origine ou le format (papier ou numérique). Ignore tout le texte non pertinent (politesse, salutations, blabla).
+Retourne UNIQUEMENT un objet JSON valide (aucun bloc markdown, aucune explication ni balise) respectant scrupuleusement cette structure :
+{
+  "merchant": string (Nom du commerce, de l'expéditeur du message ou du prestataire, null si introuvable),
+  "date": string (Format YYYY-MM-DD, null si introuvable),
+  "amount": number (Le montant total TTC, format numérique pur sans devise ni virgule, ex: 15400. null si introuvable),
+  "currency": string (Le code de la devise, ex: "RWF", "EUR", "USD", null si introuvable),
+  "tax": number (Le montant total des taxes, format numérique pur, null si absent),
+  "items": [
+    {
+      "description": string (Description claire de l'article, du lot ou du service facturé),
+      "amount": number (Montant total pour cet article, format numérique)
+    }
+  ]
+}`
                     },
                     {
                         inline_data: {
@@ -89,7 +112,7 @@ export const processReceiptWithGemini = async (base64Image: string, mimeType: st
             }
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

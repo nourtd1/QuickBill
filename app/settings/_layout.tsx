@@ -1,14 +1,16 @@
 import { Stack } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 export default function SettingsLayout() {
-    const colorScheme = useColorScheme();
+    const { colorScheme } = useColorScheme();
+
+    const settingsBg = colorScheme === 'dark' ? '#050816' : '#f6f6f8';
 
     return (
         <Stack
             screenOptions={{
                 headerShown: false, // We are using custom headers in the screens
-                contentStyle: { backgroundColor: '#f6f6f8' },
+                contentStyle: { backgroundColor: settingsBg },
                 animation: 'slide_from_right'
             }}
         >

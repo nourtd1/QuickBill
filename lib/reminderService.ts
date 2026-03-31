@@ -17,7 +17,7 @@ export async function detectOverdueInvoices() {
         .from('invoices')
         .select('*, customer:clients(*)')
         .neq('status', 'paid')
-        .neq('status', 'PAID')
+        .neq('status', 'paid')
         .lt('due_date', today);
 
     if (error) {

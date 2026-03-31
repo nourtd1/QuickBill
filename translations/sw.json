@@ -64,11 +64,14 @@
     "filters": {
       "all": "Zote",
       "paid": "Imelipwa",
+      "unpaid": "Bado",
+      "sent": "Imetumwa",
       "pending": "Inasubiri",
       "overdue": "Imechelewa"
     },
     "status": {
       "paid": "IMELIPWA",
+      "unpaid": "BADO HAIJALIPWA",
       "sent": "IMETUMWA",
       "overdue": "IMECHELEWA",
       "pending": "INASUBIRI",

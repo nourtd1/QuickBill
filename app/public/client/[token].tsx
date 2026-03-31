@@ -63,10 +63,10 @@ export default function ClientPortalPage() {
     }, [token]);
 
     const getStatusStyle = (status: string) => {
-        switch (status.toUpperCase()) {
-            case 'PAID': return 'bg-emerald-100 text-emerald-700';
-            case 'UNPAID': return 'bg-amber-100 text-amber-700';
-            case 'OVERDUE': return 'bg-red-100 text-red-700';
+        switch (status) {
+            case 'paid': return 'bg-emerald-100 text-emerald-700';
+            case 'unpaid': return 'bg-amber-100 text-amber-700';
+            case 'overdue': return 'bg-red-100 text-red-700';
             default: return 'bg-slate-100 text-slate-700';
         }
     };
@@ -91,7 +91,7 @@ export default function ClientPortalPage() {
     }
 
     const { client, invoices, estimates } = clientData;
-    const pendingInvoices = invoices.filter((i: any) => i.status !== 'PAID');
+    const pendingInvoices = invoices.filter((i: any) => i.status !== 'paid');
     const totalPending = pendingInvoices.reduce((acc: number, cur: any) => acc + cur.total_amount, 0);
 
     return (
@@ -146,8 +146,8 @@ export default function ClientPortalPage() {
                                 onPress={() => router.push(`/public/invoice/${item.share_token}`)}
                                 className="bg-white p-4 rounded-2xl mb-3 flex-row items-center border border-slate-100 shadow-sm"
                             >
-                                <View className={`w-12 h-12 rounded-xl items-center justify-center ${item.status === 'PAID' ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                                    <FileText size={20} color={item.status === 'PAID' ? '#059669' : '#64748B'} />
+                                <View className={`w-12 h-12 rounded-xl items-center justify-center ${item.status === 'paid' ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                                    <FileText size={20} color={item.status === 'paid' ? '#059669' : '#64748B'} />
                                 </View>
                                 <View className="flex-1 ml-4">
                                     <Text className="text-slate-900 font-bold">{item.invoice_number}</Text>

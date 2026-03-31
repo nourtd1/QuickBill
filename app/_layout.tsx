@@ -1,9 +1,9 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useCallback, useState } from 'react';
 import { View, Text } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
@@ -16,6 +16,7 @@ import { LanguageProvider } from '../context/LanguageContext';
 import { validateEnv } from '../lib/env';
 import ConfigError from '../components/ConfigError';
 import { OfflineIndicator } from '../components/OfflineIndicator';
+import { COLORS } from '../constants/colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -28,7 +29,7 @@ function RootLayoutNav() {
     const segments = useSegments();
     const router = useRouter();
     const navigationState = useRootNavigationState();
-    const { setColorScheme } = useColorScheme();
+    const { colorScheme, setColorScheme } = useColorScheme();
     const [loaded] = useFonts({
         // Add custom fonts here if needed, or leave empty if using system fonts
         // SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -44,6 +45,8 @@ function RootLayoutNav() {
             }
         });
     }, [setColorScheme]);
+
+    const stackBackground = colorScheme === 'dark' ? COLORS.slate900 : '#EFF6FF';
 
     // Use a string representation of segments for stable effect dependencies
     const segmentsPath = segments.join('/');
@@ -109,10 +112,11 @@ function RootLayoutNav() {
 
     return (
         <>
+            <StatusBar style="auto" />
             <Stack screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: '#EFF6FF' },
-                headerStyle: { backgroundColor: '#EFF6FF' },
+                contentStyle: { backgroundColor: stackBackground },
+                headerStyle: { backgroundColor: stackBackground },
                 headerShadowVisible: false,
             }}>
                 <Stack.Screen name="auth" options={{ headerShown: false }} />

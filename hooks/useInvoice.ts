@@ -14,7 +14,19 @@ export function useInvoice() {
         items: { description: string; quantity: number; unitPrice: number }[],
         totalAmount: number,
         clientId?: string, // Optionnel: si le client est déjà sélectionné
-        initialStatus: string = 'UNPAID' // Default status
+        initialStatus: string = 'unpaid', // Default status
+        options?: {
+            invoiceNumber?: string;
+            issueDate?: string | null;
+            dueDate?: string | null;
+            currency?: string;
+            subtotal?: number;
+            taxRate?: number;
+            taxAmount?: number;
+            discount?: number;
+            notes?: string | null;
+            terms?: string | null;
+        }
     ) => {
         if (!user) throw new Error('Utilisateur non connecté');
 
@@ -41,20 +53,38 @@ export function useInvoice() {
                 }
             }
 
-            // 2. Prepare Invoice Data for Local Save
-            const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            // 2. Préparer les données de facture pour l'enregistrement local
+            const invoiceNumber =
+                options?.invoiceNumber && options.invoiceNumber.trim().length > 0
+                    ? options.invoiceNumber.trim()
+                    : `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+            const currency = options?.currency || 'RWF';
+            const subtotal = typeof options?.subtotal === 'number' ? options.subtotal : totalAmount;
+            const taxRate = typeof options?.taxRate === 'number' ? options.taxRate : 0;
+            const taxAmount = typeof options?.taxAmount === 'number' ? options.taxAmount : 0;
+            const discount = typeof options?.discount === 'number' ? options.discount : 0;
+            const issueDate = options?.issueDate || new Date().toISOString();
+            const dueDate = options?.dueDate ?? null;
 
             const invoiceData: Omit<LocalInvoice, 'id' | 'created_at' | 'updated_at' | 'sync_status'> = {
                 user_id: user.id,
                 customer_id: selectedClientId || null,
                 invoice_number: invoiceNumber,
                 status: initialStatus as any,
-                currency: 'RWF', // Should come from profile/settings ideally
+                currency,
                 exchange_rate: 1,
-                subtotal: totalAmount, // Assuming no tax logic yet for simplicity
-                tax_rate: 0,
+                subtotal,
+                tax_rate: taxRate,
+                tax_amount: taxAmount,
+                discount,
                 total_amount: totalAmount,
-                due_date: null
+                issue_date: issueDate,
+                due_date: dueDate,
+                notes: options?.notes ?? null,
+                terms: options?.terms ?? null,
+                public_link_token: null,
+                share_token: null
             };
 
             const itemsData: Omit<LocalInvoiceItem, 'id' | 'invoice_id' | 'sync_status'>[] = items.map(item => ({

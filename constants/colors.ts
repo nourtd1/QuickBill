@@ -65,32 +65,32 @@ export const COLORS = {
 
 // Couleurs par statut de facture
 export const INVOICE_STATUS_COLORS = {
-    PAID: {
+    paid: {
         bg: '#D1FAE5', // emerald-100
         text: '#047857', // emerald-700
         border: '#6EE7B7', // emerald-300
     },
-    UNPAID: {
+    unpaid: {
         bg: '#FEF3C7', // amber-100
         text: '#B45309', // amber-700
         border: '#FCD34D', // amber-300
     },
-    OVERDUE: {
+    overdue: {
         bg: '#FEE2E2', // red-100
         text: '#B91C1C', // red-700
         border: '#FCA5A5', // red-300
     },
-    SENT: {
+    sent: {
         bg: '#DBEAFE', // blue-100
         text: '#1E40AF', // blue-800
         border: '#93C5FD', // blue-300
     },
-    DRAFT: {
+    draft: {
         bg: '#F1F5F9', // slate-100
         text: '#475569', // slate-600
         border: '#CBD5E1', // slate-300
     },
-    PENDING_APPROVAL: {
+    pending_approval: {
         bg: '#FED7AA', // orange-200
         text: '#C2410C', // orange-700
         border: '#FDBA74', // orange-300

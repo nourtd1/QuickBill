@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Switch, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useLanguage } from '../../context/LanguageContext';
@@ -11,6 +11,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { uploadImage as uploadHelper } from '../../lib/upload';
 import { useColorScheme } from 'nativewind';
+import { saveImageLocally } from '../../lib/localServices';
+import { getInitials } from '../../lib/profile';
 import {
     HelpCircle,
     Pencil,
@@ -42,6 +44,12 @@ export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
     const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
 
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchProfile();
+        }, [fetchProfile])
+    );
+
     const pickImage = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
@@ -64,12 +72,19 @@ export default function SettingsScreen() {
         if (!user) return;
         setUploadingAvatar(true);
         try {
-            // Upload to Supabase Storage using helper
-            const publicUrl = await uploadHelper(uri, 'logos');
+            const localUri = await saveImageLocally(uri);
+            const { error: localUpdateError } = await updateProfile({ logo_url: localUri });
+            if (localUpdateError) throw localUpdateError;
 
-            // Update Profile record
-            const { error: updateError } = await updateProfile({ logo_url: publicUrl });
-            if (updateError) throw updateError;
+            // Best effort cloud upload, then update with public URL when available.
+            try {
+                const publicUrl = await uploadHelper(uri, 'logos');
+                if (publicUrl) {
+                    await updateProfile({ logo_url: publicUrl });
+                }
+            } catch {
+                // Keep local URI persisted; sync can retry later.
+            }
 
             Alert.alert(t('common.success'), t('settings.avatar_success'));
         } catch (error: any) {
@@ -163,7 +178,8 @@ export default function SettingsScreen() {
         textTwColor,
         label,
         onPress,
-        isLast
+        isLast,
+        rightElement
     }: {
         icon: any;
         bgClass: string;
@@ -171,6 +187,7 @@ export default function SettingsScreen() {
         label: string;
         onPress?: () => void;
         isLast?: boolean;
+        rightElement?: React.ReactNode;
     }) => (
         <TouchableOpacity
             onPress={onPress}
@@ -181,12 +198,12 @@ export default function SettingsScreen() {
                 <Icon size={ICON_SIZE} color={getColor(textTwColor)} />
             </View>
             <Text className="flex-1 text-slate-800 dark:text-white font-semibold text-[15px]">{label}</Text>
-            <ChevronRight size={20} color={colorScheme === 'dark' ? '#475569' : '#CBD5E1'} />
+            {rightElement || <ChevronRight size={20} color={colorScheme === 'dark' ? '#475569' : '#CBD5E1'} />}
         </TouchableOpacity>
     );
 
     return (
-        <View className="flex-1 bg-[#f6f6f8] dark:bg-slate-900" style={{ paddingTop: insets.top }}>
+        <View className="flex-1 bg-[#f6f6f8] dark:bg-[#0a0f1e]" style={{ paddingTop: insets.top }}>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View className="flex-1">
                 {/* Header */}
@@ -226,12 +243,7 @@ export default function SettingsScreen() {
                                             className="w-24 h-24 rounded-full items-center justify-center"
                                         >
                                             <Text className="text-3xl font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">
-                                                {(() => {
-                                                    const name = profile?.business_name || profile?.full_name || user?.email || 'U';
-                                                    const parts = name.trim().split(' ');
-                                                    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-                                                    return name.substring(0, 2).toUpperCase();
-                                                })()}
+                                                {getInitials(profile?.business_name || profile?.full_name || user?.email || null)}
                                             </Text>
                                         </LinearGradient>
                                     )}
@@ -252,7 +264,7 @@ export default function SettingsScreen() {
                         </View>
 
                         <Text className="text-xl font-bold text-slate-900 dark:text-white mt-4">
-                            {profile?.business_name || 'Alex Sterling'}
+                            {profile?.business_name || profile?.full_name || 'User'}
                         </Text>
 
                         <View className="flex-row items-center bg-[#1337ec]/10 dark:bg-[#1337ec]/20 px-3 py-1 rounded-full mt-2">
@@ -270,7 +282,20 @@ export default function SettingsScreen() {
                             bgClass="bg-amber-100" // using amber/gold for premium feel
                             textTwColor="text-amber-600" // needs helper support or use hex in helper
                             label={t('settings.pro_access')}
-                            onPress={() => router.push('/settings/subscription')}
+                            onPress={() => {
+                                Alert.alert(
+                                    "Bientôt disponible 🚀",
+                                    "Les fonctionnalités Pro et les paiements seront activés dans la version 2.0 de QuickBill. Merci de votre patience !",
+                                    [{ text: "Compris", style: "default" }]
+                                );
+                            }}
+                            rightElement={
+                                <View className="bg-[#1337ec]/10 px-2 py-0.5 rounded-md ml-auto mr-2">
+                                    <Text className="text-[10px] font-bold text-[#1337ec] uppercase tracking-wider">
+                                        Bientôt
+                                    </Text>
+                                </View>
+                            }
                         />
                         <SettingItemWithColor
                             icon={User}
@@ -330,7 +355,7 @@ export default function SettingsScreen() {
                             icon={TrendingUp}
                             bgClass="bg-emerald-50"
                             textTwColor="text-emerald-600"
-                            label="WhatsApp Stats"
+                            label={t('whatsapp_settings.stats_title', { defaultValue: 'WhatsApp Analytics' })}
                             onPress={() => router.push('/stats/whatsapp')}
                         />
                         <SettingItemWithColor

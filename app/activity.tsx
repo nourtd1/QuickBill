@@ -5,234 +5,138 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    StatusBar as RNStatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
     ArrowLeft,
-    Search,
     Check,
     FileText,
     AlertTriangle,
     UserPlus,
     Star,
-    Filter
+    Bell
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useLanguage } from '../context/LanguageContext';
 
-// Mock Data matching the screenshot
-const ACTIVITY_DATA = [
-    {
-        title: 'TODAY',
-        data: [
-            {
-                id: '1',
-                type: 'invoice_paid',
-                title: 'Invoice Paid',
-                subtitle: 'Acme Corp paid $1,200',
-                time: '2:45 PM',
-                icon: Check,
-                iconColor: '#10B981', // Green
-                bg: 'bg-emerald-100',
-            },
-            {
-                id: '2',
-                type: 'invoice_created',
-                title: 'New Invoice Created',
-                subtitle: 'Sent to Global Tech for $3,450',
-                time: '11:30 AM',
-                icon: FileText,
-                iconColor: '#2563EB', // Blue
-                bg: 'bg-blue-100',
-            },
-            {
-                id: '3',
-                type: 'payment_overdue',
-                title: 'Payment Overdue',
-                subtitle: 'Invoice #1023 is 5 days late',
-                time: '09:15 AM',
-                icon: AlertTriangle,
-                iconColor: '#DC2626', // Red
-                bg: 'bg-red-100',
-            },
-        ]
-    },
-    {
-        title: 'YESTERDAY',
-        data: [
-            {
-                id: '4',
-                type: 'client_added',
-                title: 'Client Added',
-                subtitle: 'Design Studio Ltd joined',
-                time: '4:20 PM',
-                icon: UserPlus,
-                iconColor: '#9333EA', // Purple
-                bg: 'bg-purple-100',
-            },
-            {
-                id: '5',
-                type: 'subscription',
-                title: 'Subscription Renewed',
-                subtitle: 'Pro Plan yearly renewal',
-                time: '10:00 AM',
-                icon: Star,
-                iconColor: '#D97706', // Amber/Gold
-                bg: 'bg-amber-100',
-                fill: '#D97706'
-            },
-        ]
-    },
-    {
-        title: 'LAST WEEK',
-        data: [
-            {
-                id: '6',
-                type: 'invoice_paid',
-                title: 'Invoice Paid',
-                subtitle: 'WebFlow Project paid $850',
-                time: 'Mon 2:00 PM',
-                icon: Check,
-                iconColor: '#10B981',
-                bg: 'bg-emerald-100',
-            },
-            {
-                id: '7',
-                type: 'invoice_created',
-                title: 'New Invoice Created',
-                subtitle: 'Consulting for Stark Ind',
-                time: 'Sun 9:15 AM',
-                icon: FileText,
-                iconColor: '#2563EB',
-                bg: 'bg-blue-100',
-            },
-        ]
+import { useNotifications } from '../hooks/useNotifications';
+import { useColorScheme } from 'nativewind';
+import { useAuth } from '../context/AuthContext';
+
+const getActivityStyling = (type: string) => {
+    switch (type) {
+        case 'payment': return { icon: Check, color: '#10B981', bg: 'bg-emerald-100' };
+        case 'invoice': return { icon: FileText, color: '#2563EB', bg: 'bg-blue-100' };
+        case 'system': return { icon: AlertTriangle, color: '#DC2626', bg: 'bg-red-100' };
+        default: return { icon: Bell, color: '#6366f1', bg: 'bg-indigo-50' };
     }
-];
+};
 
 export default function ActivityScreen() {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const { t } = useLanguage();
-
-    // Mapping mock data to translations
-    const translatedActivityData = [
-        {
-            title: t('activity.sections.today'),
-            data: ACTIVITY_DATA[0].data.map(item => ({
-                ...item,
-                title: t(`activity.types.${item.type}`),
-                subtitle: t(`activity.subtitles.${item.type}`, {
-                    name: item.type === 'invoice_paid' ? 'Acme Corp' : item.type === 'invoice_created' ? 'Global Tech' : item.type === 'client_added' ? 'Design Studio Ltd' : '',
-                    amount: item.type === 'invoice_paid' ? '$1,200' : item.type === 'invoice_created' ? '$3,450' : '',
-                    number: item.type === 'payment_overdue' ? '1023' : '',
-                    days: item.type === 'payment_overdue' ? '5' : ''
-                })
-            }))
-        },
-        {
-            title: t('activity.sections.yesterday'),
-            data: ACTIVITY_DATA[1].data.map(item => ({
-                ...item,
-                title: t(`activity.types.${item.type}`),
-                subtitle: t(`activity.subtitles.${item.type}`, {
-                    name: item.type === 'client_added' ? 'Design Studio Ltd' : '',
-                    amount: '',
-                    number: '',
-                    days: ''
-                })
-            }))
-        },
-        {
-            title: t('activity.sections.last_week'),
-            data: ACTIVITY_DATA[2].data.map(item => ({
-                ...item,
-                title: t(`activity.types.${item.type}`),
-                subtitle: t(`activity.subtitles.${item.type}`, {
-                    name: item.id === '6' ? 'WebFlow Project' : 'Stark Ind',
-                    amount: item.id === '6' ? '$850' : '',
-                    number: '',
-                    days: ''
-                })
-            }))
-        }
-    ];
+    const { sections } = useNotifications();
+    const { profile } = useAuth();
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
+    
+    // Pass real data into translations
+    const translatedActivityData = sections.map(section => ({
+        title: t(section.titleKey),
+        data: section.data.map(item => ({
+            ...item,
+            displayTitle: item.title,
+            displaySubtitle: item.message,
+        }))
+    }));
 
     return (
-        <View className="flex-1 bg-[#F8F9FE]">
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-[#F8F9FE] dark:bg-[#0a0f1e]">
+            <StatusBar style={isDark ? 'light' : 'dark'} />
             <SafeAreaView className="flex-1">
                 <View className="flex-1 px-6 pt-2">
                     {/* Header */}
                     <View className="flex-row justify-between items-center mb-6 mt-2">
                         <TouchableOpacity
                             onPress={() => router.back()}
-                            className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-sm border border-slate-100"
+                            className="w-12 h-12 bg-white dark:bg-[#151a2e] rounded-full items-center justify-center shadow-sm border border-slate-100 dark:border-white/10"
                         >
-                            <ArrowLeft size={24} color="#1e293b" />
+                            <ArrowLeft size={24} color={isDark ? '#E2E8F0' : '#1e293b'} />
                         </TouchableOpacity>
 
                         <Text className="text-xl font-bold text-slate-900">{t('activity.title')}</Text>
 
                         <TouchableOpacity
-                            className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-sm border border-slate-100"
+                            onPress={() => router.push('/notifications')}
+                            className="w-12 h-12 bg-white dark:bg-[#151a2e] rounded-full items-center justify-center shadow-sm border border-slate-100 dark:border-white/10"
                         >
-                            <Filter size={24} color="#64748b" />
+                            <Bell size={24} color="#6366f1" />
                         </TouchableOpacity>
                     </View>
 
                     {/* Search Bar */}
-                    <View className="bg-white rounded-full px-5 py-3.5 flex-row items-center border border-slate-200 shadow-sm mb-8">
-                        {/* <Search size={20} color="#94a3b8" className="mr-3" /> */}
+                    <View className="bg-white dark:bg-[#151a2e] rounded-full px-5 py-3.5 flex-row items-center border border-slate-200 dark:border-white/10 shadow-sm mb-8">
                         <TextInput
                             className="flex-1 text-base text-slate-700 font-medium h-6 p-0"
                             placeholder={t('activity.search_placeholder')}
                             placeholderTextColor="#94a3b8"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
+                            style={{ height: 40 }}
                         />
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
-                        {translatedActivityData.map((section, index) => (
+                        {translatedActivityData.map((section) => (
                             <View key={section.title} className="mb-6">
                                 <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 ml-1">
                                     {section.title}
                                 </Text>
 
-                                {section.data.map((item, itemIndex) => {
-                                    const Icon = item.icon;
+                                {section.data.map((item) => {
+                                    const style = getActivityStyling(item.type);
+                                    const Icon = style.icon;
+                                    
+                                    if (searchQuery && 
+                                        !item.displayTitle.toLowerCase().includes(searchQuery.toLowerCase()) && 
+                                        !item.displaySubtitle?.toLowerCase().includes(searchQuery.toLowerCase())) {
+                                        return null;
+                                    }
+                                    
                                     return (
-                                        <View
+                                        <TouchableOpacity
                                             key={item.id}
-                                            className="bg-white rounded-[24px] p-5 mb-4 flex-row items-center shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-slate-50"
+                                            onPress={() => router.push('/notifications')}
+                                                className="bg-white dark:bg-[#151a2e] rounded-[24px] p-5 mb-4 flex-row items-center shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)] border border-slate-50 dark:border-white/10"
                                         >
-                                            <View className={`w-12 h-12 rounded-full ${item.bg} items-center justify-center mr-4`}>
+                                            <View className={`w-12 h-12 rounded-full ${style.bg} items-center justify-center mr-4`}>
                                                 <Icon
                                                     size={22}
-                                                    color={item.iconColor}
-                                                    fill={item.fill || 'none'}
+                                                    color={style.color}
                                                     strokeWidth={2.5}
                                                 />
                                             </View>
 
                                             <View className="flex-1 mr-2">
-                                                <Text className="text-slate-900 font-bold text-base mb-0.5">
-                                                    {item.title}
+                                                <Text className="text-slate-900 dark:text-white font-bold text-base mb-0.5" numberOfLines={1}>
+                                                    {item.displayTitle}
                                                 </Text>
-                                                <Text className="text-slate-500 text-sm font-medium" numberOfLines={1}>
-                                                    {item.subtitle}
+                                                <Text className="text-slate-500 dark:text-slate-300 text-sm font-medium" numberOfLines={1}>
+                                                    {item.displaySubtitle}
                                                 </Text>
                                             </View>
 
                                             <View>
-                                                <Text className="text-slate-400 text-xs font-bold">
-                                                    {item.time}
+                                                <Text className="text-slate-500 dark:text-slate-300 text-xs font-bold text-right">
+                                                    {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Text>
+                                                <Text className="text-[9px] text-slate-400 dark:text-slate-400 text-right">
+                                                    {new Date(item.created_at).toLocaleDateString()}
                                                 </Text>
                                             </View>
-                                        </View>
+                                        </TouchableOpacity>
                                     );
                                 })}
                             </View>

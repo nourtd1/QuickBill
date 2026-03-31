@@ -64,11 +64,14 @@
     "filters": {
       "all": "Byose",
       "paid": "Byishyuwe",
+      "unpaid": "Iritarishyurwa",
+      "sent": "Yoherejwe",
       "pending": "Bitegereje",
       "overdue": "Byarenze"
     },
     "status": {
       "paid": "BYISHYUWE",
+      "unpaid": "IRITARISHYURWA",
       "sent": "BYOHEREJWE",
       "overdue": "BYARENZE",
       "pending": "BITEGEREJE",

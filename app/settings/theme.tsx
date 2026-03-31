@@ -44,7 +44,7 @@ export default function ThemeSettingsScreen() {
     );
 
     return (
-        <View className="flex-1 bg-[#F9FAFB] dark:bg-slate-900">
+        <View className="flex-1 bg-[#F9FAFB] dark:bg-[#0a0f1e]">
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
 

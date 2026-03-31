@@ -10,20 +10,7 @@ import {
     Dimensions
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import {
-    ArrowLeft,
-    Plus,
-    Search,
-    FileText,
-    ChevronRight,
-    Clock,
-    CheckCircle2,
-    AlertCircle,
-    Sparkles,
-    Filter,
-    LayoutGrid,
-    ArrowUpRight
-} from 'lucide-react-native';
+import { Plus, Search, Filter, ArrowUpRight, Clock, CheckCircle2, AlertCircle, FileText, ChevronRight, Share2, Printer, Download, Trash2, Edit, XCircle } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
@@ -33,11 +20,11 @@ import { Estimate } from '../../types';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const STATUS_CONFIG = {
-    DRAFT: { label: 'BROUILLON', color: 'bg-slate-50', border: 'border-slate-100', textColor: 'text-slate-600', icon: Clock, iconColor: '#64748B' },
-    SENT: { label: 'ENVOYÉ', color: 'bg-blue-50', border: 'border-blue-100', textColor: 'text-blue-600', icon: Clock, iconColor: '#2563EB' },
-    ACCEPTED: { label: 'ACCEPTÉ', color: 'bg-emerald-50', border: 'border-emerald-100', textColor: 'text-emerald-600', icon: CheckCircle2, iconColor: '#10B981' },
-    REJECTED: { label: 'REFUSÉ', color: 'bg-red-50', border: 'border-red-100', textColor: 'text-red-600', icon: AlertCircle, iconColor: '#EF4444' },
-    CONVERTED: { label: 'FACTURÉ', color: 'bg-purple-50', border: 'border-purple-100', textColor: 'text-purple-600', icon: Sparkles, iconColor: '#9333EA' },
+    draft: { label: 'BROUILLON', color: 'bg-slate-50', border: 'border-slate-100', textColor: 'text-slate-600', icon: Clock, iconColor: '#64748B' },
+    sent: { label: 'ENVOYÉ', color: 'bg-blue-50', border: 'border-blue-100', textColor: 'text-blue-600', icon: Clock, iconColor: '#2563EB' },
+    accepted: { label: 'ACCEPTÉ', color: 'bg-emerald-50', border: 'border-emerald-100', textColor: 'text-emerald-600', icon: CheckCircle2, iconColor: '#10B981' },
+    rejected: { label: 'REFUSÉ', color: 'bg-red-50', border: 'border-red-100', textColor: 'text-red-600', icon: XCircle, iconColor: '#EF4444' },
+    converted: { label: 'CONVERTI', color: 'bg-purple-50', border: 'border-purple-100', textColor: 'text-purple-600', icon: FileText, iconColor: '#8B5CF6' }
 };
 
 export default function EstimatesList() {
@@ -102,8 +89,8 @@ export default function EstimatesList() {
 
     const stats = useMemo(() => {
         const totalAmount = estimates.reduce((acc, est) => acc + (est.total_amount || 0), 0);
-        const pendingCount = estimates.filter(e => e.status === 'SENT' || e.status === 'DRAFT').length;
-        const acceptedCount = estimates.filter(e => e.status === 'ACCEPTED' || e.status === 'CONVERTED').length;
+        const pendingCount = estimates.filter(e => e.status === 'sent' || e.status === 'draft').length;
+        const acceptedCount = estimates.filter(e => e.status === 'accepted' || e.status === 'converted').length;
         return { totalAmount, pendingCount, acceptedCount };
     }, [estimates]);
 
@@ -239,7 +226,7 @@ export default function EstimatesList() {
                         />
                     }
                     renderItem={({ item }) => {
-                        const config = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.DRAFT;
+                        const config = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.draft;
                         const StatusIcon = config.icon;
                         const customerName = Array.isArray(item.customer) ? item.customer[0]?.name : item.customer?.name;
 

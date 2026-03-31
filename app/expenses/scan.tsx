@@ -111,7 +111,8 @@ export default function ScanReceiptScreen() {
                 merchant: editedMerchant,
                 amount: editedAmount,
                 date: editedDate,
-                scanData: JSON.stringify(result)
+                scanData: JSON.stringify(result),
+                imageUri: imageUri || undefined
             }
         });
     };

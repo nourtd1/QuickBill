@@ -1,36 +1,44 @@
 import { Tabs } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Home, Settings, Users, FileText, Package, PieChart as PieChartIcon, User } from 'lucide-react-native';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../context/LanguageContext';
+import { useColorScheme } from 'nativewind';
 
 export default function TabLayout() {
     const unreadCount = useUnreadMessages();
     const insets = useSafeAreaInsets();
     const { t } = useLanguage();
+    const { colorScheme } = useColorScheme();
+
+    const tabBarBg = colorScheme === 'dark' ? '#0F172A' : '#FFFFFF';
+    const tabBarBorder = colorScheme === 'dark' ? '#334155' : '#F1F5F9';
 
     return (
-        <Tabs
-            screenOptions={{
-                headerShown: false,
-                tabBarActiveTintColor: '#2563EB', // Blue-600
-                tabBarInactiveTintColor: '#94A3B8', // Slate-400
-                tabBarStyle: {
-                    borderTopWidth: 1,
-                    borderTopColor: '#F1F5F9', // Slate-100
-                    backgroundColor: '#FFFFFF',
-                    height: 60 + (insets.bottom > 0 ? insets.bottom : 10), // Taller tab bar like in modern designs
-                    paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-                    paddingTop: 10,
-                    elevation: 0,
-                    shadowOpacity: 0,
-                },
-                tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: '600',
-                    marginTop: 4,
-                }
-            }}>
+        <>
+            <StatusBar style="auto" />
+            <Tabs
+                screenOptions={{
+                    headerShown: false,
+                    tabBarActiveTintColor: '#2563EB', // Blue-600
+                    tabBarInactiveTintColor: '#94A3B8', // Slate-400
+                    tabBarStyle: {
+                        borderTopWidth: 1,
+                        borderTopColor: tabBarBorder,
+                        backgroundColor: tabBarBg,
+                        height: 60 + (insets.bottom > 0 ? insets.bottom : 10), // Taller tab bar like in modern designs
+                        paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
+                        paddingTop: 10,
+                        elevation: 0,
+                        shadowOpacity: 0,
+                    },
+                    tabBarLabelStyle: {
+                        fontSize: 12,
+                        fontWeight: '600',
+                        marginTop: 4,
+                    }
+                }}>
             <Tabs.Screen
                 name="index"
                 options={{
@@ -77,6 +85,7 @@ export default function TabLayout() {
                 }}
             />
         </Tabs>
+        </>
     );
 }
 

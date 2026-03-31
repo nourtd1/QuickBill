@@ -34,10 +34,14 @@
       "view_all": "View all activity",
       "empty": "No notifications",
       "paid_title": "Invoice Paid",
-      "paid_msg": "Acme Corp paid invoice #{{number}} of {{amount}}",
+      "paid_msg": "{{name}} paid invoice {{number}} of {{amount}}",
+      "invoice_created_title": "New Invoice",
+      "invoice_created_msg": "Sent to {{name}} for {{amount}}",
+      "payment_overdue_title": "Payment Overdue",
+      "payment_overdue_msg": "Invoice {{number}} is {{days}} days late",
       "subscription_title": "Subscription Ending",
       "subscription_msg": "Your premium plan expires in {{days}} days.",
-      "client_added_title": "New Client Added",
+      "client_added_title": "New Client",
       "client_added_msg": "{{name}} was added to your list.",
       "time_ago": "{{count}} {{unit}} ago"
     },
@@ -64,11 +68,14 @@
     "filters": {
       "all": "All",
       "paid": "Paid",
+      "unpaid": "Not yet",
+      "sent": "Sent",
       "pending": "Pending",
       "overdue": "Overdue"
     },
     "status": {
       "paid": "PAID",
+      "unpaid": "NOT YET PAID",
       "sent": "SENT",
       "overdue": "OVERDUE",
       "pending": "PENDING",

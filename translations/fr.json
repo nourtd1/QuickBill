@@ -34,10 +34,14 @@
       "view_all": "Voir toute l'activité",
       "empty": "Aucune notification",
       "paid_title": "Facture Payée",
-      "paid_msg": "Acme Corp a payé la facture #{{number}} de {{amount}}",
+      "paid_msg": "{{name}} a payé la facture {{number}} de {{amount}}",
+      "invoice_created_title": "Nouvelle Facture",
+      "invoice_created_msg": "Envoyée à {{name}} pour {{amount}}",
+      "payment_overdue_title": "Paiement en Retard",
+      "payment_overdue_msg": "La facture {{number}} a {{days}} jours de retard",
       "subscription_title": "Fin de l'Abonnement",
       "subscription_msg": "Votre plan premium expire dans {{days}} jours.",
-      "client_added_title": "Nouveau Client Ajouté",
+      "client_added_title": "Nouveau Client",
       "client_added_msg": "{{name}} a été ajouté à votre liste.",
       "time_ago": "Il y a {{count}} {{unit}}"
     },
@@ -64,11 +68,14 @@
     "filters": {
       "all": "Tout",
       "paid": "Payé",
+      "unpaid": "Pas encore",
+      "sent": "Envoyé",
       "pending": "En attente",
       "overdue": "En retard"
     },
     "status": {
       "paid": "PAYÉE",
+      "unpaid": "PAS ENCORE PAYÉE",
       "sent": "ENVOYÉE",
       "overdue": "EN RETARD",
       "pending": "EN ATTENTE",

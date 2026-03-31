@@ -58,7 +58,7 @@ export const generateTaxReport = async (
         .eq('user_id', userId)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
-        .neq('status', 'DRAFT'); // Exclude drafts
+        .neq('status', 'draft'); // Exclude drafts
 
     if (error) throw error;
 

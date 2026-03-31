@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import { getDBConnection } from '../lib/database';
+import { getDBConnection, getIsDBReady } from '../lib/database';
 
 export const useOfflineStatus = () => {
     const [isConnected, setIsConnected] = useState<boolean | null>(true);
@@ -29,20 +29,36 @@ export const useOfflineStatus = () => {
     }, []);
 
     const checkPendingActions = async () => {
+        // If the DB isn't marked ready yet, don't try to query it.
+        if (!getIsDBReady()) {
+            setPendingCount(0);
+            return;
+        }
         try {
             const db = await getDBConnection();
             let total = 0;
             const tables = ['profiles', 'clients', 'invoices', 'invoice_items', 'payments', 'expenses'];
             
             for (const table of tables) {
-                const result = await db.getFirstAsync<{ count: number }>(
-                    `SELECT COUNT(*) as count FROM ${table} WHERE sync_status = 'pending'`
-                );
-                total += result?.count || 0;
+                try {
+                    const result = await db.getFirstAsync<{ count: number }>(
+                        `SELECT COUNT(*) as count FROM ${table} WHERE sync_status = 'pending'`
+                    );
+                    total += result?.count || 0;
+                } catch (innerError) {
+                    // If a table is missing or schema is still migrating, skip it silently.
+                    if (__DEV__) {
+                        console.warn(`Pending actions check skipped for table ${table}:`, innerError);
+                    }
+                }
             }
             setPendingCount(total);
         } catch (e) {
-            console.error('Error checking pending actions:', e);
+            // Fail gracefully without surfacing confusing errors to the user
+            if (__DEV__) {
+                console.error('Error checking pending actions (dev-only):', e);
+            }
+            setPendingCount(0);
         }
     };
 

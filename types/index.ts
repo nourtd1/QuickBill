@@ -58,7 +58,7 @@ export interface InvoiceItem {
     unit_price: number;
 }
 
-export type InvoiceStatus = 'PAID' | 'UNPAID' | 'PENDING_APPROVAL' | 'REJECTED';
+export type InvoiceStatus = 'paid' | 'unpaid' | 'pending_approval' | 'rejected' | 'draft' | 'sent' | 'overdue';
 
 export interface Invoice {
     id: string; // uuid
@@ -89,7 +89,7 @@ export interface Item {
     created_at: string;
 }
 
-export type EstimateStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'CONVERTED';
+export type EstimateStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted';
 
 export interface EstimateItem {
     id?: string;
@@ -122,8 +122,10 @@ export interface Expense {
     user_id: string;
     amount: number;
     category: string;
+    merchant?: string | null;
     description?: string | null;
     date: string;
     receipt_url?: string | null;
     created_at: string;
+    updated_at?: string;
 }

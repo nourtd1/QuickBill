@@ -2,6 +2,30 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { getDBConnection } from '../lib/database';
+import { runSynchronization } from '../lib/syncService';
+
+type LocalProfileRow = {
+    id: string;
+    business_name?: string | null;
+    logo_url?: string | null;
+    address?: string | null;
+    full_name?: string | null;
+    currency?: string | null;
+    default_currency?: string | null;
+    phone?: string | null;
+    phone_number?: string | null;
+};
+
+const mapLocalRowToProfile = (row: LocalProfileRow): Profile => ({
+    id: row.id,
+    business_name: row.business_name || '',
+    logo_url: row.logo_url || null,
+    address: row.address || null,
+    full_name: row.full_name || null,
+    currency: row.currency || row.default_currency || 'USD',
+    phone_contact: row.phone || row.phone_number || null,
+});
 
 type AuthContextType = {
     session: Session | null;
@@ -27,16 +51,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     const fetchProfile = async (userId: string) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+        try {
+            const db = await getDBConnection();
 
-        if (!error && data) {
-            setProfile(data as Profile);
-        } else {
-            setProfile(null);
+            // 1) Local-first read so profile survives restarts and offline usage.
+            const localProfile = await db.getFirstAsync<LocalProfileRow>(
+                `SELECT * FROM profiles WHERE id = ? LIMIT 1`,
+                [userId]
+            );
+            if (localProfile) {
+                setProfile(mapLocalRowToProfile(localProfile));
+            } else {
+                setProfile(null);
+            }
+
+            // 2) Remote fetch to keep in sync.
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (!error && data) {
+                const remote = data as Profile;
+                setProfile(remote);
+
+                await db.runAsync(
+                    `INSERT INTO profiles (id, business_name, logo_url, address, full_name, currency, default_currency, phone, phone_number, sync_status, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
+                     ON CONFLICT(id) DO UPDATE SET
+                       business_name = excluded.business_name,
+                       logo_url = excluded.logo_url,
+                       address = excluded.address,
+                       full_name = excluded.full_name,
+                       currency = excluded.currency,
+                       default_currency = excluded.default_currency,
+                       phone = excluded.phone,
+                       phone_number = excluded.phone_number,
+                       sync_status = 'synced',
+                       updated_at = excluded.updated_at`,
+                    [
+                        userId,
+                        remote.business_name ?? null,
+                        remote.logo_url ?? null,
+                        remote.address ?? null,
+                        remote.full_name ?? null,
+                        remote.currency ?? null,
+                        remote.currency ?? null,
+                        remote.phone_contact ?? null,
+                        remote.phone_contact ?? null,
+                        new Date().toISOString(),
+                    ]
+                );
+            }
+        } catch (error) {
+            console.error('AuthContext fetchProfile error:', error);
         }
     };
 

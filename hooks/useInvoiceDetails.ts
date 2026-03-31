@@ -57,7 +57,7 @@ export function useInvoiceDetails(id: string) {
         if (!invoice) return;
         setUpdating(true);
 
-        const newStatus = invoice.status === 'PAID' ? 'UNPAID' : 'PAID';
+        const newStatus = invoice.status === 'paid' ? 'unpaid' : 'paid';
 
         // Optimistic Update
         setInvoice(prev => prev ? { ...prev, status: newStatus } : null);

@@ -1,99 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Image,
-    Dimensions,
-    Switch
+    View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert,
+    KeyboardAvoidingView, Platform, Image, Keyboard
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import {
-    X,
-    Camera,
-    Check,
-    Calendar,
-    FileText,
-    Upload,
-    ArrowLeft,
-    ChevronDown,
-    CreditCard,
-    Utensils,
-    Plane,
-    Briefcase
-} from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Camera, Check, Calendar, Store, ArrowLeft, Utensils, Plane, Briefcase, ShoppingBag, Truck } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { uploadImage } from '../../lib/upload';
 import { showError, showSuccess } from '../../lib/error-handler';
 import { saveExpenseLocally } from '../../lib/localServices';
-import { runSynchronization } from '../../lib/syncService';
 import NetInfo from '@react-native-community/netinfo';
 
-const { width } = Dimensions.get('window');
-
 const CATEGORIES = [
-    { id: 'meals', label: 'Meals', icon: Utensils, color: '#6366F1' },
-    { id: 'travel', label: 'Travel', icon: Plane, color: '#6366F1' },
-    { id: 'office', label: 'Office', icon: Briefcase, color: '#6366F1' },
+    { id: 'meals', label: 'Repas', icon: Utensils },
+    { id: 'travel', label: 'Voyage', icon: Plane },
+    { id: 'office', label: 'Bureau', icon: Briefcase },
+    { id: 'supplies', label: 'Matériel', icon: ShoppingBag },
+    { id: 'transport', label: 'Transport', icon: Truck },
 ];
 
 export default function AddExpenseScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { user, profile } = useAuth();
-    const currency = profile?.currency || 'USD';
+    const { user } = useAuth();
 
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('meals');
     const [merchant, setMerchant] = useState('');
     const [description, setDescription] = useState('');
-    const [date, setDate] = useState('10/24/2023');
+    // YYYY-MM-DD format as returned by the AI
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [receiptUri, setReceiptUri] = useState<string | null>(null);
-    const [isTaxDeductible, setIsTaxDeductible] = useState(false);
 
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (params.amount) setAmount(params.amount.toString());
         if (params.merchant) setMerchant(params.merchant.toString());
         if (params.date) setDate(params.date.toString());
+        if (params.imageUri) setReceiptUri(params.imageUri.toString());
+        
+        if (params.scanData) {
+            try {
+                const data = JSON.parse(params.scanData as string);
+                // Pre-fill description if items exist
+                if (data.items && data.items.length > 0) {
+                    const desc = data.items.map((i: any) => `${i.description} (${i.amount})`).join(', ');
+                    setDescription(desc);
+                }
+            } catch (e) {
+                console.log("Could not parse scanData");
+            }
+        }
     }, [params]);
 
     const handlePickImage = async () => {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!granted) {
-            Alert.alert("Permission Required", "Access to gallery is needed.");
+            Alert.alert("Permission", "L'accès à la galerie est nécessaire.");
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
-            allowsEditing: true,
-            quality: 0.7,
-        });
-        if (!result.canceled) {
-            setReceiptUri(result.assets[0].uri);
-        }
-    };
-
-    const handleCamera = async () => {
-        const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-        if (!granted) {
-            Alert.alert("Permission Required", "Access to camera is needed.");
-            return;
-        }
-        const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
             quality: 0.7,
         });
         if (!result.canceled) {
@@ -103,7 +74,7 @@ export default function AddExpenseScreen() {
 
     const handleSave = async () => {
         if (!amount || isNaN(parseFloat(amount))) {
-            Alert.alert("Error", "Please enter a valid amount.");
+            Alert.alert("Erreur", "Veuillez entrer un montant valide.");
             return;
         }
         if (!user) return;
@@ -111,76 +82,76 @@ export default function AddExpenseScreen() {
         setSaving(true);
         try {
             let receiptUrl = null;
-            if (receiptUri) {
-                setUploading(true);
+            if (receiptUri && !receiptUri.startsWith('http')) {
                 receiptUrl = await uploadImage(receiptUri, 'receipts');
-                setUploading(false);
             }
 
             const expenseData = {
                 user_id: user.id,
                 amount: parseFloat(amount),
                 category,
-                merchant: merchant.trim() || undefined,
-                description: description.trim() || undefined,
+                merchant: merchant.trim() || null,
+                description: description.trim() || null,
                 date: date || new Date().toISOString().split('T')[0],
-                receipt_url: receiptUrl || undefined,
+                receipt_url: receiptUrl || (receiptUri && receiptUri.startsWith('http') ? receiptUri : undefined), 
             };
 
             const netState = await NetInfo.fetch();
+            
             if (netState.isConnected) {
                 const { error } = await supabase.from('expenses').insert(expenseData);
                 if (error) throw error;
-                showSuccess("Expense saved successfully!");
+                showSuccess("Dépense enregistrée avec succès !");
             } else {
                 await saveExpenseLocally(expenseData);
-                showSuccess("Expense saved locally. Will sync when online.");
+                showSuccess("Dépense sauvegardée localement.");
             }
 
-            router.back();
+            // Go back to the dashboard/expenses list
+            router.replace('/(tabs)/');
         } catch (error) {
-            showError(error, "Failed to save expense");
+            showError(error, "Échec de l'enregistrement");
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <View className="flex-1 bg-[#F5F7FF]">
+        <View className="flex-1 bg-slate-50">
             <StatusBar style="dark" />
 
-            <View className="flex-row justify-between items-center px-6 pt-4 pb-2 z-10 bg-[#F5F7FF]">
-                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-                    <ArrowLeft size={24} color="#0F172A" />
+            {/* Header */}
+            <View className="flex-row justify-between items-center px-6 pt-14 pb-4 bg-white shadow-sm z-10">
+                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-full bg-slate-100">
+                    <ArrowLeft size={20} color="#0F172A" />
                 </TouchableOpacity>
-                <Text className="text-xl font-bold text-slate-900">Add Expense</Text>
-                <TouchableOpacity onPress={handleSave}>
-                    <Text className="text-[#6366F1] font-bold text-base">Save</Text>
-                </TouchableOpacity>
+                <Text className="text-lg font-bold text-slate-900">Nouvelle Dépense</Text>
+                <View className="w-10" />
             </View>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                className="flex-1"
-            >
-                <ScrollView
-                    className="flex-1 px-6 pt-4"
-                    contentContainerStyle={{ paddingBottom: 200 }}
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+                <ScrollView 
+                    className="flex-1 px-6" 
+                    contentContainerStyle={{ paddingTop: 24, paddingBottom: 150 }} 
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <View className="bg-white rounded-[40px] py-10 items-center justify-center shadow-sm border border-indigo-50 mb-8 w-full">
-                        <Text className="text-[#818CF8] text-[10px] font-bold uppercase tracking-widest mb-4">TOTAL AMOUNT</Text>
+                    {/* Amount Input */}
+                    <View className="bg-white rounded-[32px] p-8 items-center justify-center shadow-lg shadow-indigo-100 mb-8 border border-slate-100">
+                        <Text className="text-indigo-400 text-xs font-bold uppercase tracking-widest mb-2">Montant Total</Text>
                         <TextInput
-                            className="text-slate-900 text-6xl font-bold"
+                            className="text-slate-900 text-5xl font-black text-center w-full"
                             value={amount}
                             onChangeText={setAmount}
-                            placeholder="$0.00"
+                            placeholder="0.00"
                             placeholderTextColor="#CBD5E1"
                             keyboardType="numeric"
                         />
                     </View>
 
-                    <View className="flex-row justify-between mb-8">
+                    {/* Category Selector */}
+                    <Text className="text-slate-500 font-bold mb-3 ml-2 text-sm">Catégorie</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8" contentContainerStyle={{ paddingRight: 20 }}>
                         {CATEGORIES.map((cat) => {
                             const isSelected = category === cat.id;
                             const Icon = cat.icon;
@@ -188,65 +159,56 @@ export default function AddExpenseScreen() {
                                 <TouchableOpacity
                                     key={cat.id}
                                     onPress={() => setCategory(cat.id)}
-                                    className={`flex-1 py-3 px-2 rounded-full flex-row items-center justify-center mx-1 shadow-sm ${isSelected ? 'bg-[#6366F1]' : 'bg-white'}`}
+                                    className={`py-3 px-5 rounded-full flex-row items-center justify-center mr-3 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-200 shadow-sm'}`}
                                 >
-                                    <Icon size={18} color={isSelected ? 'white' : '#475569'} />
+                                    <Icon size={16} color={isSelected ? 'white' : '#64748B'} />
                                     <Text className={`font-bold ml-2 text-sm ${isSelected ? 'text-white' : 'text-slate-600'}`}>
                                         {cat.label}
                                     </Text>
                                 </TouchableOpacity>
                             );
                         })}
-                    </View>
+                    </ScrollView>
 
-                    <View className="space-y-4 mb-4">
-                        <TextInput
-                            className="bg-white rounded-[24px] px-6 py-4 text-slate-900 border border-slate-200 text-base font-medium"
-                            placeholder="Merchant (e.g. Starbucks)"
-                            placeholderTextColor="#94A3B8"
-                            value={merchant}
-                            onChangeText={setMerchant}
-                        />
-
-                        <TouchableOpacity className="bg-white rounded-[24px] px-6 py-4 flex-row justify-between items-center border border-slate-200">
-                            <Text className="text-slate-900 font-bold text-base">{date}</Text>
-                            <Calendar size={20} color="#0F172A" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity className="bg-gradient-to-r from-slate-50 to-white rounded-[24px] px-6 py-4 flex-row justify-between items-center border border-transparent shadow-sm">
-                            <View className="flex-row items-center">
-                                <View className="w-8 h-5 rounded bg-slate-200 mr-3" />
-                                <Text className="text-slate-900 font-bold text-sm">Business Visa ****4242</Text>
+                    {/* Details Form */}
+                    <Text className="text-slate-500 font-bold mb-3 ml-2 text-sm">Détails</Text>
+                    <View className="space-y-4 mb-8">
+                        <View className="flex-row items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <View className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center mr-3">
+                                <Store size={20} color="#6366F1" />
                             </View>
-                            <ChevronDown size={20} color="#64748B" />
-                        </TouchableOpacity>
+                            <View className="flex-1">
+                                <Text className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Marchand / Émetteur</Text>
+                                <TextInput
+                                    value={merchant}
+                                    onChangeText={setMerchant}
+                                    className="text-slate-900 font-bold text-base p-0"
+                                    placeholder="Ex: Starbucks, Taxify..."
+                                />
+                            </View>
+                        </View>
+
+                        <View className="flex-row items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <View className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center mr-3">
+                                <Calendar size={20} color="#6366F1" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Date de la dépense</Text>
+                                <TextInput
+                                    value={date}
+                                    onChangeText={setDate}
+                                    className="text-slate-900 font-bold text-base p-0"
+                                    placeholder="YYYY-MM-DD"
+                                />
+                            </View>
+                        </View>
                     </View>
 
-                    <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4 ml-2 mt-4">PROOF & DETAILS</Text>
-
-                    <TouchableOpacity
-                        onPress={handlePickImage}
-                        className="w-full bg-[#F8FAFC] border-2 border-dashed border-[#818CF8]/30 rounded-[32px] h-40 items-center justify-center mb-6"
-                    >
-                        {receiptUri ? (
-                            <Image source={{ uri: receiptUri }} className="w-full h-full rounded-[30px]" resizeMode="cover" />
-                        ) : (
-                            <>
-                                <View className="w-14 h-14 bg-white rounded-full items-center justify-center shadow-sm mb-3">
-                                    <Camera size={24} color="#6366F1" />
-                                    <View className="absolute top-0 right-0 w-4 h-4 bg-[#6366F1] rounded-full items-center justify-center border border-white">
-                                        <Text className="text-white text-[10px]">+</Text>
-                                    </View>
-                                </View>
-                                <Text className="text-[#6366F1] font-bold text-sm">Attach Receipt Image</Text>
-                                <Text className="text-slate-400 text-xs">JPG, PNG or PDF</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-
+                    {/* Notes */}
+                    <Text className="text-slate-500 font-bold mb-3 ml-2 text-sm">Notes & Reçu</Text>
                     <TextInput
-                        className="bg-white rounded-[24px] px-6 py-4 text-slate-900 min-h-[100px] text-base font-medium mb-6"
-                        placeholder="Add a description or note..."
+                        className="bg-white rounded-2xl px-5 py-4 text-slate-900 min-h-[100px] text-base font-medium mb-4 border border-slate-200 shadow-sm"
+                        placeholder="Description supplémentaire, taxes..."
                         placeholderTextColor="#94A3B8"
                         multiline
                         textAlignVertical="top"
@@ -254,41 +216,45 @@ export default function AddExpenseScreen() {
                         onChangeText={setDescription}
                     />
 
-                    <View className="bg-white rounded-[24px] p-4 flex-row items-center justify-between shadow-sm mb-8">
-                        <View className="flex-row items-center flex-1">
-                            <View className="w-10 h-10 bg-indigo-50 rounded-full items-center justify-center mr-3">
-                                <Text className="text-[#6366F1] font-bold text-lg">%</Text>
+                    {/* Receipt Image */}
+                    <TouchableOpacity
+                        onPress={handlePickImage}
+                        className="w-full bg-slate-100 border-2 border-dashed border-indigo-200 rounded-3xl h-48 items-center justify-center mb-6 overflow-hidden"
+                    >
+                        {receiptUri ? (
+                            <>
+                                <Image source={{ uri: receiptUri }} className="w-full h-full opacity-80" resizeMode="cover" />
+                                <View className="absolute bg-black/60 px-4 py-2 rounded-full flex-row items-center">
+                                    <Camera size={14} color="white" />
+                                    <Text className="text-white font-bold text-xs ml-2">Changer la photo</Text>
+                                </View>
+                            </>
+                        ) : (
+                            <View className="items-center">
+                                <View className="w-14 h-14 bg-white rounded-full items-center justify-center shadow-sm mb-3">
+                                    <Camera size={24} color="#6366F1" />
+                                </View>
+                                <Text className="text-indigo-600 font-bold text-sm mb-1">Joindre un reçu</Text>
+                                <Text className="text-slate-400 text-xs">Prendre une photo ou choisir</Text>
                             </View>
-                            <View>
-                                <Text className="text-slate-900 font-bold text-sm">Tax / VAT Deductible</Text>
-                                <Text className="text-slate-400 text-[10px]">Record tax amount separately</Text>
-                            </View>
-                        </View>
-                        <Switch
-                            trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
-                            thumbColor={"#FFFFFF"}
-                            ios_backgroundColor="#E2E8F0"
-                            onValueChange={setIsTaxDeductible}
-                            value={isTaxDeductible}
-                        />
-                    </View>
+                        )}
+                    </TouchableOpacity>
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            <View className="absolute bottom-6 left-6 right-6">
+            {/* Bottom Sticky Button */}
+            <View className="absolute bottom-0 left-0 right-0 bg-white/95 px-6 py-6 border-t border-slate-100">
                 <TouchableOpacity
                     onPress={handleSave}
                     disabled={saving}
-                    className="w-full bg-[#6366F1] h-16 rounded-full flex-row items-center justify-center shadow-xl shadow-indigo-500/40"
+                    className="w-full bg-indigo-600 h-14 rounded-full flex-row items-center justify-center shadow-xl shadow-indigo-500/30"
                 >
                     {saving ? (
                         <ActivityIndicator color="white" />
                     ) : (
                         <>
-                            <Text className="text-white font-bold text-lg mr-2">Save Expense</Text>
-                            <View className="bg-white rounded-full p-0.5">
-                                <Check size={16} color="#6366F1" strokeWidth={4} />
-                            </View>
+                            <Text className="text-white font-bold text-base mr-2">Enregistrer la Dépense</Text>
+                            <Check size={18} color="white" strokeWidth={3} />
                         </>
                     )}
                 </TouchableOpacity>

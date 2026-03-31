@@ -69,7 +69,7 @@ export default function PublicInvoicePage() {
                         <InvoiceViewer data={invoice} />
 
                         {/* Payment Button Main Action */}
-                        {invoice.status !== 'PAID' && (
+                        {invoice.status !== 'paid' && (
                             <View className="w-full max-w-[595px] mt-6 px-4">
                                 <TouchableOpacity
                                     onPress={() => setPaymentVisible(true)}
@@ -84,7 +84,7 @@ export default function PublicInvoicePage() {
                             </View>
                         )}
 
-                        {invoice.status === 'PAID' && (
+                        {invoice.status === 'paid' && (
                             <View className="w-full max-w-[595px] mt-6 px-4">
                                 <View className="bg-emerald-100 p-4 rounded-xl border border-emerald-200 flex-row items-center justify-center">
                                     <Text className="text-emerald-700 font-bold text-lg">✅ Cette facture est déjà payée.</Text>

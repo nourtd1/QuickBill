@@ -64,7 +64,7 @@ serve(async (req) => {
             // So we'll trust the User Logic: The UI will show "Waiting".
 
             // However, to make it work "End-to-End" without real provider:
-            // We will auto-update the invoice to PAID after 2 seconds via a separate async process or just here for MVP.
+            // We will auto-update the invoice to paid after 2 seconds via a separate async process or just here for MVP.
 
             // LET'S DO THE PROPER WAY: 
             // Return PENDING.
@@ -87,9 +87,9 @@ serve(async (req) => {
 
             console.log(`[Webhook] Received update for ${invoiceId}: ${status}`);
 
-            if (status === 'SUCCESSFUL') {
-                // Update Invoice Status to PAID
-                const { error } = await supabase
+            if (status === 'successful') {
+                // Update Invoice Status to paid
+                const { error: updateError } = await supabase
                     .from('invoices')
                     .update({
                         status: 'paid',
@@ -98,7 +98,7 @@ serve(async (req) => {
                     })
                     .eq('id', invoiceId);
 
-                if (error) throw error;
+                if (updateError) throw updateError;
 
                 return new Response(JSON.stringify({ received: true, updated: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }

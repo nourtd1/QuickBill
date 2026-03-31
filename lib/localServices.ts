@@ -8,7 +8,7 @@ export interface LocalInvoice {
     user_id: string;
     customer_id: string | null;
     invoice_number: string;
-    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'PAID' | 'UNPAID' | 'SENT' | 'DRAFT' | 'OVERDUE' | 'PENDING_APPROVAL' | 'REJECTED';
+    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'unpaid' | 'pending_approval' | 'rejected';
     currency: string;
     exchange_rate: number;
     subtotal: number;
@@ -37,8 +37,85 @@ export interface LocalInvoiceItem {
     sync_status: 'synced' | 'pending' | 'error';
 }
 
+export interface LocalNotification {
+    id: string;
+    user_id: string;
+    title: string;
+    message: string | null;
+    type: 'payment' | 'invoice' | 'system' | 'general';
+    read_status: 0 | 1;
+    data: string | null;
+    created_at: string;
+}
+
 export const generateUUID = () => {
     return Crypto.randomUUID();
+};
+
+/**
+ * Save a notification locally
+ */
+export const saveNotificationLocally = async (
+    notification: Omit<LocalNotification, 'id' | 'created_at' | 'read_status'>
+) => {
+    const db = await getDBConnection();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+
+    await db.runAsync(
+        `INSERT INTO notifications (id, user_id, title, message, type, read_status, data, created_at)
+         VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+        [id, notification.user_id, notification.title, notification.message || null, notification.type || 'general', notification.data || null, now]
+    );
+
+    return id;
+};
+
+/**
+ * Get all notifications for a user
+ */
+export const getNotificationsLocal = async (userId: string) => {
+    const db = await getDBConnection();
+    return await db.getAllAsync<LocalNotification>(
+        `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC`,
+        [userId]
+    );
+};
+
+/**
+ * Mark a notification as read
+ */
+export const markNotificationAsReadLocal = async (id: string) => {
+    const db = await getDBConnection();
+    await db.runAsync(`UPDATE notifications SET read_status = 1 WHERE id = ?`, [id]);
+};
+
+/**
+ * Mark all notifications as read
+ */
+export const markAllNotificationsAsReadLocal = async (userId: string) => {
+    const db = await getDBConnection();
+    await db.runAsync(`UPDATE notifications SET read_status = 1 WHERE user_id = ?`, [userId]);
+};
+
+/**
+ * Get unread notification count
+ */
+export const getUnreadNotificationCountLocal = async (userId: string): Promise<number> => {
+    const db = await getDBConnection();
+    const result = await db.getAllAsync<{ count: number }>(
+        `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read_status = 0`,
+        [userId]
+    );
+    return result[0]?.count || 0;
+};
+
+/**
+ * Delete a notification
+ */
+export const deleteNotificationLocal = async (id: string) => {
+    const db = await getDBConnection();
+    await db.runAsync(`DELETE FROM notifications WHERE id = ?`, [id]);
 };
 
 /**
@@ -279,16 +356,35 @@ export const findClientByNameLocally = async (userId: string, name: string): Pro
  * Save an expense locally
  */
 export const saveExpenseLocally = async (
-    expenseData: { user_id: string; amount: number; category: string; description?: string; date: string; receipt_url?: string }
+    expenseData: { 
+        user_id: string; 
+        amount: number; 
+        category: string; 
+        merchant?: string; 
+        description?: string; 
+        date: string; 
+        receipt_url?: string 
+    }
 ): Promise<string> => {
     const db = await getDBConnection();
     const id = generateUUID();
     const now = new Date().toISOString();
 
     await db.runAsync(
-        `INSERT INTO expenses (id, user_id, amount, category, description, date, receipt_url, sync_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-        [id, expenseData.user_id, expenseData.amount, expenseData.category, expenseData.description || null, expenseData.date, expenseData.receipt_url || null, now, now]
+        `INSERT INTO expenses (id, user_id, amount, category, merchant, description, date, receipt_url, sync_status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        [
+            id, 
+            expenseData.user_id, 
+            expenseData.amount, 
+            expenseData.category, 
+            expenseData.merchant || null,
+            expenseData.description || null, 
+            expenseData.date, 
+            expenseData.receipt_url || null, 
+            now, 
+            now
+        ]
     );
 
     return id;
@@ -322,7 +418,7 @@ export const getDashboardStatsLocal = async (userId: string) => {
     // 3. Pending Amount (Unpaid invoices)
     const pendingResult = await db.getAllAsync<{ total: number }>(
         `SELECT SUM(total_amount) as total FROM invoices
-         WHERE user_id = ? AND status != 'PAID'`,
+         WHERE user_id = ? AND status != 'paid'`,
         [userId]
     );
     const pendingAmount = pendingResult[0]?.total || 0;

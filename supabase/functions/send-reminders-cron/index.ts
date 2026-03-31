@@ -26,7 +26,8 @@ serve(async (req) => {
         const { data: overdue, error } = await supabase
             .from('invoices')
             .select('id, user_id, invoice_number, due_date, total_amount, status')
-            .not('status', 'in', '("paid","PAID","draft")')
+            .neq('status', 'paid')
+            .neq('status', 'draft')
             .lt('due_date', today)
 
         if (error) {

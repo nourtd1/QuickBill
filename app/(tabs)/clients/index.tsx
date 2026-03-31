@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
 import { Client } from '../../../types';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useColorScheme } from 'nativewind';
 
 // Constants
 const PRIMARY_COLOR = '#2563EB'; // Blue-600
@@ -42,6 +43,7 @@ export default function ClientsScreen() {
     const [statsMap, setStatsMap] = useState<Record<string, { total: number; unpaid: number; count: number }>>({});
     const insets = useSafeAreaInsets();
     const { t, language } = useLanguage();
+    const { colorScheme } = useColorScheme();
 
     const fetchClients = async () => {
         try {
@@ -66,7 +68,7 @@ export default function ClientsScreen() {
                     if (!map[inv.customer_id]) map[inv.customer_id] = { total: 0, unpaid: 0, count: 0 };
                     map[inv.customer_id].count++;
                     map[inv.customer_id].total += inv.total_amount || 0;
-                    if (inv.status === 'UNPAID' || inv.status === 'PENDING_APPROVAL') {
+                    if (inv.status === 'unpaid' || inv.status === 'pending_approval') {
                         map[inv.customer_id].unpaid += inv.total_amount || 0;
                     }
                 });
@@ -122,16 +124,16 @@ export default function ClientsScreen() {
         return (
             <TouchableOpacity
                 onPress={() => router.push({ pathname: '/clients/form', params: { id: item.id } })}
-                className="bg-white p-5 rounded-[24px] mb-4 flex-row justify-between items-center shadow-sm shadow-slate-200/50 border border-slate-100 active:bg-slate-50/80"
+                className="bg-white dark:bg-[#151a2e] p-5 rounded-[24px] mb-4 flex-row justify-between items-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10 active:bg-slate-50/80 dark:active:bg-[#1b2140]"
             >
                 <View className="flex-row items-center gap-4">
                     {/* Avatar */}
-                    <View className="w-14 h-14 rounded-[18px] bg-slate-50 border border-slate-100 items-center justify-center shadow-sm shadow-slate-200">
+                    <View className="w-14 h-14 rounded-[18px] bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-700/50 items-center justify-center shadow-sm shadow-slate-200 dark:shadow-slate-900/30">
                         <User size={24} color="#1E40AF" strokeWidth={2.5} />
                     </View>
 
                     <View>
-                        <Text className="font-black text-slate-900 text-base tracking-tight mb-0.5">{item.name}</Text>
+                        <Text className="font-black text-slate-900 dark:text-white text-base tracking-tight mb-0.5">{item.name}</Text>
                         <Text className="text-slate-500 font-bold text-xs">{(item as any).business_name || (item as any).company_name || t('clients.individual')}</Text>
                     </View>
                 </View>
@@ -150,25 +152,25 @@ export default function ClientsScreen() {
         <View className="bg-transparent">
             {/* Header Title Section */}
             <View className="flex-row justify-between items-center mb-6 pt-2">
-                <Text className="text-[36px] font-black text-slate-900 tracking-tight">{t('clients.title')}</Text>
-                <TouchableOpacity className="bg-white w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
+                <Text className="text-[36px] font-black text-slate-900 dark:text-white tracking-tight" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t('clients.title')}</Text>
+                <TouchableOpacity className="bg-white dark:bg-[#151a2e] w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
                     <User size={24} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
             <View className="flex-row gap-3 mb-6">
-                <View className="flex-1 h-14 bg-white rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 border border-slate-100">
+                <View className="flex-1 h-14 bg-white dark:bg-[#151a2e] rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
                     <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
                     <TextInput
-                        className="flex-1 font-bold text-base text-slate-900 h-full"
+                        className="flex-1 font-bold text-base text-slate-900 dark:text-white h-full"
                         placeholder={t('clients.search_placeholder')}
                         placeholderTextColor="#CBD5E1"
                         value={search}
                         onChangeText={setSearch}
                     />
                 </View>
-                <TouchableOpacity className="w-14 h-14 bg-slate-50 rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 border border-slate-100">
+                <TouchableOpacity className="w-14 h-14 bg-slate-50 dark:bg-[#151a2e] rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
                     <SlidersHorizontal size={20} color="#1E40AF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
@@ -187,9 +189,9 @@ export default function ClientsScreen() {
                         <TouchableOpacity
                             key={filter}
                             onPress={() => setActiveFilter(filter)}
-                            className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'}`}
+                            className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white dark:bg-[#151a2e] border-slate-100 dark:border-white/10 shadow-sm shadow-slate-200/50 dark:shadow-black/60'}`}
                         >
-                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-300'}`}>
                                 {t(`clients.filters.${filterKey}`)}
                             </Text>
                         </TouchableOpacity>
@@ -199,7 +201,7 @@ export default function ClientsScreen() {
 
             {/* Section Title */}
             <View className="flex-row justify-between items-center mb-4 ml-1">
-                <Text className="font-black text-slate-900 text-[10px] uppercase tracking-widest">
+                <Text className="font-black text-slate-900 dark:text-white text-[10px] uppercase tracking-widest">
                     {t('clients.directory')}
                 </Text>
             </View>
@@ -211,18 +213,32 @@ export default function ClientsScreen() {
     }
 
     return (
-        <View className="flex-1 bg-white relative">
-            <StatusBar style="dark" />
+        <View className="flex-1 bg-white dark:bg-[#0a0f1e] relative">
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
             {/* Background Decorative Elements */}
             <View className="absolute top-0 left-0 right-0 h-[45%] pointer-events-none">
-                <LinearGradient
-                    colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
-                    locations={[0, 0.4, 1]}
-                    className="flex-1"
-                />
-                <View className="absolute -top-32 -right-32 w-80 h-80 bg-blue-400/10 rounded-full" />
-                <View className="absolute top-20 -left-20 w-48 h-48 bg-indigo-400/10 rounded-full" />
+                {colorScheme === 'dark' ? (
+                    <>
+                        <LinearGradient
+                            colors={['rgba(19,55,236,0.5)', 'rgba(10,15,30,0.98)', '#050816']}
+                            locations={[0, 0.45, 1]}
+                            className="flex-1"
+                        />
+                        <View className="absolute -top-32 -right-32 w-80 h-80 bg-indigo-500/25 rounded-full" />
+                        <View className="absolute top-20 -left-20 w-48 h-48 bg-blue-500/20 rounded-full" />
+                    </>
+                ) : (
+                    <>
+                        <LinearGradient
+                            colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
+                            locations={[0, 0.4, 1]}
+                            className="flex-1"
+                        />
+                        <View className="absolute -top-32 -right-32 w-80 h-80 bg-blue-400/10 rounded-full" />
+                        <View className="absolute top-20 -left-20 w-48 h-48 bg-indigo-400/10 rounded-full" />
+                    </>
+                )}
             </View>
 
             <View style={{ paddingTop: insets.top, flex: 1 }}>

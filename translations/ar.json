@@ -64,11 +64,14 @@
     "filters": {
       "all": "الكل",
       "paid": "مدفوع",
+      "unpaid": "غير مدفوع",
+      "sent": "مرسل",
       "pending": "قيد الانتظار",
       "overdue": "متأخر"
     },
     "status": {
       "paid": "مدفوع",
+      "unpaid": "غير مدفوع",
       "sent": "مُرسل",
       "overdue": "متأخر",
       "pending": "قيد الانتظار",

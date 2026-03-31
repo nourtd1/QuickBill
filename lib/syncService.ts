@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { getDBConnection } from './database';
+import { getDBConnection, getIsDBReady } from './database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LocalInvoice, LocalInvoiceItem } from './localServices';
 
@@ -24,11 +24,77 @@ const SYNC_TABLES = [
 
 type SyncStatus = 'pending' | 'synced' | 'error';
 
+const getLocalTableColumnTypes = async (db: any, table: string): Promise<Map<string, string>> => {
+    const info = await db.getAllAsync(`PRAGMA table_info(${table})`);
+    const map = new Map<string, string>();
+    for (const col of info) {
+        map.set(col.name, String(col.type || ''));
+    }
+    return map;
+};
+
+const filterRowToLocalColumns = (row: Record<string, any>, localColumns: Set<string>) => {
+    const filtered: Record<string, any> = {};
+    for (const [key, value] of Object.entries(row)) {
+        if (localColumns.has(key)) {
+            filtered[key] = value;
+        }
+    }
+    return filtered;
+};
+
+const coerceValueForSqlite = (value: any, declaredType: string) => {
+    if (value === undefined) return null;
+    if (value === null) return null;
+
+    const type = (declaredType || '').toUpperCase();
+
+    if (typeof value === 'boolean') {
+        if (type.includes('INT') || type.includes('BOOL')) {
+            return value ? 1 : 0;
+        }
+        return value ? 'true' : 'false';
+    }
+
+    if (typeof value === 'object') {
+        // Supabase can return json/jsonb as objects/arrays; store as TEXT locally.
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return String(value);
+        }
+    }
+
+    if (typeof value === 'number') {
+        // SQLite bindings can fail on NaN/Infinity.
+        if (!Number.isFinite(value)) return null;
+    }
+
+    return value;
+};
+
+const sanitizeRowForSqlite = (row: Record<string, any>, columnTypes: Map<string, string>) => {
+    const sanitized: Record<string, any> = {};
+    for (const [key, value] of Object.entries(row)) {
+        sanitized[key] = coerceValueForSqlite(value, columnTypes.get(key) || '');
+    }
+    return sanitized;
+};
+
 /**
  * Clean data for Supabase (remove local-only fields)
  */
-const prepareForCloud = (row: any) => {
+const prepareForCloud = (tableName: string, row: any) => {
     const { sync_status, ...rest } = row;
+    
+    // Remove local-only columns that don't exist in Supabase schema
+    if (tableName === 'invoices') {
+        delete rest.currency;
+    } else if (tableName === 'invoice_items') {
+        delete rest.created_at;
+        delete rest.updated_at;
+    }
+
     return rest;
 };
 
@@ -50,7 +116,7 @@ export const syncLocalChanges = async () => {
 
             // Process in batches or one-by-one? 
             // Upsert supports batch. Let's do batch for performance.
-            const payload = pendingRows.map(prepareForCloud);
+            const payload = pendingRows.map(row => prepareForCloud(table, row));
 
             // Perform Upsert on Supabase
             const { error } = await supabase
@@ -65,7 +131,7 @@ export const syncLocalChanges = async () => {
                 const placeholders = ids.map(() => '?').join(',');
                 await db.runAsync(
                     `UPDATE ${table} SET sync_status = 'error' WHERE id IN (${placeholders})`,
-                    ...ids
+                    ids
                 );
             } else {
                 // Success: Mark as synced
@@ -73,7 +139,7 @@ export const syncLocalChanges = async () => {
                 const placeholders = ids.map(() => '?').join(',');
                 await db.runAsync(
                     `UPDATE ${table} SET sync_status = 'synced' WHERE id IN (${placeholders})`,
-                    ...ids
+                    ids
                 );
                 if (__DEV__) console.log(`✅ Synced ${table} successfully`);
             }
@@ -93,6 +159,10 @@ export const fetchRemoteChanges = async () => {
     const newSyncTime = new Date().toISOString(); // Capture start time
     const fallbackSyncDate = getFallbackSyncDate();
 
+    // Cache local table columns to avoid repeated PRAGMA calls.
+    const localColumnsByTable = new Map<string, Set<string>>();
+    const localColumnTypesByTable = new Map<string, Map<string, string>>();
+
     // Ensure metadata table exists
     await db.execAsync(`
         CREATE TABLE IF NOT EXISTS sync_metadata (
@@ -103,6 +173,14 @@ export const fetchRemoteChanges = async () => {
 
     for (const table of SYNC_TABLES) {
         try {
+            if (!localColumnsByTable.has(table)) {
+                const types = await getLocalTableColumnTypes(db, table);
+                localColumnTypesByTable.set(table, types);
+                localColumnsByTable.set(table, new Set(types.keys()));
+            }
+            const localColumns = localColumnsByTable.get(table)!;
+            const localColumnTypes = localColumnTypesByTable.get(table)!;
+
             // Get last sync for this specific table from SQLite
             const metadataRow = await db.getFirstAsync<{ last_sync_at: string }>(
                 `SELECT last_sync_at FROM sync_metadata WHERE table_name = ?`,
@@ -131,28 +209,92 @@ export const fetchRemoteChanges = async () => {
             if (data && data.length > 0) {
                 if (__DEV__) console.log(`📥 Received ${data.length} updates for ${table}`);
 
-                // Disable FK during pull so invoices can sync before their clients exist locally
+                // Transaction + deferred FK checks for stability.
+                // Also filter incoming columns to those that exist locally to avoid schema mismatch crashes.
                 await db.execAsync('PRAGMA foreign_keys = OFF;');
+                await db.execAsync('BEGIN;');
+                await db.execAsync('PRAGMA defer_foreign_keys = ON;');
 
                 try {
-                    for (const row of data) {
+                    for (const rawRow of data) {
+                        const row = sanitizeRowForSqlite(
+                            filterRowToLocalColumns(rawRow as any, localColumns),
+                            localColumnTypes
+                        );
+
+                        // Guard against FK issues when remote rows reference data not yet present locally.
+                        // This keeps the pull resilient even if table ordering or partial datasets occur.
+                        if (table === 'invoices' && typeof (row as any).customer_id === 'string' && (row as any).customer_id) {
+                            const existingClient = await db.getFirstAsync(
+                                'SELECT id FROM clients WHERE id = ? LIMIT 1',
+                                [(row as any).customer_id]
+                            );
+                            if (!existingClient) {
+                                (row as any).customer_id = null;
+                            }
+                        }
+
+                        if ((table === 'invoice_items' || table === 'payments') && typeof (row as any).invoice_id === 'string' && (row as any).invoice_id) {
+                            const existingInvoice = await db.getFirstAsync(
+                                'SELECT id FROM invoices WHERE id = ? LIMIT 1',
+                                [(row as any).invoice_id]
+                            );
+                            if (!existingInvoice) {
+                                continue;
+                            }
+                        }
                         const columns = Object.keys(row);
+
+                        // If the row contains no locally-known fields (very unlikely), skip.
+                        if (columns.length === 0) continue;
+
                         const columnsWithSync = [...columns, 'sync_status'];
                         const values = Object.values(row);
                         const valuesWithSync = [...values, 'synced'];
 
                         const placeholders = valuesWithSync.map(() => '?').join(',');
-                        const updateSet = columns.map((c: string) => `${c} = excluded.${c}`).join(', ');
+                        const updateColumns = columns.filter((c: string) => c !== 'id');
+                        const updateSet = updateColumns.map((c: string) => `${c} = excluded.${c}`).join(', ');
 
                         const sql = `
             INSERT INTO ${table} (${columnsWithSync.join(', ')})
             VALUES (${placeholders})
             ON CONFLICT(id) DO UPDATE SET
-            ${updateSet},
+            ${updateSet ? `${updateSet},` : ''}
             sync_status = 'synced';
           `;
-                        await db.runAsync(sql, ...(valuesWithSync as any[]));
+
+                        try {
+                            await db.runAsync(sql, valuesWithSync as any[]);
+                        } catch (e) {
+                            const rowId = (rawRow as any)?.id;
+                            const declaredTypes = Object.fromEntries(
+                                columns.map((c: string) => [c, localColumnTypes.get(c) || ''])
+                            );
+                            const valuePreview = Object.fromEntries(
+                                columns.map((c: string) => {
+                                    const v = (row as any)[c];
+                                    if (typeof v === 'string') return [c, v.length > 120 ? v.slice(0, 120) + '…' : v];
+                                    return [c, v];
+                                })
+                            );
+                            console.error(`❌ SQLite upsert failed for table=${table} id=${rowId}`,
+                                {
+                                    columns,
+                                    valueTypes: Object.fromEntries(
+                                        columns.map((c: string) => [c, typeof (row as any)[c]])
+                                    ),
+                                    declaredTypes,
+                                    valuePreview,
+                                });
+                            throw e;
+                        }
                     }
+
+                    await db.execAsync('COMMIT;');
+                } catch (e) {
+                    await db.execAsync('ROLLBACK;');
+                    throw e;
                 } finally {
                     await db.execAsync('PRAGMA foreign_keys = ON;');
                 }
@@ -162,8 +304,7 @@ export const fetchRemoteChanges = async () => {
             await db.runAsync(
                 `INSERT INTO sync_metadata (table_name, last_sync_at) VALUES (?, ?) 
                  ON CONFLICT(table_name) DO UPDATE SET last_sync_at = excluded.last_sync_at`,
-                table,
-                newSyncTime
+                [table, newSyncTime]
             );
 
         } catch (e) {
@@ -181,6 +322,11 @@ export const fetchRemoteChanges = async () => {
  */
 export const runSynchronization = async () => {
     try {
+        if (!getIsDBReady()) {
+            if (__DEV__) console.log('⏳ Sync skipped: Database not ready');
+            return;
+        }
+
         // 1. Check Auth (we need user_id typically, but RLS handles it on Supabase side)
         const session = await supabase.auth.getSession();
         if (!session.data.session) {

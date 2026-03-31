@@ -30,6 +30,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { 
+    getAllInvoicesLocal, 
+    updateInvoiceLocally, 
+    LocalInvoice,
+    saveNotificationLocally
+} from '../../lib/localServices';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -132,8 +138,23 @@ export default function ReconcilePage() {
                 .eq('id', invoice.id);
 
             if (error) throw error;
-            Alert.alert("Succès", "Facture marquée comme payée !");
-            router.back();
+
+            // 3. Save Notification
+            if (user) {
+                await saveNotificationLocally({
+                    user_id: user.id,
+                    title: 'Payment Confirmed',
+                    message: `Invoice #${invoice.invoice_number} has been marked as paid (${invoice.total_amount} ${profile?.currency || 'USD'}).`,
+                    type: 'payment',
+                    data: JSON.stringify({ invoiceId: invoice.id })
+                });
+            }
+
+            Alert.alert(
+                "Success",
+                "Payment has been reconciled successfully!",
+                [{ text: "OK", onPress: () => router.push('/(tabs)') }]
+            );
         } catch (e: any) {
             Alert.alert("Erreur", e.message);
         }
@@ -142,153 +163,176 @@ export default function ReconcilePage() {
     return (
         <SafeAreaView className="flex-1 bg-white">
             <Stack.Screen options={{ headerShown: false }} />
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
 
-            <View className="flex-1 px-6 pt-2">
+            {/* Background Gradient */}
+            <View className="absolute top-0 left-0 right-0 h-80">
+                <LinearGradient
+                    colors={['#4f46e5', '#818cf8', 'white']}
+                    className="flex-1"
+                />
+            </View>
+
+            <View className="flex-1 px-6 pt-4">
                 {/* Header */}
-                <View className="flex-row justify-between items-center mb-8 mt-2">
+                <View className="flex-row justify-between items-center mb-8 mt-10">
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        className="w-12 h-12 bg-white rounded-full items-center justify-center border border-slate-100 shadow-sm"
+                        className="w-12 h-12 bg-white/20 rounded-full items-center justify-center border border-white/30 backdrop-blur-md"
                     >
-                        <ArrowLeft size={24} color="#1e293b" />
+                        <ArrowLeft size={24} color="white" />
                     </TouchableOpacity>
 
-                    <View className="flex-row items-center">
-                        <View className="w-8 h-8 rounded-full bg-purple-100 items-center justify-center mr-2">
-                            <Sparkles size={16} color="#7c3aed" fill="#7c3aed" />
-                        </View>
-                        <Text className="text-lg font-bold text-slate-900">AI Reconciler</Text>
+                    <View className="flex-row items-center bg-white/10 px-4 py-2 rounded-full border border-white/20">
+                        <Sparkles size={16} color="white" fill="white" className="mr-2" />
+                        <Text className="text-sm font-black text-white uppercase tracking-[2px]">AI Reconciler</Text>
                     </View>
 
                     <TouchableOpacity
-                        className="w-12 h-12 bg-white rounded-full items-center justify-center border border-slate-100 shadow-sm"
+                        className="w-12 h-12 bg-white/20 rounded-full items-center justify-center border border-white/30 backdrop-blur-md"
                     >
-                        <History size={24} color="#64748b" />
+                        <History size={24} color="white" />
                     </TouchableOpacity>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                    {/* Title Section */}
-                    <Text className="text-3xl font-bold text-[#4f46e5] text-center mb-2">
-                        Reconcile Payments
-                    </Text>
-                    <Text className="text-slate-400 text-center text-sm px-6 mb-10 leading-5">
-                        Paste your SMS confirmation below to instantly match it with an open invoice.
-                    </Text>
-
-                    {/* Input Section */}
-                    <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">
-                        PASTE PAYMENT SMS
-                    </Text>
-
-                    <View className="bg-white rounded-[24px] p-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] border border-slate-50 mb-8 relative">
-                        <TextInput
-                            className="text-slate-700 text-base min-h-[160px] pb-10"
-                            multiline
-                            placeholder="e.g. You have received $50.00 from Sarah L. for Invoice #INV-2024 via Mobile Money..."
-                            placeholderTextColor="#cbd5e1"
-                            value={smsText}
-                            onChangeText={setSmsText}
-                            textAlignVertical="top"
-                            style={{ lineHeight: 24 }}
-                        />
-
-                        <TouchableOpacity
-                            onPress={handlePaste}
-                            className="absolute bottom-4 right-4 bg-purple-50 px-4 py-2 rounded-xl flex-row items-center border border-purple-100"
-                        >
-                            <ClipboardIcon size={16} color="#7c3aed" className="mr-2" />
-                            <Text className="text-purple-600 font-bold text-xs">Paste</Text>
-                        </TouchableOpacity>
+                    {/* Hero Section */}
+                    <View className="mb-8 items-center">
+                        <View className="w-16 h-16 bg-white rounded-3xl items-center justify-center shadow-2xl shadow-indigo-500/40 mb-4 transform rotate-6">
+                            <Zap size={32} color="#4f46e5" fill="#4f46e5" />
+                        </View>
+                        <Text className="text-3xl font-black text-white text-center mb-1">
+                            Verify Payments
+                        </Text>
+                        <Text className="text-indigo-100 text-center text-sm font-medium px-10 leading-5">
+                            Our AI instantly matches your SMS receipts with unpaid invoices.
+                        </Text>
                     </View>
 
-                    {/* Analyze Button */}
-                    <TouchableOpacity
-                        onPress={handleAnalyze}
-                        disabled={analyzing}
-                        className="w-full h-16 rounded-[20px] overflow-hidden shadow-xl shadow-indigo-500/20 mb-10 active:opacity-90"
-                    >
-                        <LinearGradient
-                            colors={['#4f46e5', '#7c3aed']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            className="w-full h-full items-center justify-center flex-row"
+                    {/* Input Card */}
+                    <View className="bg-white rounded-[32px] p-6 shadow-2xl shadow-slate-200 border border-slate-50 mb-6">
+                        <View className="flex-row items-center justify-between mb-4">
+                            <View className="flex-row items-center">
+                                <View className="w-8 h-8 rounded-lg bg-indigo-50 items-center justify-center mr-3">
+                                    <Smartphone size={16} color="#4f46e5" />
+                                </View>
+                                <Text className="text-slate-900 font-bold text-base">Paste SMS Text</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handlePaste}
+                                className="bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100"
+                            >
+                                <Text className="text-indigo-600 font-bold text-xs">PASTE</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View className="bg-slate-50 rounded-2xl p-4 border border-slate-100 min-h-[140px]">
+                            <TextInput
+                                className="text-slate-700 text-base flex-1"
+                                multiline
+                                placeholder="Example: You have received RWF 50,000 from JP for INV #102..."
+                                placeholderTextColor="#94a3b8"
+                                value={smsText}
+                                onChangeText={setSmsText}
+                                textAlignVertical="top"
+                                style={{ lineHeight: 22 }}
+                            />
+                        </View>
+
+                        {!smsText && (
+                            <TouchableOpacity
+                                onPress={() => setSmsText(demoSMS)}
+                                className="mt-4 self-center"
+                            >
+                                <Text className="text-slate-400 text-xs italic underline">Try with a demo SMS</Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            onPress={handleAnalyze}
+                            disabled={analyzing || !smsText}
+                            className={`mt-6 w-full h-14 rounded-2xl flex-row items-center justify-center shadow-lg ${!smsText ? 'bg-slate-100' : 'bg-indigo-600 shadow-indigo-500/40'}`}
                         >
                             {analyzing ? (
                                 <ActivityIndicator color="white" />
                             ) : (
                                 <>
-                                    <Sparkles size={20} color="white" fill="white" className="mr-3" />
-                                    <Text className="text-white font-bold text-lg">Analyze with AI</Text>
+                                    <Sparkles size={18} color={!smsText ? '#94a3b8' : 'white'} fill={!smsText ? '#94a3b8' : 'white'} className="mr-2" />
+                                    <Text className={`font-bold text-base ${!smsText ? 'text-slate-400' : 'text-white'}`}>
+                                        Analyze Payment
+                                    </Text>
                                 </>
                             )}
-                        </LinearGradient>
-                    </TouchableOpacity>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Results Branding */}
+                    {analyzing && (
+                        <View className="items-center py-4">
+                            <Text className="text-slate-400 text-xs font-bold uppercase tracking-[4px] animate-pulse">
+                                Identifying Transaction...
+                            </Text>
+                        </View>
+                    )}
 
                     {/* Results Section */}
                     {(result || matchedInvoices.length > 0) && (
-                        <View>
-                            <View className="flex-row items-center justify-between mb-4">
-                                <View className="h-[1px] bg-slate-100 flex-1" />
-                                <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mx-4">
-                                    ANALYSIS RESULTS
-                                </Text>
-                                <View className="h-[1px] bg-slate-100 flex-1" />
-                            </View>
+                        <View className="mt-2">
+                            <Text className="text-slate-400 text-[11px] font-black uppercase tracking-widest mb-4 ml-2">
+                                AI Findings
+                            </Text>
 
                             {/* Match Card */}
                             {matchedInvoices.length > 0 ? (
                                 matchedInvoices.map((inv) => (
-                                    <View key={inv.id} className="bg-white rounded-[24px] p-5 border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] mb-4 overflow-hidden relative">
-                                        {/* Green Indicator Line */}
-                                        <View className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#10b981]" />
+                                    <View key={inv.id} className="bg-white rounded-[28px] p-6 border border-emerald-50 shadow-xl shadow-emerald-500/5 mb-4 overflow-hidden relative">
+                                        <View className="absolute right-0 top-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 opacity-50" />
 
-                                        <View className="flex-row justify-between items-start mb-4 pl-3">
-                                            <View>
-                                                <View className="flex-row items-center mb-1">
-                                                    <View className="w-5 h-5 rounded-full bg-emerald-100 items-center justify-center mr-2">
-                                                        <Check size={12} color="#10b981" strokeWidth={3} />
+                                        <View className="flex-row justify-between items-start mb-6">
+                                            <View className="flex-1">
+                                                <View className="flex-row items-center mb-2">
+                                                    <View className="bg-emerald-500 px-2 py-0.5 rounded-full mr-2">
+                                                        <Text className="text-white font-black text-[10px]">99% MATCH</Text>
                                                     </View>
-                                                    <Text className="text-[#10b981] font-bold text-xs tracking-wide">MATCH FOUND!</Text>
+                                                    <Text className="text-slate-400 text-xs font-bold uppercase">Invoice #{inv.invoice_number}</Text>
                                                 </View>
-                                                <Text className="text-slate-900 font-bold text-xl mb-0.5">Invoice #{inv.invoice_number}</Text>
-                                                <Text className="text-slate-400 text-xs font-medium">Client: {inv.customer?.name}</Text>
+                                                <Text className="text-slate-900 font-black text-2xl leading-none">
+                                                    {inv.total_amount?.toLocaleString()} <Text className="text-xs font-bold text-slate-400">{profile?.currency || 'RWF'}</Text>
+                                                </Text>
+                                                <Text className="text-slate-500 text-sm mt-2 font-medium">Customer: <Text className="text-slate-900 font-bold">{inv.customer?.name}</Text></Text>
                                             </View>
 
-                                            <View className="items-end">
-                                                <Text className="text-slate-900 font-black text-2xl">
-                                                    {inv.total_amount?.toLocaleString()} <Text className="text-sm font-bold text-slate-400">{profile?.currency || 'USD'}</Text>
-                                                </Text>
-                                                <View className="bg-slate-100 px-2 py-1 rounded-md mt-1">
-                                                    <Text className="text-slate-500 text-[10px] font-bold">{result?.provider || 'Mobile Money'}</Text>
-                                                </View>
+                                            <View className="w-12 h-12 rounded-2xl bg-emerald-100 items-center justify-center">
+                                                <CheckCircle size={28} color="#10b981" />
                                             </View>
                                         </View>
 
-                                        <View className="flex-row gap-3 pl-3">
+                                        <View className="h-[1px] bg-slate-100 mb-6" />
+
+                                        <View className="flex-row gap-3">
                                             <TouchableOpacity
                                                 onPress={() => confirmReconciliation(inv)}
-                                                className="flex-1 bg-[#10b981] h-12 rounded-xl items-center justify-center shadow-lg shadow-emerald-500/20 active:bg-emerald-600"
+                                                className="flex-1 bg-emerald-500 h-14 rounded-2xl items-center justify-center shadow-lg shadow-emerald-500/30 active:scale-95 transition-transform"
                                             >
-                                                <Text className="text-white font-bold text-sm">Valider le paiement</Text>
+                                                <Text className="text-white font-black text-base">Confirm Payment</Text>
                                             </TouchableOpacity>
 
-                                            <TouchableOpacity className="w-12 h-12 rounded-xl border border-slate-200 items-center justify-center active:bg-slate-50">
-                                                <Eye size={20} color="#64748b" />
+                                            <TouchableOpacity className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 items-center justify-center">
+                                                <Eye size={22} color="#64748b" />
                                             </TouchableOpacity>
                                         </View>
                                     </View>
                                 ))
                             ) : (
                                 // No Match Found - Prompt to Create
-                                <View className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] items-center text-center">
-                                    <View className="w-12 h-12 bg-amber-50 rounded-full items-center justify-center mb-3">
-                                        <Info size={24} color="#f59e0b" />
+                                <View className="bg-slate-900 rounded-[32px] p-8 shadow-2xl shadow-slate-900/20 items-center">
+                                    <View className="w-16 h-16 bg-white/10 rounded-3xl items-center justify-center mb-4">
+                                        <Info size={32} color="#fbbf24" />
                                     </View>
-                                    <Text className="text-slate-900 font-bold text-lg mb-2">No exact match found</Text>
-                                    <Text className="text-slate-500 text-center text-sm mb-6 leading-5">
-                                        We found a payment of <Text className="font-bold text-slate-700">{result?.amount?.toLocaleString()} {profile?.currency}</Text> but no pending invoice matches this amount.
+                                    <Text className="text-white font-black text-xl mb-2">No Match Found</Text>
+                                    <Text className="text-slate-400 text-center text-sm mb-8 leading-5 px-4 font-medium">
+                                        We identified a payment of <Text className="text-white font-bold">{result?.amount?.toLocaleString()} {profile?.currency}</Text> from <Text className="text-white font-bold">{result?.sender}</Text>, but no pending invoice matches this.
                                     </Text>
 
                                     <TouchableOpacity
@@ -296,22 +340,27 @@ export default function ReconcilePage() {
                                             pathname: '/invoice/new',
                                             params: {
                                                 amount: result?.amount,
-                                                description: `Paiement reçu via ${result?.provider} (Ref: ${result?.ref})`,
+                                                description: `Payment via ${result?.provider} (Ref: ${result?.ref})`,
                                                 clientName: result?.sender
                                             }
                                         })}
-                                        className="w-full bg-slate-900 h-12 rounded-xl flex-row items-center justify-center shadow-lg active:scale-[0.99]"
+                                        className="w-full bg-white h-14 rounded-2xl flex-row items-center justify-center shadow-xl active:scale-95 transition-transform"
                                     >
-                                        <Plus size={18} color="white" className="mr-2" />
-                                        <Text className="text-white font-bold text-sm">Create Invoice for this Payment</Text>
+                                        <Plus size={20} color="#0f172a" strokeWidth={3} className="mr-2" />
+                                        <Text className="text-slate-900 font-black text-base">New Invoice for this Payment</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
                         </View>
                     )}
 
-                    {/* Add some bottom padding for scroll */}
-                    <View className="h-10" />
+                    {/* Footer Tips */}
+                    <View className="mt-8 flex-row items-center justify-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <Info size={16} color="#94a3b8" />
+                        <Text className="text-slate-500 text-xs ml-2 font-medium">AI analysis is secure and private.</Text>
+                    </View>
+
+                    <View className="h-20" />
                 </ScrollView>
             </View>
         </SafeAreaView>

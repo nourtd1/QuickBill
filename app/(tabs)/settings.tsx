@@ -13,6 +13,7 @@ import { uploadImage as uploadHelper } from '../../lib/upload';
 import { useColorScheme } from 'nativewind';
 import { saveImageLocally } from '../../lib/localServices';
 import { getInitials } from '../../lib/profile';
+import Constants from 'expo-constants';
 import {
     HelpCircle,
     Pencil,
@@ -111,36 +112,6 @@ export default function SettingsScreen() {
                 {children}
             </View>
         </View>
-    );
-
-    const SettingItem = ({
-        icon: Icon,
-        colorClass,
-        textClass,
-        label,
-        onPress,
-        isLast,
-        rightElement
-    }: {
-        icon: any;
-        colorClass: string;
-        textClass: string;
-        label: string;
-        onPress?: () => void;
-        isLast?: boolean;
-        rightElement?: React.ReactNode;
-    }) => (
-        <TouchableOpacity
-            onPress={onPress}
-            activeOpacity={0.7}
-            className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-100' : ''}`}
-        >
-            <View className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${colorClass}`}>
-                <Icon size={ICON_SIZE} style={{ color: textClass }} />
-            </View>
-            <Text className="flex-1 text-slate-800 font-semibold text-[15px]">{label}</Text>
-            {rightElement || <ChevronRight size={20} color="#CBD5E1" />}
-        </TouchableOpacity>
     );
 
     // Dynamic text color extraction workaround:
@@ -267,12 +238,14 @@ export default function SettingsScreen() {
                             {profile?.business_name || profile?.full_name || 'User'}
                         </Text>
 
-                        <View className="flex-row items-center bg-[#1337ec]/10 dark:bg-[#1337ec]/20 px-3 py-1 rounded-full mt-2">
-                            <BadgeCheck size={12} color={colorScheme === 'dark' ? '#93C5FD' : '#1337ec'} style={{ marginRight: 4 }} />
-                            <Text className="text-[#1337ec] dark:text-blue-300 text-xs font-bold uppercase tracking-wide">
-                                {t('settings.pro_badge')}
-                            </Text>
-                        </View>
+                        {profile?.is_premium && (
+                            <View className="flex-row items-center bg-[#1337ec]/10 dark:bg-[#1337ec]/20 px-3 py-1 rounded-full mt-2">
+                                <BadgeCheck size={12} color={colorScheme === 'dark' ? '#93C5FD' : '#1337ec'} style={{ marginRight: 4 }} />
+                                <Text className="text-[#1337ec] dark:text-blue-300 text-xs font-bold uppercase tracking-wide">
+                                    {t('settings.pro_badge')}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Group: Account */}
@@ -404,7 +377,7 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
 
                     <Text className="text-center text-slate-300 dark:text-slate-600 text-xs font-medium pb-8">
-                        QuickBill v2.4.0 (Build 412)
+                        QuickBill v{Constants.expoConfig?.version || '1.0.0'} (Build {Constants.expoConfig?.extra?.eas?.buildNumber || '1'})
                     </Text>
 
                 </ScrollView>

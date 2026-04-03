@@ -69,7 +69,13 @@ export default function PublicEstimatePortal() {
                     unitPrice: i.unit_price,
                     total: i.quantity * i.unit_price
                 })),
-                totalAmount: estimate.total_amount
+                totalAmount: estimate.total_amount,
+                subtotal: (estimate as any).subtotal ?? estimate.total_amount,
+                taxRate: (estimate as any).tax_rate ?? 0,
+                taxAmount: (estimate as any).tax_amount ?? 0,
+                discount: (estimate as any).discount ?? 0,
+                notes: (estimate as any).notes ?? null,
+                terms: (estimate as any).terms ?? null,
             };
 
             const html = generateInvoiceHTML(data);

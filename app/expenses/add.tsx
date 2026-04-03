@@ -43,6 +43,17 @@ export default function AddExpenseScreen() {
         if (params.date) setDate(params.date.toString());
         if (params.imageUri) setReceiptUri(params.imageUri.toString());
         
+        // Map AI suggested category if present
+        if (params.category) {
+            const aiCat = params.category.toString();
+            // Simple mapping logic
+            if (aiCat.includes('Alimentation') || aiCat.includes('Repas')) setCategory('meals');
+            else if (aiCat.includes('Transport') || aiCat.includes('Voyage')) setCategory('transport');
+            else if (aiCat.includes('Bureau') || aiCat.includes('Matériel')) setCategory('office');
+            else if (aiCat.includes('Loisirs') || aiCat.includes('Voyage')) setCategory('travel');
+            else if (aiCat.includes('Santé') || aiCat.includes('Soins')) setCategory('supplies');
+        }
+
         if (params.scanData) {
             try {
                 const data = JSON.parse(params.scanData as string);
@@ -90,8 +101,8 @@ export default function AddExpenseScreen() {
                 user_id: user.id,
                 amount: parseFloat(amount),
                 category,
-                merchant: merchant.trim() || null,
-                description: description.trim() || null,
+                merchant: merchant.trim() || undefined,
+                description: description.trim() || undefined,
                 date: date || new Date().toISOString().split('T')[0],
                 receipt_url: receiptUrl || (receiptUri && receiptUri.startsWith('http') ? receiptUri : undefined), 
             };

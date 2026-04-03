@@ -38,7 +38,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import AiVoiceAssistant from '../../components/AiVoiceAssistant';
 import { formatCurrency } from '../../lib/currencyEngine';
 import { DashboardSkeleton } from '../../components/DashboardSkeleton';
-import { useNotifications, ActivityItem as NotificationItem } from '../../hooks/useNotifications';
+import { useNotifications } from '../../hooks/useNotifications';
+import { AppNotification as NotificationItem } from '../../types';
 import { useColorScheme } from 'nativewind';
 import { getInitials } from '../../lib/profile';
 

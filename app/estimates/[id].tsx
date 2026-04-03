@@ -49,6 +49,12 @@ export default function EstimateDetails() {
                     total: i.quantity * i.unit_price
                 })),
                 totalAmount: estimate.total_amount,
+                subtotal: (estimate as any).subtotal ?? estimate.total_amount,
+                taxRate: (estimate as any).tax_rate ?? 0,
+                taxAmount: (estimate as any).tax_amount ?? 0,
+                discount: (estimate as any).discount ?? 0,
+                notes: (estimate as any).notes ?? null,
+                terms: (estimate as any).terms ?? null,
                 qrCodeUrl: profile.payment_details ? `data:image/svg+xml;utf8,${encodeURIComponent(await QRCode.toString(profile.payment_details, { type: 'svg' }))}` : undefined,
                 paymentMethod: profile.payment_method || undefined
             };

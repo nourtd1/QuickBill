@@ -106,6 +106,12 @@ export default function InvoiceDetails() {
                     total: i.quantity * i.unit_price
                 })),
                 totalAmount: invoice.total_amount,
+                subtotal: (invoice as any).subtotal ?? invoice.total_amount,
+                taxRate: (invoice as any).tax_rate ?? 0,
+                taxAmount: (invoice as any).tax_amount ?? 0,
+                discount: (invoice as any).discount ?? 0,
+                notes: (invoice as any).notes ?? null,
+                terms: (invoice as any).terms ?? null,
                 qrCodeUrl: profile.payment_details ? `data:image/svg+xml;utf8,${encodeURIComponent(await QRCode.toString(profile.payment_details, { type: 'svg' }))}` : undefined,
                 paymentMethod: profile.payment_method || undefined
             };

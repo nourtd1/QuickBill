@@ -40,6 +40,7 @@ export default function ScanReceiptScreen() {
     const [editedAmount, setEditedAmount] = useState('');
     const [editedMerchant, setEditedMerchant] = useState('');
     const [editedDate, setEditedDate] = useState('');
+    const [editedCategory, setEditedCategory] = useState('');
 
     useEffect(() => {
         isMounted.current = true;
@@ -55,6 +56,7 @@ export default function ScanReceiptScreen() {
             setEditedAmount(result.amount?.toString() ?? '');
             setEditedMerchant(result.merchant ?? '');
             setEditedDate(result.date ?? '');
+            setEditedCategory(result.category ?? '');
         }
     }, [result]);
 
@@ -142,6 +144,7 @@ export default function ScanReceiptScreen() {
                 merchant: editedMerchant,
                 amount: editedAmount,
                 date: editedDate,
+                category: editedCategory,
                 scanData: JSON.stringify(result),
                 imageUri: imageUri ?? undefined
             }
@@ -288,6 +291,23 @@ export default function ScanReceiptScreen() {
                                                 />
                                             </View>
                                             <Edit3 size={16} color="#CBD5E1" />
+                                        </View>
+
+                                        {/* Category */}
+                                        <View style={styles.fieldRow}>
+                                            <View style={styles.fieldIcon}>
+                                                <Sparkles size={18} color="#6366F1" />
+                                            </View>
+                                            <View style={styles.fieldContent}>
+                                                <Text style={styles.fieldLabel}>Catégorie suggérée</Text>
+                                                <TextInput
+                                                    value={editedCategory}
+                                                    onChangeText={setEditedCategory}
+                                                    style={styles.fieldInput}
+                                                    placeholder="Catégorie"
+                                                    placeholderTextColor="#CBD5E1"
+                                                />
+                                            </View>
                                         </View>
                                     </View>
                                 </View>

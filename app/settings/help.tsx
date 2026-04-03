@@ -13,7 +13,8 @@ import {
     Wrench,
     Bug,
     ThumbsUp,
-    ChevronRight
+    ChevronRight,
+    Phone
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -84,7 +85,7 @@ export default function HelpSupportScreen() {
                     <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
                         <ArrowLeft size={24} color="#0F172A" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-bold text-slate-900">Help & Support</Text>
+                    <Text className="text-xl font-bold text-slate-900">Aide & Support</Text>
                     <TouchableOpacity className="p-2 -mr-2">
                         <MoreHorizontal size={24} color="#0F172A" />
                     </TouchableOpacity>
@@ -96,7 +97,7 @@ export default function HelpSupportScreen() {
                         <Search size={20} color="#94A3B8" style={{ marginRight: 10 }} />
                         <TextInput
                             className="flex-1 text-slate-900 font-medium text-base h-full"
-                            placeholder="Search FAQs..."
+                            placeholder="Rechercher dans la FAQ..."
                             placeholderTextColor="#94A3B8"
                         />
                     </View>
@@ -108,12 +109,12 @@ export default function HelpSupportScreen() {
                     <View className="px-5 mb-8">
                         <View className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-50 flex-row items-center justify-between">
                             <View className="flex-1 mr-4">
-                                <Text className="text-slate-900 font-extrabold text-xl mb-2">Need help right now?</Text>
-                                <Text className="text-slate-500 text-sm leading-5">Our support team is available 24/7</Text>
+                                <Text className="text-slate-900 font-extrabold text-xl mb-2">Besoin d'aide ?</Text>
+                                <Text className="text-slate-500 text-sm leading-5">Notre équipe est disponible 24/7 pour vous accompagner.</Text>
                             </View>
                             <TouchableOpacity 
-                                className="bg-blue-600 px-5 py-3 rounded-full flex-row items-center shadow-lg shadow-blue-200"
-                                onPress={() => Linking.openURL('mailto:support@quickbill.com')}
+                                className="bg-indigo-600 px-5 py-3 rounded-full flex-row items-center shadow-lg shadow-indigo-200"
+                                onPress={() => Linking.openURL('mailto:nourdevtd@gmail.com')}
                             >
                                 <MessageCircle size={18} color="white" style={{ marginRight: 8 }} />
                                 <Text className="text-white font-bold text-sm">Contact</Text>
@@ -121,86 +122,103 @@ export default function HelpSupportScreen() {
                         </View>
                     </View>
 
+                    {/* WhatsApp Support */}
+                    <View className="px-5 mb-8">
+                        <TouchableOpacity 
+                            className="bg-emerald-500 rounded-[24px] p-5 shadow-sm border border-emerald-100 flex-row items-center"
+                            onPress={() => Linking.openURL('https://wa.me/250798977292')}
+                        >
+                            <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-4">
+                                <Phone size={24} color="white" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-white font-bold text-lg">Support WhatsApp</Text>
+                                <Text className="text-white/80 text-xs">Réponse rapide en direct</Text>
+                            </View>
+                            <ChevronRight size={20} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Tutorial Videos */}
                     <View className="mb-8">
                         <View className="flex-row justify-between items-center px-5 mb-4">
-                            <Text className="text-slate-900 font-bold text-lg">Tutorial Videos</Text>
+                            <Text className="text-slate-900 font-bold text-lg">Vidéos Tutoriels</Text>
                             <TouchableOpacity>
-                                <Text className="text-blue-600 font-bold text-sm">View All</Text>
+                                <Text className="text-indigo-600 font-bold text-sm">Tout voir</Text>
                             </TouchableOpacity>
                         </View>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6 }}>
-                            <VideoCard
-                                title="Getting Started with Invoices"
+                             <VideoCard
+                                title="Débuter avec les Factures"
                                 duration="2:45 min"
                                 imageUri="https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=600&auto=format&fit=crop"
-                                onPress={() => Alert.alert("Video Tutorial", "Playing tutorial: Getting Started with Invoices")}
+                                onPress={() => Alert.alert("Tutoriel", "Lancement du tutoriel : Débuter avec les Factures")}
                             />
                             <VideoCard
-                                title="Setting Up Payments"
+                                title="Configurer les Paiements"
                                 duration="3:12 min"
                                 imageUri="https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=600&auto=format&fit=crop"
-                                onPress={() => Alert.alert("Video Tutorial", "Playing tutorial: Setting Up Payments")}
+                                onPress={() => Alert.alert("Tutoriel", "Lancement du tutoriel : Configurer les Paiements")}
                             />
                             <VideoCard
-                                title="Advanced Reporting"
+                                title="Rapports Avancés"
                                 duration="4:05 min"
                                 imageUri="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop"
-                                onPress={() => Alert.alert("Video Tutorial", "Playing tutorial: Advanced Reporting")}
+                                onPress={() => Alert.alert("Tutoriel", "Lancement du tutoriel : Rapports Avancés")}
                             />
                         </ScrollView>
                     </View>
 
-                    {/* Browse by Topic */}
+                    {/* Parcourir par sujet */}
                     <View className="px-5 mb-8">
                         <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
-                            BROWSE BY TOPIC
+                            PARCOURIR PAR SUJET
                         </Text>
                         <View className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-slate-50">
-                            <TopicRow
-                                title="Billing & Subscriptions"
-                                subtitle="Manage plans, invoices, and payment methods"
+                             <TopicRow
+                                title="Facturation & Abonnements"
+                                subtitle="Gérer les forfaits, factures et paiements"
                                 icon={CreditCard}
-                                bgClass="bg-blue-50"
-                                iconColor="#2563EB"
-                                onPress={() => Alert.alert("Article", "Guide for Billing & Subscriptions will appear here.")}
+                                bgClass="bg-indigo-50"
+                                iconColor="#4F46E5"
+                                onPress={() => Alert.alert("Article", "Le guide de facturation sera bientôt disponible.")}
                             />
                             <TopicRow
-                                title="App Features"
-                                subtitle="Guides on invoicing, clients, and reporting"
+                                title="Fonctionnalités de l'App"
+                                subtitle="Guides sur les factures, clients et rapports"
                                 icon={LayoutGrid}
                                 bgClass="bg-purple-50"
                                 iconColor="#9333EA"
-                                onPress={() => Alert.alert("Article", "Guide for App Features will appear here.")}
+                                onPress={() => Alert.alert("Article", "Les guides de fonctionnalités seront bientôt disponibles.")}
                             />
                             <TopicRow
-                                title="Troubleshooting"
-                                subtitle="Fix common issues and errors"
+                                title="Dépannage & Erreurs"
+                                subtitle="Résoudre les problèmes courants"
                                 icon={Wrench}
                                 bgClass="bg-orange-50"
                                 iconColor="#F97316"
                                 isLast
-                                onPress={() => Alert.alert("Article", "Troubleshooting steps will appear here.")}
+                                onPress={() => Alert.alert("Article", "Les étapes de dépannage seront bientôt disponibles.")}
                             />
                         </View>
                     </View>
 
                     {/* Other */}
-                    <View className="px-5 mb-8">
+                     <View className="px-5 mb-8">
                         <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
-                            OTHER
+                            AUTRE
                         </Text>
                         <View className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-slate-50">
                             <OtherOptionRow
-                                title="Report a Bug"
+                                title="Signaler un Problème"
                                 icon={Bug}
-                                onPress={() => Linking.openURL('mailto:support@quickbill.com?subject=Bug Report')}
+                                onPress={() => Linking.openURL('mailto:nourdevtd@gmail.com?subject=Signalement de Bug')}
                             />
                             <OtherOptionRow
-                                title="Send Feedback"
+                                title="Envoyer un Avis"
                                 icon={ThumbsUp}
                                 isLast
-                                onPress={() => Linking.openURL('mailto:support@quickbill.com?subject=App Feedback')}
+                                onPress={() => Linking.openURL('mailto:nourdevtd@gmail.com?subject=Avis App')}
                             />
                         </View>
                     </View>

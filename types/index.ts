@@ -58,7 +58,7 @@ export interface InvoiceItem {
     unit_price: number;
 }
 
-export type InvoiceStatus = 'paid' | 'unpaid' | 'pending_approval' | 'rejected' | 'draft' | 'sent' | 'overdue';
+export type InvoiceStatus = 'paid' | 'unpaid' | 'pending_approval' | 'PENDING_APPROVAL' | 'rejected' | 'REJECTED' | 'draft' | 'sent' | 'overdue';
 
 export interface Invoice {
     id: string; // uuid
@@ -89,7 +89,7 @@ export interface Item {
     created_at: string;
 }
 
-export type EstimateStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted';
+export type EstimateStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted' | 'CONVERTED';
 
 export interface EstimateItem {
     id?: string;
@@ -129,3 +129,18 @@ export interface Expense {
     created_at: string;
     updated_at?: string;
 }
+
+// Notifications & Activity
+export type ActivityType = 'payment' | 'invoice' | 'system' | 'general' | 'expense';
+
+export interface AppNotification {
+    id: string;
+    user_id: string;
+    type: ActivityType;
+    title: string;
+    message: string | null;
+    read_status: 0 | 1; // SQLite doesn't have boolean, 0=false, 1=true
+    data?: string | null;
+    created_at: string;
+}
+

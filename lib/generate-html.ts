@@ -11,6 +11,12 @@ export interface InvoiceData {
         total: number;
     }[];
     totalAmount: number;
+    subtotal?: number;
+    taxRate?: number;
+    taxAmount?: number;
+    discount?: number;
+    notes?: string | null;
+    terms?: string | null;
     businessName: string;
     businessPhone?: string;
     currency: string;
@@ -18,7 +24,7 @@ export interface InvoiceData {
     signatureUrl?: string | null;
     qrCodeUrl?: string | null;
     paymentMethod?: string | null;
-    title?: string; // e.g. "FACTURE" or "DEVIS"
+    title?: string; // e.g. "FACTURE" or "INVOICE" or "DEVIS"
 }
 
 export function generateInvoiceHTML(data: InvoiceData): string {
@@ -385,12 +391,11 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             <!-- Billing Info -->
             <div class="info-grid">
                 <div class="info-col">
-                    <div class="label">Facturé à</div>
+                    <div class="label">${data.title === 'INVOICE' ? 'Bill To' : data.title === 'DEVIS' ? 'Destinataire' : 'Facturé à'}</div>
                     <div class="recipient-name">${data.customerName}</div>
-                    <div class="recipient-detail">Client apprécié</div>
                 </div>
                 <div class="info-col" style="text-align: right;">
-                    <div class="label">Total à payer</div>
+                    <div class="label">${data.title === 'INVOICE' ? 'Amount Due' : 'Total à payer'}</div>
                     <div style="font-size: 22px; font-weight: 900; color: ${secondaryColor};">
                         ${data.totalAmount.toLocaleString()} ${data.currency}
                     </div>
@@ -401,9 +406,9 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 50%">Désignation</th>
-                        <th class="text-right">Qté</th>
-                        <th class="text-right">Prix Unit.</th>
+                        <th style="width: 50%">${data.title === 'INVOICE' ? 'Description' : 'Désignation'}</th>
+                        <th class="text-right">${data.title === 'INVOICE' ? 'Qty' : 'Qté'}</th>
+                        <th class="text-right">${data.title === 'INVOICE' ? 'Unit Price' : 'Prix Unit.'}</th>
                         <th class="text-right">Total</th>
                     </tr>
                 </thead>
@@ -423,15 +428,20 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             <div class="summary-section">
                 <div class="summary-box">
                     <div class="summary-row">
-                        <span>Sous-total</span>
-                        <span>${data.totalAmount.toLocaleString()} ${data.currency}</span>
+                        <span>${data.title === 'INVOICE' ? 'Subtotal' : 'Sous-total'}</span>
+                        <span>${(data.subtotal ?? data.totalAmount).toLocaleString()} ${data.currency}</span>
                     </div>
+                    ${(data.discount ?? 0) > 0 ? `
                     <div class="summary-row">
-                        <span>Taxes (0%)</span>
-                        <span>0 ${data.currency}</span>
+                        <span>${data.title === 'INVOICE' ? 'Discount' : 'Remise'}</span>
+                        <span style="color: #16a34a;">-${(data.discount ?? 0).toLocaleString()} ${data.currency}</span>
+                    </div>` : ''}
+                    <div class="summary-row">
+                        <span>${data.title === 'INVOICE' ? 'Tax' : 'Taxes'} (${(data.taxRate ?? 0).toFixed(0)}%)</span>
+                        <span>${(data.taxAmount ?? 0).toLocaleString()} ${data.currency}</span>
                     </div>
                     <div class="total-row">
-                        <span class="total-label">Net à Payer</span>
+                        <span class="total-label">${data.title === 'INVOICE' ? 'Amount Due' : 'Net à Payer'}</span>
                         <span class="total-amount">${data.totalAmount.toLocaleString()} <span style="font-size: 14px;">${data.currency}</span></span>
                     </div>
                 </div>
@@ -440,13 +450,13 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             <!-- Footer Grid -->
             <div class="footer-grid">
                 <div class="notes-col">
-                    <div class="thank-you">Merci de votre confiance !</div>
+                    <div class="thank-you">${data.title === 'INVOICE' ? 'Thank you for your business!' : 'Merci de votre confiance !'}</div>
                     <div class="payment-info">
-                        <div style="font-weight: 800; margin-bottom: 2px; color: ${darkText};">Termes & Conditions</div>
-                        Paiement dû à réception. Nous apprécions votre promptitude.
+                        ${data.notes ? `<div style="font-weight: 800; margin-bottom: 4px; color: ${darkText};">Notes</div><div style="margin-bottom: 10px;">${data.notes}</div>` : ''}
+                        ${data.terms ? `<div style="font-weight: 800; margin-bottom: 2px; color: ${darkText};">${data.title === 'INVOICE' ? 'Terms & Conditions' : 'Termes & Conditions'}</div><div>${data.terms}</div>` : `<div style="font-weight: 800; margin-bottom: 2px; color: ${darkText};">${data.title === 'INVOICE' ? 'Terms & Conditions' : 'Termes & Conditions'}</div><div>${data.title === 'INVOICE' ? 'Payment due upon receipt. Thank you for your prompt payment.' : 'Paiement dû à réception. Nous apprécions votre promptitude.'}</div>`}
                         ${data.qrCodeUrl ? `<div style="margin-top: 8px; display: flex; align-items: center; gap: 10px;">
                             <img src="${data.qrCodeUrl}" class="qr-clean" />
-                            <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: ${primaryColor};">Scanner pour<br>payer</div>
+                            <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: ${primaryColor};">${data.title === 'INVOICE' ? 'Scan to<br>pay' : 'Scanner pour<br>payer'}</div>
                         </div>` : ''}
                     </div>
                 </div>

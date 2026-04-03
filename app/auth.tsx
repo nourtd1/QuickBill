@@ -205,21 +205,33 @@ export default function AuthScreen() {
             return;
         }
 
-        // Demo note: changing password on a non-authenticated session in Supabase native 
-        // usually requires the specific Supabase token, NOT an external EmailJS code.
-        // For standard UI flows, we simulate success and redirect to sign in here.
+        // Real update in Supabase using our custom RPC function
+        setLoading(true);
+        try {
+            // NOTE: Ensure you have created the 'admin_reset_password' function in Supabase SQL Editor
+            const { error } = await supabase.rpc('admin_reset_password', {
+                target_email: email,
+                new_password: password
+            });
 
-        Alert.alert(
-            "Réinitialisation réussie ✅",
-            "Votre nouveau mot de passe a bien été enregistré. Connectez-vous.",
-            [{
-                text: "Se connecter", onPress: () => {
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setViewState('default');
-                    setIsSignUp(false);
-                }
-            }]
-        );
+            if (error) throw error;
+
+            Alert.alert(
+                "Réinitialisation réussie ✅",
+                "Votre nouveau mot de passe a bien été enregistré. Connectez-vous.",
+                [{
+                    text: "Se connecter", onPress: () => {
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        setViewState('default');
+                        setIsSignUp(false);
+                    }
+                }]
+            );
+        } catch (error: any) {
+            Alert.alert('Erreur', error.message || 'Impossible de mettre à jour le mot de passe.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Render different views dynamically

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { getDBConnection } from '../lib/database';
 import { runSynchronization } from '../lib/syncService';
+import { registerForPushNotificationsAsync, savePushTokenToProfile } from '../lib/notificationService';
 
 type LocalProfileRow = {
     id: string;
@@ -15,6 +16,7 @@ type LocalProfileRow = {
     default_currency?: string | null;
     phone?: string | null;
     phone_number?: string | null;
+    is_premium?: number | boolean | null;
 };
 
 const mapLocalRowToProfile = (row: LocalProfileRow): Profile => ({
@@ -25,6 +27,7 @@ const mapLocalRowToProfile = (row: LocalProfileRow): Profile => ({
     full_name: row.full_name || null,
     currency: row.currency || row.default_currency || 'USD',
     phone_contact: row.phone || row.phone_number || null,
+    is_premium: !!row.is_premium,
 });
 
 type AuthContextType = {
@@ -77,8 +80,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setProfile(remote);
 
                 await db.runAsync(
-                    `INSERT INTO profiles (id, business_name, logo_url, address, full_name, currency, default_currency, phone, phone_number, sync_status, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
+                    `INSERT INTO profiles (id, business_name, logo_url, address, full_name, currency, default_currency, phone, phone_number, is_premium, sync_status, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
                      ON CONFLICT(id) DO UPDATE SET
                        business_name = excluded.business_name,
                        logo_url = excluded.logo_url,
@@ -88,6 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                        default_currency = excluded.default_currency,
                        phone = excluded.phone,
                        phone_number = excluded.phone_number,
+                       is_premium = excluded.is_premium,
                        sync_status = 'synced',
                        updated_at = excluded.updated_at`,
                     [
@@ -100,6 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         remote.currency ?? null,
                         remote.phone_contact ?? null,
                         remote.phone_contact ?? null,
+                        remote.is_premium ? 1 : 0,
                         new Date().toISOString(),
                     ]
                 );
@@ -126,6 +131,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(true); // Ensure loading is true while fetching profile
             if (session?.user) {
                 fetchProfile(session.user.id).finally(() => setLoading(false));
+
+                // Register for push notifications in the background (non-blocking)
+                if (_event === 'SIGNED_IN') {
+                    registerForPushNotificationsAsync().then(token => {
+                        if (token && session.user) {
+                            savePushTokenToProfile(session.user.id, token);
+                        }
+                    }).catch(err => console.warn('Push token registration failed:', err));
+                }
             } else {
                 setProfile(null);
                 setLoading(false);

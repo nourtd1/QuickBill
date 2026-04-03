@@ -90,14 +90,6 @@ const prepareForCloud = (tableName: string, row: any) => {
     // Remove local-only columns that don't exist in Supabase schema
     if (tableName === 'invoices') {
         delete rest.currency;
-        // `exchange_rate` is not consistently present in your Supabase schema cache yet.
-        // Supabase has a default value in the intended schema, so omitting it is safe
-        // and prevents PGRST204 errors.
-        delete rest.exchange_rate;
-
-        // Same issue: schema cache might not yet have these columns.
-        // Omitting them avoids PGRST204 and lets the upsert succeed.
-        delete rest.due_date;
     } else if (tableName === 'invoice_items') {
         delete rest.created_at;
         delete rest.updated_at;

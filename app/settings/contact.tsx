@@ -90,8 +90,8 @@ export default function ContactSupportScreen() {
                 <ContactCard
                     icon={Mail}
                     title="Envoyer un email"
-                    subtitle="support@chadito.tech"
-                    action={() => openLink('mailto:support@chadito.tech')}
+                    subtitle="nourdevtd@gmail.com"
+                    action={() => openLink('mailto:nourdevtd@gmail.com')}
                     color="#EA4335"
                     bgColor="bg-red-50"
                 />
@@ -108,7 +108,7 @@ export default function ContactSupportScreen() {
                 <ContactCard
                     icon={Phone}
                     title="Appeler le service client"
-                    subtitle="Disponible 8h - 18h"
+                    subtitle="+250 798 977 292"
                     action={() => openLink('tel:+250798977292')}
                     color="#2563EB"
                     bgColor="bg-blue-50"

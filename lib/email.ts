@@ -1,22 +1,21 @@
 import emailjs from '@emailjs/browser';
 
 // Constants for EmailJS - Using Expo environment variables
-// Create a .env file at the root of your project and add these keys
-const EMAILJS_SERVICE_ID = process.env.EXPO_PUBLIC_EMAILJS_SERVICE_ID || 'service_placeholder';
-const EMAILJS_PUBLIC_KEY = process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY || 'public_key_placeholder';
+const EMAILJS_SERVICE_ID = process.env.EXPO_PUBLIC_EMAILJS_SERVICE_ID || '';
+const EMAILJS_PUBLIC_KEY = process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY || '';
 
-// Template IDs (Reduced to 2 to bypass free tier limits)
-// We will reuse these 2 templates for all 4 functions!
+// Template IDs
 const TEMPLATES = {
-    NOTIF: process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_WELCOME || 'template_welcome', // Will be used for Welcome & Reset
-    CODE: process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_2FA || 'template_2fa', // Will be used for 2FA & Email Change
+    WELCOME: process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_WELCOME || '', // Pour bienvenue
+    CODE: process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_2FA || '', // Pour OTP / Récupération
+    RESET: process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_RESET_PW || '', // Spécifique Reset si dispo
 };
 
-// Only init if we have a real key (not the placeholder)
-if (EMAILJS_PUBLIC_KEY !== 'public_key_placeholder') {
+// Only init if we have keys
+if (EMAILJS_PUBLIC_KEY) {
     emailjs.init(EMAILJS_PUBLIC_KEY);
 } else {
-    console.warn("⚠️ EmailJS n'est pas configuré. Veuillez ajouter vos clés dans le fichier .env");
+    if (__DEV__) console.warn("⚠️ EmailJS n'est pas configuré. Ajoutez vos clés dans .env");
 }
 
 interface EmailParams {
@@ -29,7 +28,7 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
     try {
         const response = await emailjs.send(
             EMAILJS_SERVICE_ID,
-            TEMPLATES.NOTIF, // Using the Notif template
+            TEMPLATES.WELCOME, // Using the Welcome template
             { email: email, to_email: email, to_name: name, message: 'Bienvenue sur QuickBill ! Votre espace Premium est prêt. Commencez à facturer comme un pro.' }
         );
         console.log('Welcome email sent!', response.status, response.text);
@@ -45,7 +44,12 @@ export const send2FACode = async (email: string, code: string) => {
         const response = await emailjs.send(
             EMAILJS_SERVICE_ID,
             TEMPLATES.CODE, // Using the Code template
-            { email: email, to_email: email, verification_code: code }
+            { 
+                email: email, 
+                to_email: email, 
+                passcode: code, // Matches EmailJS default template
+                verification_code: code // Kept for backward compatibility
+            }
         );
         console.log('2FA code email sent!', response.status, response.text);
         return true;
@@ -59,8 +63,8 @@ export const sendResetPasswordEmail = async (email: string, resetLink: string) =
     try {
         const response = await emailjs.send(
             EMAILJS_SERVICE_ID,
-            TEMPLATES.NOTIF, // Reusing the Notif template
-            { email: email, to_email: email, to_name: 'Utilisateur', message: `Suite à votre demande, voici votre lien pour configurer un nouveau mot de passe : \${resetLink}` }
+            TEMPLATES.RESET || TEMPLATES.CODE, // Using Reset template or falling back to Code
+            { email: email, to_email: email, to_name: 'Utilisateur', message: `Suite à votre demande, voici votre lien pour configurer un nouveau mot de passe : ${resetLink}` }
         );
         console.log('Reset Password email sent!', response.status, response.text);
         return true;
@@ -75,7 +79,12 @@ export const sendEmailChangeVerification = async (newEmail: string, code: string
         const response = await emailjs.send(
             EMAILJS_SERVICE_ID,
             TEMPLATES.CODE, // Reusing the Code template
-            { email: newEmail, to_email: newEmail, verification_code: code }
+            { 
+                email: newEmail, 
+                to_email: newEmail, 
+                passcode: code, 
+                verification_code: code 
+            }
         );
         console.log('Email Change Verification sent!', response.status, response.text);
         return true;

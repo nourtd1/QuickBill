@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
 import { getDBConnection } from './database';
+import { AppNotification } from '../types';
 
 // Types (Mirroring Supabase definition basically)
 export interface LocalInvoice {
@@ -37,17 +38,7 @@ export interface LocalInvoiceItem {
     sync_status: 'synced' | 'pending' | 'error';
 }
 
-export interface LocalNotification {
-    id: string;
-    user_id: string;
-    title: string;
-    message: string | null;
-    type: 'payment' | 'invoice' | 'system' | 'general';
-    read_status: 0 | 1;
-    data: string | null;
-    created_at: string;
-}
-
+// Helper for UUIDs
 export const generateUUID = () => {
     return Crypto.randomUUID();
 };
@@ -56,7 +47,7 @@ export const generateUUID = () => {
  * Save a notification locally
  */
 export const saveNotificationLocally = async (
-    notification: Omit<LocalNotification, 'id' | 'created_at' | 'read_status'>
+    notification: Omit<AppNotification, 'id' | 'created_at' | 'read_status'>
 ) => {
     const db = await getDBConnection();
     const id = generateUUID();
@@ -74,9 +65,9 @@ export const saveNotificationLocally = async (
 /**
  * Get all notifications for a user
  */
-export const getNotificationsLocal = async (userId: string) => {
+export const getNotificationsLocal = async (userId: string): Promise<AppNotification[]> => {
     const db = await getDBConnection();
-    return await db.getAllAsync<LocalNotification>(
+    return await db.getAllAsync<AppNotification>(
         `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC`,
         [userId]
     );
@@ -99,6 +90,14 @@ export const markAllNotificationsAsReadLocal = async (userId: string) => {
 };
 
 /**
+ * Delete a notification
+ */
+export const deleteNotificationLocal = async (id: string) => {
+    const db = await getDBConnection();
+    await db.runAsync(`DELETE FROM notifications WHERE id = ?`, [id]);
+};
+
+/**
  * Get unread notification count
  */
 export const getUnreadNotificationCountLocal = async (userId: string): Promise<number> => {
@@ -108,14 +107,6 @@ export const getUnreadNotificationCountLocal = async (userId: string): Promise<n
         [userId]
     );
     return result[0]?.count || 0;
-};
-
-/**
- * Delete a notification
- */
-export const deleteNotificationLocal = async (id: string) => {
-    const db = await getDBConnection();
-    await db.runAsync(`DELETE FROM notifications WHERE id = ?`, [id]);
 };
 
 /**
@@ -252,35 +243,44 @@ export const updateInvoiceLocally = async (
 export const getAllInvoicesLocal = async (userId: string) => {
     const db = await getDBConnection();
 
-    // Get Invoices
-    const invoices = await db.getAllAsync<LocalInvoice>(
-        `SELECT * FROM invoices WHERE user_id = ? ORDER BY created_at DESC`,
+    // Get Invoices JOIN Items in one query
+    const results = await db.getAllAsync<any>(
+        `SELECT i.*, 
+                it.id as item_id, it.description as item_description, 
+                it.quantity as item_quantity, it.unit_price as item_unit_price, 
+                it.total as item_total
+         FROM invoices i 
+         LEFT JOIN invoice_items it ON i.id = it.invoice_id
+         WHERE i.user_id = ? 
+         ORDER BY i.created_at DESC`,
         [userId]
     );
 
-    // Get Items for these invoices (Optimization: could be one JOIN, but separate queries are often cleaner for object nesting in JS side)
-    // For simplicity/performance on local device, getting all items for user or loop.
-    // Let's do a loop or a large IN query. Loop is fine for local.
-    // A better way: JOIN
-    /*
-      const result = await db.getAllAsync(`
-        SELECT i.*, it.id as item_id, it.description, ... 
-        FROM invoices i LEFT JOIN invoice_items it ON i.id = it.invoice_id
-        WHERE i.user_id = ?
-      `, [userId]);
-      // Then reduce/map to structure.
-    */
+    // Group items by invoice ID
+    const invoiceMap = new Map<string, any>();
+    
+    for (const row of results) {
+        if (!invoiceMap.has(row.id)) {
+            const { item_id, item_description, item_quantity, item_unit_price, item_total, ...invoiceData } = row;
+            invoiceMap.set(row.id, {
+                ...invoiceData,
+                items: []
+            });
+        }
+        
+        if (row.item_id) {
+            invoiceMap.get(row.id).items.push({
+                id: row.item_id,
+                invoice_id: row.id,
+                description: row.item_description,
+                quantity: row.item_quantity,
+                unit_price: row.item_unit_price,
+                total: row.item_total
+            });
+        }
+    }
 
-    // Stick to simple separate fetch for clarity and to return clean objects
-    const results = await Promise.all(invoices.map(async (inv) => {
-        const items = await db.getAllAsync<LocalInvoiceItem>(
-            `SELECT * FROM invoice_items WHERE invoice_id = ?`,
-            [inv.id]
-        );
-        return { ...inv, items };
-    }));
-
-    return results;
+    return Array.from(invoiceMap.values());
 };
 
 /**
@@ -419,11 +419,9 @@ export const saveClientLocally = async (
  */
 export const findClientByNameLocally = async (userId: string, name: string): Promise<any | null> => {
     const db = await getDBConnection();
-    // Using simple LIKE for now, SQLite doesn't support ILIKE by default usually but some versions do. 
-    // We'll try to match exact or standard lower case in JS if needed.
-    // For now simple query:
+    // Using COLLATE NOCASE for case-insensitive matching
     const result = await db.getAllAsync(
-        `SELECT * FROM clients WHERE user_id = ? AND name = ? LIMIT 1`,
+        `SELECT * FROM clients WHERE user_id = ? AND name = ? COLLATE NOCASE LIMIT 1`,
         [userId, name]
     );
     return result.length > 0 ? result[0] : null;

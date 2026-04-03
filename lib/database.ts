@@ -238,6 +238,17 @@ export const initDatabase = async () => {
     await addColumnIfMissing(db, 'profiles', 'full_name', 'TEXT');
     await addColumnIfMissing(db, 'profiles', 'currency', 'TEXT');
     await addColumnIfMissing(db, 'profiles', 'signature_url', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'is_premium', 'INTEGER DEFAULT 0');
+    await addColumnIfMissing(db, 'profiles', 'website', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'tax_id', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'rccm', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'bank_name', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'bank_iban', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'bank_swift', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'default_tax_rate', 'NUMERIC DEFAULT 0');
+    await addColumnIfMissing(db, 'profiles', 'tax_inclusive', 'INTEGER DEFAULT 0');
+    await addColumnIfMissing(db, 'profiles', 'stripe_account_id', 'TEXT');
+    await addColumnIfMissing(db, 'profiles', 'stripe_connected', 'INTEGER DEFAULT 0');
 
     // Sync: Supabase invoices can have 'created_by'
     await addColumnIfMissing(db, 'invoices', 'created_by', 'TEXT');

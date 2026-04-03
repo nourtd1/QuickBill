@@ -10,6 +10,7 @@ export interface ExtractedReceiptData {
     currency: string | null;
     items: Array<{ description: string; amount: number }>;
     tax: number | null;
+    category?: string | null;
 }
 
 /**

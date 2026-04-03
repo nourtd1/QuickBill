@@ -1,36 +1,24 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getDBConnection } from '../lib/database';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
-
-export type ActivityType = 'payment' | 'invoice' | 'system' | 'general';
-
-export interface ActivityItem {
-    id: string;
-    type: ActivityType;
-    title: string;
-    message: string | null;
-    read_status: 0 | 1;
-    created_at: string;
-    data?: string | null;
-}
+import { AppNotification, ActivityType } from '../types';
 
 export interface ActivitySection {
     titleKey: string;
-    data: ActivityItem[];
+    data: AppNotification[];
 }
 
 import { 
     getNotificationsLocal, 
     markAllNotificationsAsReadLocal, 
     getUnreadNotificationCountLocal,
-    LocalNotification
+    markNotificationAsReadLocal,
+    deleteNotificationLocal
 } from '../lib/localServices';
 
 export function useNotifications() {
     const { user } = useAuth();
-    const [activities, setActivities] = useState<ActivityItem[]>([]);
+    const [activities, setActivities] = useState<AppNotification[]>([]);
     const [sections, setSections] = useState<ActivitySection[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -44,19 +32,7 @@ export function useNotifications() {
             const count = await getUnreadNotificationCountLocal(user.id);
             
             setUnreadCount(count);
-            
-            // Map LocalNotification to ActivityItem (legacy support for index.tsx)
-            const mapped: ActivityItem[] = data.map(n => ({
-                id: n.id,
-                type: n.type as any,
-                title: n.title,
-                message: n.message,
-                read_status: n.read_status,
-                created_at: n.created_at,
-                data: n.data
-            }));
-
-            setActivities(mapped);
+            setActivities(data);
 
             // Grouping for sections
             const today = new Date();
@@ -64,11 +40,11 @@ export function useNotifications() {
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
 
-            const todayData: ActivityItem[] = [];
-            const yesterdayData: ActivityItem[] = [];
-            const olderData: ActivityItem[] = [];
+            const todayData: AppNotification[] = [];
+            const yesterdayData: AppNotification[] = [];
+            const olderData: AppNotification[] = [];
 
-            mapped.forEach(item => {
+            data.forEach(item => {
                 const d = new Date(item.created_at);
                 if (d >= today) todayData.push(item);
                 else if (d >= yesterday) yesterdayData.push(item);
@@ -105,12 +81,34 @@ export function useNotifications() {
         }
     };
 
+    const markAsRead = async (id: string) => {
+        try {
+            await markNotificationAsReadLocal(id);
+            setActivities(prev => prev.map(a => a.id === id ? { ...a, read_status: 1 as const } : a));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (error) {
+            console.error('Error marking as read:', error);
+        }
+    };
+
+    const deleteNotification = async (id: string) => {
+        try {
+            await deleteNotificationLocal(id);
+            setActivities(prev => prev.filter(a => a.id !== id));
+            fetchActivities(); // Refresh sections
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
     return {
         activities,
         sections,
         unreadCount,
         loading,
         refresh: fetchActivities,
-        markAllAsRead
+        markAllAsRead,
+        markAsRead,
+        deleteNotification
     };
 }

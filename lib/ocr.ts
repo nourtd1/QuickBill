@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
-import { processReceiptWithGemini } from './gemini';
+import { processReceiptWithGemini, processQRCodeWithGemini } from './gemini';
 
 export interface ExtractedReceiptData {
     merchant: string | null;
@@ -65,5 +65,19 @@ export async function scanReceipt(imageUri: string): Promise<ExtractedReceiptDat
     } catch (error: any) {
         console.error("Scan Error:", error);
         throw new Error("Impossible d'analyser le reçu. Veuillez réessayer.");
+    }
+}
+
+/**
+ * Scans a QR code text content using Gemini API
+ */
+export async function scanQRCode(qrText: string): Promise<ExtractedReceiptData> {
+    console.log("Starts processing QR code:", qrText);
+    try {
+        const aiData = await processQRCodeWithGemini(qrText);
+        return aiData;
+    } catch (error: any) {
+        console.error("QR Scan Error:", error);
+        throw new Error("Impossible d'analyser le code QR. Veuillez réessayer.");
     }
 }

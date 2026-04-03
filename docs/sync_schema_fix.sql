@@ -21,5 +21,17 @@ ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE public.profiles
 ADD COLUMN IF NOT EXISTS phone TEXT;
 
+-- 5. invoices: add due_date if missing (app sync expects it)
+ALTER TABLE public.invoices
+ADD COLUMN IF NOT EXISTS due_date TIMESTAMPTZ;
+
+-- 6. invoices: add exchange_rate if missing (app sync expects it)
+ALTER TABLE public.invoices
+ADD COLUMN IF NOT EXISTS exchange_rate NUMERIC DEFAULT 1;
+
+-- 7. invoice_items: add total if missing (app sync expects it)
+ALTER TABLE public.invoice_items
+ADD COLUMN IF NOT EXISTS total NUMERIC DEFAULT 0;
+
 -- Refresh schema cache
 NOTIFY pgrst, 'reload schema';

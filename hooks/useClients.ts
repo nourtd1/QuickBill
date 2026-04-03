@@ -24,6 +24,12 @@ export function useClients() {
         queryKey: ['clients', user?.id],
         queryFn: fetchClients,
         enabled: !!user, // Only run if user is logged in
+        // The app can create/edit clients and then immediately go back to invoice screens.
+        // Our global QueryClient keeps data "fresh" for 5 minutes, so without this override
+        // the client picker can show an outdated list until a full reload.
+        staleTime: 0,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
     });
 
     return query;

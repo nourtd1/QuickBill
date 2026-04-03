@@ -116,7 +116,7 @@ const ActivityItem = ({ icon: Icon, iconBg, iconColor, title, date, amount, stat
         </View>
         <View className="items-end">
             <Text className={`font-bold text-base text-slate-900 dark:text-slate-50`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {isPositive ? '+' : ''}{amount}
+                {amount}
             </Text>
             {status && (
                 <View className={`px-2 py-1 rounded-md mt-1 ${statusBg}`}>
@@ -223,7 +223,9 @@ export default function Dashboard() {
             iconColor: '#4F46E5',
             statusBg,
             statusColor,
-            amountText: `+${formatCurrency(item.amount, profile?.currency || 'USD')}`,
+            // amount already carries its sign in `amountText`
+            // (no extra '+' here, avoids "++").
+            amountText: `${formatCurrency(item.amount, profile?.currency || 'USD')}`,
             status: displayStatus
         };
     };

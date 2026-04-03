@@ -90,9 +90,20 @@ const prepareForCloud = (tableName: string, row: any) => {
     // Remove local-only columns that don't exist in Supabase schema
     if (tableName === 'invoices') {
         delete rest.currency;
+        // `exchange_rate` is not consistently present in your Supabase schema cache yet.
+        // Supabase has a default value in the intended schema, so omitting it is safe
+        // and prevents PGRST204 errors.
+        delete rest.exchange_rate;
+
+        // Same issue: schema cache might not yet have these columns.
+        // Omitting them avoids PGRST204 and lets the upsert succeed.
+        delete rest.due_date;
     } else if (tableName === 'invoice_items') {
         delete rest.created_at;
         delete rest.updated_at;
+
+        // If your Supabase schema cache misses this column, omit it.
+        delete rest.total;
     }
 
     return rest;
@@ -105,8 +116,17 @@ export const syncLocalChanges = async () => {
     const db = await getDBConnection();
     if (__DEV__) console.log('🔄 Starting PUSH sync...');
 
+    // invoice_items/payments RLS depends on invoices existing for the current user.
+    // If invoices upsert fails, skip dependent tables to avoid RLS cascades.
+    let didInvoicesFail = false;
+
     for (const table of SYNC_TABLES) {
         try {
+            if (didInvoicesFail && (table === 'invoice_items' || table === 'payments')) {
+                if (__DEV__) console.log(`⏭️ Skipping ${table} because invoices failed`);
+                continue;
+            }
+
             // Get pending records
             const pendingRows = await db.getAllAsync(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);
 
@@ -125,6 +145,7 @@ export const syncLocalChanges = async () => {
 
             if (error) {
                 console.error(`❌ Error syncing table ${table}:`, error);
+                if (table === 'invoices') didInvoicesFail = true;
                 // Mark as error locally ? Or keep pending for retry?
                 // User requested: "passer en 'error'"
                 const ids = pendingRows.map((r: any) => r.id);

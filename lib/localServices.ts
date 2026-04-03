@@ -284,6 +284,83 @@ export const getAllInvoicesLocal = async (userId: string) => {
 };
 
 /**
+ * Get one invoice (with items + customer) from local SQLite.
+ * Used as a fallback when Supabase doesn't have the record yet.
+ */
+export const getInvoiceDetailsLocal = async (userId: string, invoiceId: string) => {
+    const db = await getDBConnection();
+
+    const inv = await db.getFirstAsync<LocalInvoice>(
+        `SELECT * FROM invoices WHERE user_id = ? AND id = ? LIMIT 1`,
+        [userId, invoiceId]
+    );
+
+    if (!inv) return null;
+
+    const items = await db.getAllAsync<LocalInvoiceItem>(
+        `SELECT * FROM invoice_items WHERE invoice_id = ?`,
+        [invoiceId]
+    );
+
+    // Local clients table is what invoice UI expects for the customer relation.
+    const customer = await db.getFirstAsync<any>(
+        `SELECT * FROM clients WHERE id = ? LIMIT 1`,
+        [inv.customer_id]
+    );
+
+    // Whatsapp history is optional in the UI. Provide an empty array if missing.
+    const whatsapp_history = await db.getAllAsync<any>(
+        `SELECT * FROM whatsapp_messages WHERE invoice_id = ?`,
+        [invoiceId]
+    );
+
+    return {
+        ...inv,
+        // Ensure the UI shape matches what supabase joins provide.
+        customer: customer,
+        items: items,
+        whatsapp_history,
+    };
+};
+
+/**
+ * Same as `getInvoiceDetailsLocal`, but can work even if `user.id` isn't ready.
+ * It loads by invoice id only.
+ */
+export const getInvoiceDetailsLocalById = async (invoiceId: string) => {
+    const db = await getDBConnection();
+
+    const inv = await db.getFirstAsync<LocalInvoice>(
+        `SELECT * FROM invoices WHERE id = ? LIMIT 1`,
+        [invoiceId]
+    );
+
+    if (!inv) return null;
+
+    const items = await db.getAllAsync<LocalInvoiceItem>(
+        `SELECT * FROM invoice_items WHERE invoice_id = ?`,
+        [invoiceId]
+    );
+
+    const customer = await db.getFirstAsync<any>(
+        `SELECT * FROM clients WHERE id = ? LIMIT 1`,
+        [inv.customer_id]
+    );
+
+    const whatsapp_history = await db.getAllAsync<any>(
+        `SELECT * FROM whatsapp_messages WHERE invoice_id = ?`,
+        [invoiceId]
+    );
+
+    return {
+        ...inv,
+        customer,
+        items,
+        whatsapp_history,
+    };
+};
+
+/**
  * Save a new client locally
  */
 export const saveClientLocally = async (

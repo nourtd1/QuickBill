@@ -36,6 +36,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { StatusBar } from 'expo-status-bar';
 import * as ExpoCrypto from 'expo-crypto';
+import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../../../lib/upload';
 import { showSuccess, showError } from '../../../lib/error-handler';
@@ -233,6 +234,7 @@ export default function ClientFormScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { user } = useAuth();
+    const queryClient = useQueryClient();
     const { t, language } = useLanguage();
     const isEditing = !!id;
     const insets = useSafeAreaInsets();
@@ -357,6 +359,12 @@ export default function ClientFormScreen() {
                                 .eq('id', id);
                             if (error) throw error;
                             showSuccess('Client deleted successfully');
+                            // Refresh clients list across the app immediately.
+                            if (user?.id) {
+                                await queryClient.invalidateQueries({
+                                    queryKey: ['clients', user.id],
+                                });
+                            }
                             router.back();
                         } catch (error) {
                             showError(error, 'Failed to delete client');
@@ -411,6 +419,12 @@ export default function ClientFormScreen() {
                 showSuccess(t('personal_info.update_success'), t('common.success'), t);
             }
 
+            // Refresh clients list across the app immediately.
+            if (user?.id) {
+                await queryClient.invalidateQueries({
+                    queryKey: ['clients', user.id],
+                });
+            }
             router.back();
         } catch (error: any) {
             console.error('Save error:', error);

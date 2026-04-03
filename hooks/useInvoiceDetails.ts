@@ -1,8 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { InvoiceWithRelations } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { getInvoiceDetailsLocal, getInvoiceDetailsLocalById } from '../lib/localServices';
 
 export function useInvoiceDetails(id: string) {
+    const { user } = useAuth();
     const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -30,28 +33,57 @@ export function useInvoiceDetails(id: string) {
                 `)
                 .eq('id', id)
                 .order('created_at', { foreignTable: 'whatsapp_messages', ascending: false })
-                .single();
+                // Avoid PGRST116 by never using `.single()` on empty results.
+                .limit(1);
 
             if (error) {
-                console.error('Supabase error in fetchInvoice:', error);
-                throw error;
+                // Supabase may fail when the invoice isn't pushed yet (schema/cache/RLS issues).
+                // For the user experience, fallback to local SQLite and avoid blocking the screen.
+                try {
+                    const local = user?.id
+                        ? await getInvoiceDetailsLocal(user.id, id)
+                        : await getInvoiceDetailsLocalById(id);
+                    if (local) setInvoice(local as any);
+                } catch (fallbackErr) {
+                    console.error('Local invoice fallback failed:', fallbackErr);
+                }
+                return;
+            }
+
+            // No row yet in Supabase => fallback to local SQLite.
+            const row = Array.isArray(data) ? data[0] : (data as any);
+            if (!row) {
+                const local = user?.id
+                    ? await getInvoiceDetailsLocal(user.id, id)
+                    : await getInvoiceDetailsLocalById(id);
+                if (local) setInvoice(local as any);
+                return;
             }
 
             // Transform Supabase response to typed format
             const typedData: InvoiceWithRelations & { whatsapp_history?: any[] } = {
-                ...data,
-                customer: Array.isArray(data.customer) ? data.customer[0] : data.customer,
-                items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : []),
-                whatsapp_history: data.whatsapp_history || []
+                ...row,
+                customer: Array.isArray(row.customer) ? row.customer[0] : row.customer,
+                items: Array.isArray(row.items) ? row.items : (row.items ? [row.items] : []),
+                whatsapp_history: row.whatsapp_history || []
             };
 
             setInvoice(typedData);
         } catch (err) {
+            // Final fallback if Supabase fails for any reason.
             console.error('Error fetching invoice details:', err);
+            try {
+                const local = user?.id
+                    ? await getInvoiceDetailsLocal(user.id, id)
+                    : await getInvoiceDetailsLocalById(id);
+                if (local) setInvoice(local as any);
+            } catch (fallbackErr) {
+                console.error('Error fetching local invoice details:', fallbackErr);
+            }
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, user?.id]);
 
     const toggleStatus = async () => {
         if (!invoice) return;

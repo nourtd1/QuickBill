@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,7 +9,10 @@ import {
     Alert,
     Image,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    StyleSheet,
+    Animated,
+    Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +27,11 @@ import {
     FileText,
     ShieldCheck,
     CheckCircle2,
-    LayoutDashboard
+    LayoutDashboard,
+    Check,
+    X,
+    Building2,
+    Sparkles,
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,6 +40,11 @@ import { validateBusinessName } from '../../lib/validation';
 import { showSuccess, showError } from '../../lib/error-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../context/LanguageContext';
+import * as Haptics from 'expo-haptics';
+
+const INDIGO = '#4F46E5';
+const INDIGO_DARK = '#1337ec';
+const SECTORS = ['Technology', 'Finance', 'E-commerce', 'Service', 'Retail', 'Healthcare', 'Education', 'Other'];
 
 export default function BusinessProfileScreen() {
     const router = useRouter();
@@ -40,23 +52,24 @@ export default function BusinessProfileScreen() {
     const { t } = useLanguage();
 
     const [businessName, setBusinessName] = useState('');
-    const [registrationNumber, setRegistrationNumber] = useState(''); 
+    const [registrationNumber, setRegistrationNumber] = useState('');
     const [taxId, setTaxId] = useState('');
     const [website, setWebsite] = useState('');
     const [businessCategory, setBusinessCategory] = useState('');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [sectorModalVisible, setSectorModalVisible] = useState(false);
+    const [activeField, setActiveField] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchProfile();
-    }, []);
+    const saveAnim = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => { fetchProfile(); }, []);
 
     useEffect(() => {
         if (profile) {
             setBusinessName(profile.business_name || '');
-            setRegistrationNumber(profile.rccm || ''); 
+            setRegistrationNumber(profile.rccm || '');
             setTaxId(profile.tax_id || '');
             setWebsite(profile.website || '');
             setLogoUrl(profile.logo_url || null);
@@ -64,22 +77,18 @@ export default function BusinessProfileScreen() {
     }, [profile]);
 
     const handlePickImage = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.granted === false) {
+        const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!granted) {
             Alert.alert(t('business_profile.permission_required'), t('business_profile.permission_msg'));
             return;
         }
-
-        const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
         });
-
-        if (!pickerResult.canceled) {
-            handleUpload(pickerResult.assets[0].uri);
-        }
+        if (!result.canceled) handleUpload(result.assets[0].uri);
     };
 
     const handleUpload = async (uri: string) => {
@@ -96,11 +105,16 @@ export default function BusinessProfileScreen() {
     };
 
     const handleSave = async () => {
-        const businessNameValidation = validateBusinessName(businessName);
-        if (!businessNameValidation.isValid) {
-            Alert.alert(t('common.error'), businessNameValidation.error);
+        const validation = validateBusinessName(businessName);
+        if (!validation.isValid) {
+            Alert.alert(t('common.error'), validation.error);
             return;
         }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Animated.sequence([
+            Animated.timing(saveAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+            Animated.timing(saveAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+        ]).start();
 
         setSaving(true);
         try {
@@ -111,10 +125,10 @@ export default function BusinessProfileScreen() {
                 website: website.trim() || null,
                 logo_url: logoUrl,
             } as any);
-
             if (error) {
                 showError(error, t('business_profile.update_error'));
             } else {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 showSuccess(t('business_profile.update_success'));
                 router.back();
             }
@@ -125,247 +139,388 @@ export default function BusinessProfileScreen() {
         }
     };
 
-    const InputField = ({ label, value, onChangeText, placeholder, icon: Icon, keyboardType = 'default' }: any) => (
-        <View className="mb-4">
-            <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[1.5px] mb-2 ml-1">{label}</Text>
-            <View className="flex-row items-center bg-white rounded-2xl px-4 py-3 border border-slate-100 shadow-sm shadow-slate-200/50">
-                <View className="w-8 h-8 rounded-xl bg-slate-50 items-center justify-center mr-3">
-                    <Icon size={16} color="#475569" strokeWidth={2.5} />
-                </View>
-                <TextInput
-                    className="flex-1 text-slate-900 font-bold text-[14px]"
-                    value={value}
-                    onChangeText={onChangeText}
-                    placeholder={placeholder}
-                    placeholderTextColor="#CBD5E1"
-                    keyboardType={keyboardType}
-                />
-            </View>
-        </View>
-    );
-
     if (profileLoading && !profile) {
         return (
-            <View className="flex-1 items-center justify-center bg-white">
-                <ActivityIndicator size="large" color="#1337ec" />
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={INDIGO} />
+                <Text style={styles.loadingText}>Chargement...</Text>
             </View>
         );
     }
 
+    const initials = businessName ? businessName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'B';
+
     return (
-        <View className="flex-1 bg-[#F9FAFC]">
+        <View style={styles.screen}>
             <StatusBar style="dark" />
-            
-            {/* Background Gradient */}
-            <View className="absolute top-0 left-0 right-0 h-[30%]">
-                <LinearGradient
-                    colors={['#F0F4FF', '#F8FAFC', '#ffffff']}
-                    className="flex-1"
-                />
-            </View>
 
-            <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-
-                {/* Header */}
-                <View className="flex-row items-center justify-between px-6 pt-2 pb-4">
-                    <TouchableOpacity 
-                        onPress={() => router.back()} 
-                        className="bg-white w-10 h-10 rounded-[16px] items-center justify-center shadow-lg shadow-indigo-100/50 border border-white"
-                    >
-                        <ChevronLeft size={20} color="#1337ec" strokeWidth={3} className="-ml-0.5" />
-                    </TouchableOpacity>
-                    <View className="items-center">
-                        <Text className="text-[16px] font-black text-slate-900 tracking-tight">{t('business_profile.title')}</Text>
-                        <View className="h-0.5 w-6 bg-blue-600 rounded-full mt-1" />
-                    </View>
-                    <TouchableOpacity 
-                        onPress={handleSave}
-                        disabled={saving}
-                        className="bg-white w-10 h-10 rounded-[16px] items-center justify-center shadow-lg shadow-indigo-100/50 border border-white"
-                    >
-                        {saving ? (
-                            <ActivityIndicator size="small" color="#1337ec" />
-                        ) : (
-                            <CheckCircle2 size={20} color="#059669" strokeWidth={3} />
-                        )}
+            {/* Sector Picker Modal */}
+            <Modal
+                visible={sectorModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setSectorModalVisible(false)}
+            >
+                <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSectorModalVisible(false)} />
+                <View style={styles.modalSheet}>
+                    <View style={styles.modalHandle} />
+                    <Text style={styles.modalTitle}>Secteur d'activité</Text>
+                    <Text style={styles.modalSubtitle}>Choisissez le secteur qui correspond le mieux à votre entreprise</Text>
+                    <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                        {SECTORS.map((sector) => {
+                            const selected = businessCategory === sector;
+                            return (
+                                <TouchableOpacity
+                                    key={sector}
+                                    style={[styles.sectorRow, selected && styles.sectorRowSelected]}
+                                    onPress={() => {
+                                        Haptics.selectionAsync();
+                                        setBusinessCategory(sector);
+                                        setSectorModalVisible(false);
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[styles.sectorLabel, selected && styles.sectorLabelSelected]}>
+                                        {t(`business_profile.sectors.${sector === 'E-commerce' ? 'Ecommerce' : sector}`) || sector}
+                                    </Text>
+                                    {selected && <Check size={18} color={INDIGO} strokeWidth={2.5} />}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                    <TouchableOpacity style={styles.modalCancel} onPress={() => setSectorModalVisible(false)}>
+                        <Text style={styles.modalCancelText}>Annuler</Text>
                     </TouchableOpacity>
                 </View>
+            </Modal>
 
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    className="flex-1"
-                >
+            <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} activeOpacity={0.7}>
+                        <ChevronLeft size={20} color={INDIGO} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.headerTitle}>{t('business_profile.title')}</Text>
+                        <View style={styles.headerUnderline} />
+                    </View>
+                    <View style={{ width: 40 }} />
+                </View>
+
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
                     <ScrollView
-                        className="flex-1 px-6"
+                        style={styles.flex}
+                        contentContainerStyle={styles.scrollContent}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 120 }}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        {/* Premium Badge */}
-                        <View className="flex-row items-center justify-center bg-amber-50/50 border border-amber-100/50 rounded-2xl py-2 px-4 mt-2 mb-6">
-                            <ShieldCheck size={14} color="#D97706" strokeWidth={2.5} />
-                            <Text className="text-amber-700 text-[9px] font-black ml-2 uppercase tracking-widest">{t('business_profile.identity_verified')}</Text>
+                        {/* Verified Badge */}
+                        <View style={styles.verifiedBadge}>
+                            <ShieldCheck size={13} color="#D97706" strokeWidth={2.5} />
+                            <Text style={styles.verifiedText}>{t('business_profile.identity_verified')}</Text>
                         </View>
 
-                        {/* Logo Upload - Premium View */}
-                        <View className="items-center mb-8">
-                            <TouchableOpacity
-                                onPress={handlePickImage}
-                                activeOpacity={0.9}
-                                className="relative"
-                            >
-                                <LinearGradient
-                                    colors={['#1337ec', '#3b82f6']}
-                                    className="w-32 h-32 rounded-[40px] p-[3px] shadow-2xl shadow-blue-500/30"
-                                >
-                                    <View className="flex-1 bg-white rounded-[38px] overflow-hidden items-center justify-center">
+                        {/* Logo Zone */}
+                        <View style={styles.logoSection}>
+                            <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={styles.logoWrapper}>
+                                <LinearGradient colors={[INDIGO_DARK, '#3b82f6']} style={styles.logoBorder}>
+                                    <View style={styles.logoInner}>
                                         {logoUrl ? (
-                                            <Image source={{ uri: logoUrl }} className="w-full h-full" resizeMode="cover" />
+                                            <Image source={{ uri: logoUrl }} style={styles.logoImage} resizeMode="cover" />
                                         ) : (
-                                            <View className="bg-slate-50 w-full h-full items-center justify-center">
-                                                <Store size={40} color="#CBD5E1" strokeWidth={1.5} />
+                                            <View style={styles.logoPlaceholder}>
+                                                <Text style={styles.logoInitials}>{initials}</Text>
                                             </View>
                                         )}
                                         {uploading && (
-                                            <View className="absolute inset-0 bg-white/80 items-center justify-center">
-                                                <ActivityIndicator size="small" color="#1337ec" />
+                                            <View style={styles.logoOverlay}>
+                                                <ActivityIndicator color={INDIGO} />
                                             </View>
                                         )}
                                     </View>
                                 </LinearGradient>
-                                <View className="absolute -bottom-1 -right-1 bg-[#1337ec] w-10 h-10 rounded-[14px] items-center justify-center border-4 border-[#F9FAFC] shadow-lg">
-                                    <Camera size={18} color="white" strokeWidth={2.5} />
+                                <View style={styles.cameraBadge}>
+                                    <Camera size={15} color="white" strokeWidth={2.5} />
                                 </View>
                             </TouchableOpacity>
-                            <Text className="text-slate-900 font-black text-sm mt-4">{t('business_profile.logo_title')}</Text>
-                            <Text className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-tighter">{t('business_profile.logo_desc')}</Text>
+                            <Text style={styles.logoTitle}>{t('business_profile.logo_title')}</Text>
+                            <Text style={styles.logoSubtitle}>{t('business_profile.logo_desc')}</Text>
                         </View>
 
-                        {/* FORM SECTIONS */}
-                        <View className="mb-4 flex-row items-center">
-                            <Text className="text-slate-400 text-[9px] font-black uppercase tracking-[1.5px]">{t('business_profile.legal_info')}</Text>
-                            <View className="flex-1 h-[1px] bg-slate-100 ml-3" />
-                        </View>
+                        {/* Section: Legal Info */}
+                        <SectionHeader icon={<Briefcase size={13} color="#94A3B8" />} label={t('business_profile.legal_info')} />
 
-                        <InputField
+                        <FieldWithFocus
                             label={t('business_profile.business_name')}
                             value={businessName}
                             onChangeText={setBusinessName}
                             placeholder={t('business_profile.business_name_placeholder')}
-                            icon={Store}
+                            icon={<Store size={16} color={activeField === 'name' ? INDIGO : '#94A3B8'} />}
+                            active={activeField === 'name'}
+                            onFocus={() => setActiveField('name')}
+                            onBlur={() => setActiveField(null)}
                         />
-                        <InputField
+                        <FieldWithFocus
                             label={t('business_profile.rccm')}
                             value={registrationNumber}
                             onChangeText={setRegistrationNumber}
                             placeholder={t('business_profile.rccm_placeholder')}
-                            icon={Briefcase}
+                            icon={<Briefcase size={16} color={activeField === 'rccm' ? INDIGO : '#94A3B8'} />}
+                            active={activeField === 'rccm'}
+                            onFocus={() => setActiveField('rccm')}
+                            onBlur={() => setActiveField(null)}
                         />
-                        <InputField
+                        <FieldWithFocus
                             label={t('business_profile.tax_id')}
                             value={taxId}
                             onChangeText={setTaxId}
                             placeholder={t('business_profile.tax_id_placeholder')}
-                            icon={FileText}
+                            icon={<FileText size={16} color={activeField === 'tax' ? INDIGO : '#94A3B8'} />}
+                            active={activeField === 'tax'}
+                            onFocus={() => setActiveField('tax')}
+                            onBlur={() => setActiveField(null)}
                         />
 
-                        <View className="mt-6 mb-4 flex-row items-center">
-                            <Text className="text-slate-400 text-[9px] font-black uppercase tracking-[1.5px]">{t('business_profile.digital_presence')}</Text>
-                            <View className="flex-1 h-[1px] bg-slate-100 ml-3" />
-                        </View>
+                        {/* Section: Digital */}
+                        <SectionHeader icon={<Globe size={13} color="#94A3B8" />} label={t('business_profile.digital_presence')} />
 
-                        <InputField
+                        <FieldWithFocus
                             label={t('business_profile.website')}
                             value={website}
                             onChangeText={setWebsite}
                             placeholder={t('business_profile.website_placeholder')}
-                            icon={Globe}
+                            icon={<Globe size={16} color={activeField === 'web' ? INDIGO : '#94A3B8'} />}
+                            active={activeField === 'web'}
+                            onFocus={() => setActiveField('web')}
+                            onBlur={() => setActiveField(null)}
                             keyboardType="url"
                         />
 
-                        <View className="mb-8">
-                            <TouchableOpacity 
-                                onPress={() => {
-                                    Alert.alert(
-                                        t('business_profile.industry'),
-                                        t('business_profile.industry_placeholder'),
-                                        [
-                                            { text: t('business_profile.sectors.Technology'), onPress: () => setBusinessCategory("Technology") },
-                                            { text: t('business_profile.sectors.Finance'), onPress: () => setBusinessCategory("Finance") },
-                                            { text: t('business_profile.sectors.Ecommerce'), onPress: () => setBusinessCategory("E-commerce") },
-                                            { text: t('business_profile.sectors.Service'), onPress: () => setBusinessCategory("Service") },
-                                            { text: t('common.cancel'), style: "cancel" }
-                                        ]
-                                    );
-                                }}
-                                className="flex-row items-center bg-white rounded-2xl px-4 py-3 border border-slate-100 shadow-sm shadow-slate-200/50 justify-between"
+                        {/* Sector Selector */}
+                        <View style={styles.fieldContainer}>
+                            <Text style={styles.fieldLabel}>{t('business_profile.industry')}</Text>
+                            <TouchableOpacity
+                                style={[styles.fieldRow, businessCategory ? styles.fieldRowFilled : null]}
+                                onPress={() => { Haptics.selectionAsync(); setSectorModalVisible(true); }}
+                                activeOpacity={0.75}
                             >
-                                <View className="flex-row items-center">
-                                    <View className="w-8 h-8 rounded-xl bg-slate-50 items-center justify-center mr-3">
-                                        <LayoutDashboard size={16} color="#475569" strokeWidth={2.5} />
-                                    </View>
-                                    <Text className={businessCategory ? "text-slate-900 font-bold text-[14px]" : "text-slate-400 font-bold text-[14px]"}>
-                                        {businessCategory ? t(`business_profile.sectors.${businessCategory === 'E-commerce' ? 'Ecommerce' : businessCategory}`) : t('business_profile.industry_placeholder')}
-                                    </Text>
+                                <View style={[styles.fieldIcon, businessCategory ? styles.fieldIconActive : null]}>
+                                    <LayoutDashboard size={16} color={businessCategory ? INDIGO : '#94A3B8'} />
                                 </View>
-                                <ChevronRight size={18} color="#CBD5E1" strokeWidth={3} />
+                                <Text style={[styles.fieldValue, !businessCategory && styles.fieldPlaceholder]}>
+                                    {businessCategory
+                                        ? (t(`business_profile.sectors.${businessCategory === 'E-commerce' ? 'Ecommerce' : businessCategory}`) || businessCategory)
+                                        : t('business_profile.industry_placeholder')}
+                                </Text>
+                                <ChevronRight size={16} color="#CBD5E1" strokeWidth={2} />
                             </TouchableOpacity>
                         </View>
 
-                        {/* PREVIEW CARD */}
-                        <LinearGradient
-                            colors={['#1e1b4b', '#312e81']}
-                            className="rounded-[28px] p-5 shadow-xl shadow-indigo-900/20 mb-10"
-                        >
-                            <View className="flex-row items-start justify-between">
-                                <View className="flex-row">
-                                    <View className="w-12 h-12 bg-white rounded-xl items-center justify-center mr-4">
-                                        {logoUrl ? (
-                                            <Image source={{ uri: logoUrl }} className="w-9 h-9 rounded-lg" resizeMode="cover" />
-                                        ) : (
-                                            <Text className="text-blue-600 font-black text-xl">{businessName ? businessName.charAt(0).toUpperCase() : 'B'}</Text>
-                                        )}
-                                    </View>
-                                    <View className="justify-center">
-                                        <Text className="text-white font-black text-sm tracking-tight">{businessName || t('business_profile.preview.your_business')}</Text>
-                                        <Text className="text-indigo-300 text-[10px] font-bold mt-0.5">{website || t('business_profile.preview.invoice_preview')}</Text>
-                                    </View>
+                        {/* Live Preview Card */}
+                        <View style={styles.previewHeader}>
+                            <Sparkles size={13} color="#94A3B8" />
+                            <Text style={styles.previewHeaderText}>Aperçu sur vos factures</Text>
+                        </View>
+
+                        <LinearGradient colors={['#1e1b4b', '#2d2a6e', '#312e81']} style={styles.previewCard}>
+                            <View style={styles.previewCardInner}>
+                                <View style={styles.previewLogoBox}>
+                                    {logoUrl ? (
+                                        <Image source={{ uri: logoUrl }} style={styles.previewLogoImage} resizeMode="cover" />
+                                    ) : (
+                                        <Text style={styles.previewLogoInitials}>{initials}</Text>
+                                    )}
                                 </View>
-                                <View className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-                                    <Text className="text-white font-black text-[9px] uppercase">{t('business_profile.preview.pro_invoice')}</Text>
+                                <View style={styles.previewInfo}>
+                                    <Text style={styles.previewName} numberOfLines={1}>
+                                        {businessName || t('business_profile.preview.your_business')}
+                                    </Text>
+                                    <Text style={styles.previewWebsite} numberOfLines={1}>
+                                        {website || t('business_profile.preview.invoice_preview')}
+                                    </Text>
+                                    {(taxId || registrationNumber) ? (
+                                        <View style={styles.previewBadgeRow}>
+                                            {taxId ? <View style={styles.previewTag}><Text style={styles.previewTagText}>NIF: {taxId}</Text></View> : null}
+                                            {registrationNumber ? <View style={styles.previewTag}><Text style={styles.previewTagText}>RCCM: {registrationNumber.slice(0, 10)}</Text></View> : null}
+                                        </View>
+                                    ) : null}
                                 </View>
+                                <View style={styles.previewProBadge}>
+                                    <Text style={styles.previewProText}>PRO</Text>
+                                </View>
+                            </View>
+                            {/* Decorative lines */}
+                            <View style={styles.previewDivider} />
+                            <View style={styles.previewFooter}>
+                                <View style={styles.previewLineShort} />
+                                <View style={styles.previewLineLong} />
                             </View>
                         </LinearGradient>
 
+                        <View style={{ height: 100 }} />
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
 
-            {/* Float Bottom Save Button */}
-            <View className="absolute bottom-10 left-8 right-8">
-                <TouchableOpacity
-                    onPress={handleSave}
-                    disabled={saving}
-                    activeOpacity={0.9}
-                    className="shadow-2xl shadow-blue-500/40"
-                >
-                    <LinearGradient
-                        colors={['#1337ec', '#1e40af']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        className="h-14 rounded-[20px] items-center justify-center flex-row px-6"
+            {/* Floating Save Button */}
+            <View style={styles.floatBtnContainer}>
+                <Animated.View style={{ transform: [{ scale: saveAnim }] }}>
+                    <TouchableOpacity
+                        onPress={handleSave}
+                        disabled={saving}
+                        activeOpacity={0.88}
+                        style={styles.floatBtn}
                     >
-                        {saving ? (
-                            <ActivityIndicator size="small" color="white" />
-                        ) : (
-                            <>
-                                <CheckCircle2 size={18} color="white" style={{marginRight: 10}} strokeWidth={2.5} />
-                                <Text className="text-white font-black text-sm uppercase tracking-[1.5px]">{t('business_profile.save_profile')}</Text>
-                            </>
-                        )}
-                    </LinearGradient>
-                </TouchableOpacity>
+                        <LinearGradient
+                            colors={saving ? ['#94A3B8', '#94A3B8'] : [INDIGO_DARK, INDIGO]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.floatBtnGradient}
+                        >
+                            {saving ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <CheckCircle2 size={18} color="white" strokeWidth={2.5} style={{ marginRight: 10 }} />
+                                    <Text style={styles.floatBtnText}>{t('business_profile.save_profile')}</Text>
+                                </>
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </Animated.View>
             </View>
         </View>
     );
 }
 
+/* ─── Reusable Sub-components ─── */
+
+function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
+    return (
+        <View style={styles.sectionHeader}>
+            {icon}
+            <Text style={styles.sectionHeaderText}>{label}</Text>
+            <View style={styles.sectionHeaderLine} />
+        </View>
+    );
+}
+
+function FieldWithFocus({ label, value, onChangeText, placeholder, icon, active, onFocus, onBlur, keyboardType = 'default' }: any) {
+    return (
+        <View style={styles.fieldContainer}>
+            <Text style={[styles.fieldLabel, active && styles.fieldLabelActive]}>{label}</Text>
+            <View style={[styles.fieldRow, active && styles.fieldRowActive]}>
+                <View style={[styles.fieldIcon, active && styles.fieldIconActive]}>
+                    {icon}
+                </View>
+                <TextInput
+                    style={styles.fieldInput}
+                    value={value}
+                    onChangeText={onChangeText}
+                    placeholder={placeholder}
+                    placeholderTextColor="#CBD5E1"
+                    keyboardType={keyboardType}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    autoCorrect={false}
+                />
+                {value ? <CheckCircle2 size={14} color="#10B981" strokeWidth={2.5} /> : null}
+            </View>
+        </View>
+    );
+}
+
+/* ─── Styles ─── */
+const styles = StyleSheet.create({
+    screen: { flex: 1, backgroundColor: '#F8FAFC' },
+    safeArea: { flex: 1 },
+    flex: { flex: 1 },
+
+    loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', gap: 12 },
+    loadingText: { color: '#94A3B8', fontWeight: '600', fontSize: 14 },
+
+    // Header
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
+    headerBtn: { width: 40, height: 40, backgroundColor: 'white', borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#6366F1', shadowOpacity: 0.15, shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: 'rgba(99,102,241,0.08)' },
+    headerCenter: { alignItems: 'center' },
+    headerTitle: { fontSize: 17, fontWeight: '900', color: '#0F172A', letterSpacing: -0.3 },
+    headerUnderline: { height: 2, width: 24, backgroundColor: INDIGO, borderRadius: 2, marginTop: 3 },
+
+    // Scroll
+    scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+
+    // Verified
+    verifiedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(217,119,6,0.2)', borderRadius: 12, paddingVertical: 8, paddingHorizontal: 16, marginBottom: 24, gap: 6 },
+    verifiedText: { color: '#B45309', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5 },
+
+    // Logo
+    logoSection: { alignItems: 'center', marginBottom: 32 },
+    logoWrapper: { position: 'relative', marginBottom: 12 },
+    logoBorder: { width: 110, height: 110, borderRadius: 34, padding: 3, shadowColor: INDIGO, shadowOpacity: 0.35, shadowRadius: 16, elevation: 8 },
+    logoInner: { flex: 1, backgroundColor: 'white', borderRadius: 32, overflow: 'hidden' },
+    logoImage: { width: '100%', height: '100%' },
+    logoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF2FF' },
+    logoInitials: { fontSize: 36, fontWeight: '900', color: INDIGO },
+    logoOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
+    cameraBadge: { position: 'absolute', bottom: -2, right: -2, backgroundColor: INDIGO_DARK, width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#F8FAFC', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
+    logoTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A', marginBottom: 2 },
+    logoSubtitle: { fontSize: 11, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+    // Section Headers
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, marginTop: 8, gap: 6 },
+    sectionHeaderText: { fontSize: 10, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1.5 },
+    sectionHeaderLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
+
+    // Field
+    fieldContainer: { marginBottom: 14 },
+    fieldLabel: { fontSize: 11, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginLeft: 2 },
+    fieldLabelActive: { color: INDIGO },
+    fieldRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: '#E2E8F0', gap: 10, shadowColor: '#0F172A', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+    fieldRowActive: { borderColor: INDIGO, shadowColor: INDIGO, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 },
+    fieldRowFilled: { borderColor: '#C7D2FE' },
+    fieldIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
+    fieldIconActive: { backgroundColor: '#EEF2FF' },
+    fieldInput: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0F172A', padding: 0 },
+    fieldValue: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0F172A' },
+    fieldPlaceholder: { color: '#CBD5E1', fontWeight: '500' },
+
+    // Preview
+    previewHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, marginTop: 24 },
+    previewHeaderText: { fontSize: 10, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1.5 },
+    previewCard: { borderRadius: 24, padding: 20, shadowColor: '#312e81', shadowOpacity: 0.25, shadowRadius: 20, elevation: 8, marginBottom: 8 },
+    previewCardInner: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    previewLogoBox: { width: 52, height: 52, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    previewLogoImage: { width: 40, height: 40, borderRadius: 12 },
+    previewLogoInitials: { fontSize: 22, fontWeight: '900', color: 'white' },
+    previewInfo: { flex: 1 },
+    previewName: { fontSize: 15, fontWeight: '900', color: 'white', letterSpacing: -0.3, marginBottom: 2 },
+    previewWebsite: { fontSize: 11, color: 'rgba(165,180,252,0.9)', fontWeight: '600', marginBottom: 6 },
+    previewBadgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    previewTag: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    previewTagText: { fontSize: 9, color: 'rgba(199,210,254,0.9)', fontWeight: '700', letterSpacing: 0.5 },
+    previewProBadge: { backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    previewProText: { color: 'white', fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+    previewDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 16, marginBottom: 12 },
+    previewFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    previewLineShort: { width: 60, height: 3, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 3 },
+    previewLineLong: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 3 },
+
+    // Float Button
+    floatBtnContainer: { position: 'absolute', bottom: 28, left: 20, right: 20 },
+    floatBtn: { borderRadius: 20, overflow: 'hidden', shadowColor: INDIGO_DARK, shadowOpacity: 0.45, shadowRadius: 16, elevation: 8 },
+    floatBtnGradient: { height: 58, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', borderRadius: 20 },
+    floatBtnText: { color: 'white', fontWeight: '900', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5 },
+
+    // Modal
+    modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+    modalSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20, elevation: 20 },
+    modalHandle: { width: 36, height: 4, backgroundColor: '#E2E8F0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
+    modalSubtitle: { fontSize: 13, color: '#94A3B8', fontWeight: '500', marginBottom: 16 },
+    sectorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 16, marginBottom: 6, borderRadius: 14, borderWidth: 1.5, borderColor: '#F1F5F9', backgroundColor: '#FAFAFA' },
+    sectorRowSelected: { borderColor: INDIGO, backgroundColor: '#EEF2FF' },
+    sectorLabel: { fontSize: 15, fontWeight: '600', color: '#334155' },
+    sectorLabelSelected: { color: INDIGO, fontWeight: '800' },
+    modalCancel: { marginTop: 12, alignItems: 'center', paddingVertical: 14 },
+    modalCancelText: { fontSize: 15, fontWeight: '700', color: '#94A3B8' },
+});

@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator, Alert, ScrollView, Dimensions, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+    View, Text, TouchableOpacity, Image, ActivityIndicator,
+    Alert, ScrollView, TextInput, StyleSheet
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -10,96 +13,124 @@ import {
     CheckCircle,
     RefreshCw,
     Sparkles,
-    Check,
     ScanLine,
     ChevronRight,
     Calendar,
-    DollarSign,
     Store,
-    Edit3
+    Edit3,
+    QrCode
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { scanReceipt, ExtractedReceiptData } from '../../lib/ocr';
+import { scanReceipt, scanQRCode, ExtractedReceiptData } from '../../lib/ocr';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-
-const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function ScanReceiptScreen() {
     const router = useRouter();
     const [permission, requestPermission] = useCameraPermissions();
     const [imageUri, setImageUri] = useState<string | null>(null);
+    const [qrData, setQrData] = useState<string | null>(null);
     const [scanning, setScanning] = useState(false);
     const [result, setResult] = useState<ExtractedReceiptData | null>(null);
-    const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
-    const [isMounted, setIsMounted] = useState(true);
+    const cameraRef = useRef<CameraView>(null);
+    const isMounted = useRef(true);
+    const qrScanned = useRef(false);
 
     const [editedAmount, setEditedAmount] = useState('');
     const [editedMerchant, setEditedMerchant] = useState('');
     const [editedDate, setEditedDate] = useState('');
 
     useEffect(() => {
-        setIsMounted(true);
+        isMounted.current = true;
+        qrScanned.current = false;
         if (!permission?.granted) {
             requestPermission();
         }
-        return () => setIsMounted(false);
-    }, [permission]);
+        return () => { isMounted.current = false; };
+    }, []);
 
     useEffect(() => {
         if (result) {
-            setEditedAmount(result.amount?.toString() || '');
-            setEditedMerchant(result.merchant || '');
-            setEditedDate(result.date || '');
+            setEditedAmount(result.amount?.toString() ?? '');
+            setEditedMerchant(result.merchant ?? '');
+            setEditedDate(result.date ?? '');
         }
     }, [result]);
 
+    const resetScan = () => {
+        setImageUri(null);
+        setQrData(null);
+        setResult(null);
+        setScanning(false);
+        qrScanned.current = false;
+    };
+
     const takePicture = async () => {
-        if (cameraRef) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            try {
-                const photo = await cameraRef.takePictureAsync({ quality: 0.7, skipProcessing: true });
-                if (isMounted && photo) {
-                    await processImage(photo.uri);
-                }
-            } catch (e) {
-                console.log("Camera error:", e);
+        if (!cameraRef.current || scanning) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        try {
+            const photo = await cameraRef.current.takePictureAsync({ quality: 0.7, skipProcessing: true });
+            if (isMounted.current && photo) {
+                await processImage(photo.uri);
             }
+        } catch (e) {
+            console.error('Camera takePicture error:', e);
+            Alert.alert('Erreur', 'Impossible de prendre une photo.');
         }
     };
 
     const pickImage = async () => {
         Haptics.selectionAsync();
-        const result = await ImagePicker.launchImageLibraryAsync({
+        const res = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             quality: 0.7,
         });
-
-        if (!result.canceled) {
-            await processImage(result.assets[0].uri);
+        if (!res.canceled) {
+            await processImage(res.assets[0].uri);
         }
     };
 
     const processImage = async (uri: string) => {
         setImageUri(uri);
+        setQrData(null);
         setScanning(true);
         setResult(null);
 
         try {
+            console.log('[SCAN] Processing image:', uri);
             const data = await scanReceipt(uri);
-            setResult(data);
+            console.log('[SCAN] Gemini result:', JSON.stringify(data));
+            if (isMounted.current) setResult(data);
         } catch (e: any) {
-            setResult({
-                merchant: 'Starbucks Coffee',
-                date: '2023-10-24',
-                amount: 14.50,
-                currency: 'USD',
-                tax: 0,
-                items: []
-            });
+            console.error('[SCAN] Error:', e?.message ?? e);
+            Alert.alert('Erreur IA', e?.message ?? 'Impossible d\'analyser ce reçu.');
+            if (isMounted.current) resetScan();
         } finally {
-            setScanning(false);
+            if (isMounted.current) setScanning(false);
+        }
+    };
+
+    const processQRCode = async (dataStr: string) => {
+        if (scanning || qrScanned.current) return;
+        qrScanned.current = true;
+        setQrData(dataStr);
+        setImageUri(null);
+        setScanning(true);
+        setResult(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        try {
+            console.log('[QR] Processing QR data:', dataStr);
+            const data = await scanQRCode(dataStr);
+            console.log('[QR] Gemini result:', JSON.stringify(data));
+            if (isMounted.current) setResult(data);
+        } catch (e: any) {
+            console.error('[QR] Error:', e?.message ?? e);
+            Alert.alert('Erreur QR', e?.message ?? 'Impossible d\'analyser ce code QR.');
+            if (isMounted.current) resetScan();
+        } finally {
+            if (isMounted.current) setScanning(false);
         }
     };
 
@@ -112,200 +143,307 @@ export default function ScanReceiptScreen() {
                 amount: editedAmount,
                 date: editedDate,
                 scanData: JSON.stringify(result),
-                imageUri: imageUri || undefined
+                imageUri: imageUri ?? undefined
             }
         });
     };
 
-    if (!permission) return <View className="flex-1 bg-black" />;
+    if (!permission) return <View style={styles.blackFill} />;
 
     if (!permission.granted) {
         return (
-            <View className="flex-1 items-center justify-center bg-slate-900 px-8">
-                <View className="bg-white/10 p-6 rounded-full mb-6 relative">
+            <View style={styles.permissionContainer}>
+                <View style={styles.permissionIcon}>
                     <CameraIcon size={48} color="white" />
-                    <View className="absolute -bottom-2 -right-2 bg-[#6366F1] p-2 rounded-full">
+                    <View style={styles.permissionBadge}>
                         <ScanLine size={16} color="white" />
                     </View>
                 </View>
-                <Text className="text-white text-xl font-black text-center mb-2">Camera Access Required</Text>
-                <Text className="text-slate-400 text-center mb-8 font-medium leading-relaxed">
+                <Text style={styles.permissionTitle}>Camera Access Required</Text>
+                <Text style={styles.permissionSubtitle}>
                     We need access to your camera to scan receipts using our AI engine.
                 </Text>
-                <TouchableOpacity onPress={requestPermission} className="bg-[#6366F1] px-10 py-4 rounded-full shadow-xl shadow-indigo-500/30">
-                    <Text className="text-white font-bold uppercase tracking-widest text-xs">Allow Access</Text>
+                <TouchableOpacity onPress={requestPermission} style={styles.permissionButton}>
+                    <Text style={styles.permissionButtonText}>Allow Access</Text>
                 </TouchableOpacity>
             </View>
         );
     }
 
-    return (
-        <View className="flex-1 bg-black">
-            <StatusBar style="light" />
-
-            {!imageUri ? (
-                <View className="flex-1 relative">
-                    <CameraView style={{ flex: 1 }} ref={(ref) => setCameraRef(ref)}>
-                        <SafeAreaView className="flex-1 justify-between" edges={['top', 'bottom']}>
-                            <View className="flex-row items-center justify-between px-6 pt-2">
-                                <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-black/40 rounded-full items-center justify-center border border-white/10">
-                                    <ArrowLeft size={20} color="white" />
-                                </TouchableOpacity>
-                                <View className="bg-black/40 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md">
-                                    <Text className="text-white font-bold text-[10px] uppercase tracking-widest text-center">AI Scanner</Text>
-                                </View>
-                                <View className="w-10 opacity-0" />
-                            </View>
-
-                            <View className="flex-1 items-center justify-center relative">
-                                <View className="w-64 h-80 relative">
-                                    <View className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#6366F1] rounded-tl-2xl shadow-sm" />
-                                    <View className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-[#6366F1] rounded-tr-2xl shadow-sm" />
-                                    <View className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-[#6366F1] rounded-bl-2xl shadow-sm" />
-                                    <View className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-[#6366F1] rounded-br-2xl shadow-sm" />
-                                    <View className="absolute top-1/2 left-4 right-4 h-[1px] bg-[#6366F1]/50" />
-                                </View>
-                                <View className="mt-8 bg-black/40 px-4 py-2 rounded-2xl border border-white/5 backdrop-blur-sm">
-                                    <Text className="text-white/80 text-[10px] font-bold uppercase tracking-widest text-center">Align Receipt Center</Text>
-                                </View>
-                            </View>
-
-                            <View className="px-8 pb-8 pt-4 flex-row justify-between items-center">
-                                <TouchableOpacity onPress={pickImage} className="w-12 h-12 bg-white/10 rounded-full items-center justify-center border border-white/10">
-                                    <ImageIcon size={20} color="white" />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={takePicture}
-                                    className="w-20 h-20 rounded-full border-[4px] border-white/20 items-center justify-center"
-                                    activeOpacity={0.8}
-                                >
-                                    <View className="w-16 h-16 bg-white rounded-full items-center justify-center shadow-lg shadow-white/30 border-4 border-black/10" />
-                                </TouchableOpacity>
-                                <View className="w-12 h-12 opacity-0" />
-                            </View>
-                        </SafeAreaView>
-                    </CameraView>
-                </View>
-            ) : (
-                <View className="flex-1 bg-[#0F172A]">
+    /* ────── RESULTS VIEW ────── */
+    if (imageUri || qrData) {
+        return (
+            <View style={styles.blackFill}>
+                <StatusBar style="light" />
+                {imageUri && (
                     <Image
                         source={{ uri: imageUri }}
-                        className="absolute inset-0 w-full h-full opacity-40"
+                        style={StyleSheet.absoluteFillObject}
                         blurRadius={10}
                         resizeMode="cover"
+                        // subtle opacity handled inline
                     />
+                )}
+                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(15,23,42,0.82)' }]} />
 
-                    <SafeAreaView className="flex-1" edges={['top']}>
-                        <View className="flex-row justify-between items-center px-6 pt-2 mb-4">
-                            <TouchableOpacity onPress={() => setImageUri(null)} className="w-10 h-10 bg-black/20 rounded-full items-center justify-center border border-white/10">
-                                <ArrowLeft size={20} color="white" />
-                            </TouchableOpacity>
-                            <Text className="text-white font-bold text-lg">Scan Results</Text>
-                            <TouchableOpacity onPress={() => setImageUri(null)} className="w-10 h-10 bg-black/20 rounded-full items-center justify-center border border-white/10">
-                                <RefreshCw size={18} color="white" />
-                            </TouchableOpacity>
-                        </View>
+                <SafeAreaView style={styles.fillFlex} edges={['top']}>
+                    {/* Header */}
+                    <View style={styles.resultsHeader}>
+                        <TouchableOpacity onPress={resetScan} style={styles.iconBtn}>
+                            <ArrowLeft size={20} color="white" />
+                        </TouchableOpacity>
+                        <Text style={styles.resultsTitle}>Résultats du scan</Text>
+                        <TouchableOpacity onPress={resetScan} style={styles.iconBtn}>
+                            <RefreshCw size={18} color="white" />
+                        </TouchableOpacity>
+                    </View>
 
-                        <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-                            {scanning ? (
-                                <View className="items-center justify-center mt-20">
-                                    <View className="w-24 h-24 bg-white/10 rounded-[32px] items-center justify-center backdrop-blur-xl border border-white/20 mb-8 animate-pulse">
-                                        <Sparkles size={40} color="#6366F1" />
-                                    </View>
-                                    <ActivityIndicator size="large" color="#6366F1" className="mb-4" />
-                                    <Text className="text-white font-black text-2xl mb-2">Analyzing...</Text>
-                                    <Text className="text-slate-400 text-center font-medium">Extracting details from your receipt using AI.</Text>
+                    <ScrollView style={styles.fillFlex} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+                        {scanning ? (
+                            <View style={styles.scanningContainer}>
+                                <View style={styles.scanningIconBox}>
+                                    <Sparkles size={40} color="#6366F1" />
                                 </View>
-                            ) : (
-                                <View className="mt-4">
-                                    <View className="self-center bg-emerald-500/20 px-4 py-1.5 rounded-full border border-emerald-500/30 flex-row items-center mb-8">
-                                        <CheckCircle size={14} color="#34D399" />
-                                        <Text className="text-[#34D399] font-bold text-[10px] uppercase tracking-widest ml-2">Extraction Complete</Text>
-                                    </View>
+                                <ActivityIndicator size="large" color="#6366F1" style={{ marginBottom: 16 }} />
+                                <Text style={styles.analyzingTitle}>Analyse en cours...</Text>
+                                <Text style={styles.analyzingSubtitle}>
+                                    {qrData ? 'Traitement du code QR avec l\'IA.' : 'Extraction des données de votre reçu.'}
+                                </Text>
+                            </View>
+                        ) : (
+                            <View style={{ marginTop: 16 }}>
+                                {/* Badge succès */}
+                                <View style={styles.successBadge}>
+                                    <CheckCircle size={14} color="#34D399" />
+                                    <Text style={styles.successBadgeText}>Extraction Complète</Text>
+                                </View>
 
-                                    <View className="bg-white rounded-[32px] p-1 shadow-2xl overflow-hidden mb-8">
-                                        <View className="h-40 bg-slate-100 rounded-t-[28px] overflow-hidden relative">
-                                            <Image source={{ uri: imageUri }} className="w-full h-full" resizeMode="cover" />
-                                            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.5)']} className="absolute inset-0" />
-                                            <View className="absolute bottom-4 left-4">
-                                                <View className="bg-black/50 px-3 py-1 rounded-lg backdrop-blur-md">
-                                                    <Text className="text-white text-[10px] font-bold uppercase">Original Receipt</Text>
-                                                </View>
+                                {/* Carte résultat */}
+                                <View style={styles.resultCard}>
+                                    {/* Preview header */}
+                                    <View style={styles.previewHeader}>
+                                        {imageUri ? (
+                                            <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
+                                        ) : (
+                                            <View style={styles.qrPreviewPlaceholder}>
+                                                <QrCode size={48} color="#94A3B8" />
+                                                <Text style={styles.qrPreviewText}>Code QR Scanné</Text>
                                             </View>
-                                        </View>
-
-                                        <View className="p-6 bg-white rounded-b-[32px]">
-                                            <View className="items-center mb-8">
-                                                <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total Amount</Text>
-                                                <View className="flex-row items-center">
-                                                    <TextInput
-                                                        value={editedAmount}
-                                                        onChangeText={setEditedAmount}
-                                                        className="text-5xl font-black text-slate-900 text-center"
-                                                        keyboardType="numeric"
-                                                        placeholder="0.00"
-                                                    />
-                                                </View>
-                                            </View>
-
-                                            <View className="space-y-4">
-                                                <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                                    <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3">
-                                                        <Store size={20} color="#6366F1" />
-                                                    </View>
-                                                    <View className="flex-1">
-                                                        <Text className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Merchant</Text>
-                                                        <TextInput
-                                                            value={editedMerchant}
-                                                            onChangeText={setEditedMerchant}
-                                                            className="text-slate-900 font-bold text-base p-0"
-                                                            placeholder="Merchant Name"
-                                                        />
-                                                    </View>
-                                                    <Edit3 size={16} color="#CBD5E1" />
-                                                </View>
-
-                                                <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                                    <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm mr-3">
-                                                        <Calendar size={20} color="#6366F1" />
-                                                    </View>
-                                                    <View className="flex-1">
-                                                        <Text className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Date</Text>
-                                                        <TextInput
-                                                            value={editedDate}
-                                                            onChangeText={setEditedDate}
-                                                            className="text-slate-900 font-bold text-base p-0"
-                                                            placeholder="YYYY-MM-DD"
-                                                        />
-                                                    </View>
-                                                    <Edit3 size={16} color="#CBD5E1" />
-                                                </View>
-                                            </View>
+                                        )}
+                                        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={StyleSheet.absoluteFillObject} />
+                                        <View style={styles.previewBadge}>
+                                            <Text style={styles.previewBadgeText}>
+                                                {imageUri ? 'Photo originale' : 'QR Scanner'}
+                                            </Text>
                                         </View>
                                     </View>
 
-                                    <View className="gap-3 mb-10">
-                                        <TouchableOpacity
-                                            onPress={handleConfirm}
-                                            className="w-full bg-[#6366F1] h-14 rounded-full flex-row items-center justify-center shadow-xl shadow-indigo-500/40"
-                                        >
-                                            <Text className="text-white font-bold text-base mr-2">Confirm Details</Text>
-                                            <ChevronRight size={20} color="white" />
-                                        </TouchableOpacity>
+                                    {/* Fields */}
+                                    <View style={styles.fieldsContainer}>
+                                        {/* Amount */}
+                                        <View style={styles.amountContainer}>
+                                            <Text style={styles.fieldLabel}>Montant Total</Text>
+                                            <TextInput
+                                                value={editedAmount}
+                                                onChangeText={setEditedAmount}
+                                                style={styles.amountInput}
+                                                keyboardType="numeric"
+                                                placeholder="0.00"
+                                                placeholderTextColor="#CBD5E1"
+                                            />
+                                        </View>
 
-                                        <TouchableOpacity
-                                            onPress={() => setImageUri(null)}
-                                            className="w-full h-14 rounded-full flex-row items-center justify-center border border-white/10 bg-white/5"
-                                        >
-                                            <Text className="text-slate-300 font-bold text-sm">Retake Photo</Text>
-                                        </TouchableOpacity>
+                                        {/* Merchant */}
+                                        <View style={styles.fieldRow}>
+                                            <View style={styles.fieldIcon}>
+                                                <Store size={20} color="#6366F1" />
+                                            </View>
+                                            <View style={styles.fieldContent}>
+                                                <Text style={styles.fieldLabel}>Marchand / Source</Text>
+                                                <TextInput
+                                                    value={editedMerchant}
+                                                    onChangeText={setEditedMerchant}
+                                                    style={styles.fieldInput}
+                                                    placeholder="Nom du marchand"
+                                                    placeholderTextColor="#CBD5E1"
+                                                    multiline
+                                                />
+                                            </View>
+                                            <Edit3 size={16} color="#CBD5E1" />
+                                        </View>
+
+                                        {/* Date */}
+                                        <View style={styles.fieldRow}>
+                                            <View style={styles.fieldIcon}>
+                                                <Calendar size={20} color="#6366F1" />
+                                            </View>
+                                            <View style={styles.fieldContent}>
+                                                <Text style={styles.fieldLabel}>Date</Text>
+                                                <TextInput
+                                                    value={editedDate}
+                                                    onChangeText={setEditedDate}
+                                                    style={styles.fieldInput}
+                                                    placeholder="AAAA-MM-JJ"
+                                                    placeholderTextColor="#CBD5E1"
+                                                />
+                                            </View>
+                                            <Edit3 size={16} color="#CBD5E1" />
+                                        </View>
                                     </View>
                                 </View>
-                            )}
-                        </ScrollView>
-                    </SafeAreaView>
+
+                                {/* Actions */}
+                                <View style={{ gap: 12, marginTop: 24 }}>
+                                    <TouchableOpacity onPress={handleConfirm} style={styles.confirmBtn}>
+                                        <Text style={styles.confirmBtnText}>Confirmer les données</Text>
+                                        <ChevronRight size={20} color="white" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={resetScan} style={styles.retakeBtn}>
+                                        <Text style={styles.retakeBtnText}>
+                                            {imageUri ? 'Reprendre une photo' : 'Nouveau scan'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
+                    </ScrollView>
+                </SafeAreaView>
+            </View>
+        );
+    }
+
+    /* ────── CAMERA VIEW (no children inside CameraView) ────── */
+    return (
+        <View style={styles.blackFill}>
+            <StatusBar style="light" />
+            <CameraView
+                style={StyleSheet.absoluteFillObject}
+                ref={cameraRef}
+                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                onBarcodeScanned={({ data }) => {
+                    if (!scanning && !qrScanned.current && isMounted.current) {
+                        processQRCode(data);
+                    }
+                }}
+            />
+            {/* Overlay UI par-dessus la caméra — en dehors de CameraView */}
+            <SafeAreaView style={styles.fillFlex} edges={['top', 'bottom']} pointerEvents="box-none">
+                {/* Top bar */}
+                <View style={styles.cameraTopBar}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.cameraIconBtn}>
+                        <ArrowLeft size={20} color="white" />
+                    </TouchableOpacity>
+                    <View style={styles.cameraLabelPill}>
+                        <Text style={styles.cameraLabelText}>AI Scanner</Text>
+                    </View>
+                    <View style={{ width: 40 }} />
                 </View>
-            )}
+
+                {/* Center viewfinder */}
+                <View style={styles.viewfinderContainer} pointerEvents="none">
+                    <View style={styles.viewfinder}>
+                        <View style={[styles.corner, styles.cornerTL]} />
+                        <View style={[styles.corner, styles.cornerTR]} />
+                        <View style={[styles.corner, styles.cornerBL]} />
+                        <View style={[styles.corner, styles.cornerBR]} />
+                        <View style={styles.scanLine} />
+                    </View>
+                    <View style={styles.viewfinderHint}>
+                        <Text style={styles.viewfinderHintText}>
+                            Centrez votre reçu ou code QR
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Bottom bar */}
+                <View style={styles.cameraBottomBar}>
+                    <TouchableOpacity onPress={pickImage} style={styles.cameraIconBtn}>
+                        <ImageIcon size={20} color="white" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={takePicture}
+                        style={styles.shutterOuter}
+                        activeOpacity={0.8}
+                        disabled={scanning}
+                    >
+                        <View style={styles.shutterInner} />
+                    </TouchableOpacity>
+                    <View style={{ width: 48 }} />
+                </View>
+            </SafeAreaView>
         </View>
     );
 }
+
+const INDIGO = '#6366F1';
+
+const styles = StyleSheet.create({
+    blackFill: { flex: 1, backgroundColor: '#000' },
+    fillFlex: { flex: 1 },
+
+    // Permission
+    permissionContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A', paddingHorizontal: 32 },
+    permissionIcon: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 24, borderRadius: 999, marginBottom: 24, position: 'relative' },
+    permissionBadge: { position: 'absolute', bottom: -8, right: -8, backgroundColor: INDIGO, padding: 8, borderRadius: 999 },
+    permissionTitle: { color: 'white', fontSize: 20, fontWeight: '900', textAlign: 'center', marginBottom: 8 },
+    permissionSubtitle: { color: '#94A3B8', textAlign: 'center', marginBottom: 32, lineHeight: 22 },
+    permissionButton: { backgroundColor: INDIGO, paddingHorizontal: 40, paddingVertical: 16, borderRadius: 999 },
+    permissionButtonText: { color: 'white', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 2, fontSize: 12 },
+
+    // Results
+    resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 8, marginBottom: 16 },
+    iconBtn: { width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    resultsTitle: { color: 'white', fontWeight: 'bold', fontSize: 18 },
+
+    scanningContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80 },
+    scanningIconBox: { width: 96, height: 96, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', marginBottom: 24 },
+    analyzingTitle: { color: 'white', fontWeight: '900', fontSize: 22, marginBottom: 8 },
+    analyzingSubtitle: { color: '#94A3B8', textAlign: 'center', fontWeight: '500' },
+
+    successBadge: { alignSelf: 'center', backgroundColor: 'rgba(52,211,153,0.15)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)', flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+    successBadgeText: { color: '#34D399', fontWeight: 'bold', fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, marginLeft: 8 },
+
+    resultCard: { backgroundColor: 'white', borderRadius: 32, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
+    previewHeader: { height: 160, backgroundColor: '#F1F5F9', position: 'relative' },
+    previewImage: { width: '100%', height: '100%' },
+    qrPreviewPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0' },
+    qrPreviewText: { marginTop: 8, color: '#94A3B8', fontWeight: 'bold' },
+    previewBadge: { position: 'absolute', bottom: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    previewBadgeText: { color: 'white', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
+
+    fieldsContainer: { padding: 20, gap: 12 },
+    amountContainer: { alignItems: 'center', marginBottom: 8 },
+    amountInput: { fontSize: 48, fontWeight: '900', color: '#0F172A', textAlign: 'center' },
+
+    fieldRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 14, borderRadius: 18, borderWidth: 1, borderColor: '#F1F5F9' },
+    fieldIcon: { width: 40, height: 40, backgroundColor: 'white', borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, marginRight: 12 },
+    fieldContent: { flex: 1 },
+    fieldLabel: { fontSize: 10, color: '#94A3B8', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
+    fieldInput: { color: '#0F172A', fontWeight: 'bold', fontSize: 15, padding: 0 },
+
+    confirmBtn: { width: '100%', backgroundColor: INDIGO, height: 56, borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: INDIGO, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
+    confirmBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+    retakeBtn: { width: '100%', height: 56, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.05)' },
+    retakeBtnText: { color: '#CBD5E1', fontWeight: 'bold', fontSize: 14 },
+
+    // Camera overlay
+    cameraTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 8 },
+    cameraIconBtn: { width: 48, height: 48, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    cameraLabelPill: { backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    cameraLabelText: { color: 'white', fontWeight: 'bold', fontSize: 10, textTransform: 'uppercase', letterSpacing: 3 },
+
+    viewfinderContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    viewfinder: { width: 260, height: 320, position: 'relative' },
+    corner: { position: 'absolute', width: 32, height: 32, borderColor: INDIGO },
+    cornerTL: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
+    cornerTR: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
+    cornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
+    cornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
+    scanLine: { position: 'absolute', top: '50%', left: 12, right: 12, height: 1, backgroundColor: 'rgba(99,102,241,0.5)' },
+    viewfinderHint: { marginTop: 24, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
+    viewfinderHintText: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 2 },
+
+    cameraBottomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 32, paddingBottom: 24, paddingTop: 16 },
+    shutterOuter: { width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
+    shutterInner: { width: 64, height: 64, backgroundColor: 'white', borderRadius: 32, borderWidth: 3, borderColor: 'rgba(0,0,0,0.08)' },
+});

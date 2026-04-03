@@ -88,13 +88,30 @@ export default function InvoicesScreen() {
                     .order('created_at', { ascending: false });
 
                 if (allErr) throw allErr;
-                setInvoices(allInvoices || []);
+                if ((allInvoices || []).length > 0) {
+                    setInvoices(allInvoices || []);
+                } else {
+                    // If Supabase is empty/out-of-sync, fallback to local SQLite
+                    // so the user still sees their newly created invoices.
+                    const localInvoices = await getInvoices(profile.id);
+                    setInvoices(localInvoices);
+                }
             } else {
                 const data = await getInvoices(profile?.id || '');
                 setInvoices(data);
             }
         } catch (error) {
             console.error('Failed to fetch invoices', error);
+            // Supabase can be temporarily empty/out-of-sync (sync failures or schema cache delays).
+            // In that case, fallback to local SQLite so the user sees their invoices immediately.
+            try {
+                if (profile?.id) {
+                    const data = await getInvoices(profile.id);
+                    setInvoices(data);
+                }
+            } catch (fallbackErr) {
+                console.error('Failed to fetch local invoices fallback', fallbackErr);
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);

@@ -638,7 +638,7 @@ export default function NewInvoiceScreen() {
                     >
                         <SectionHeader step="3" title={t('invoice_form.section_notes')} />
                         <View className={cardClass}>
-                            <View className="px-2 py-2 border-b border-slate-100">
+                            <View className="px-3 py-3 border-b border-slate-100">
                                 <View className="flex-row items-center mb-1.5">
                                     <StickyNote size={13} color="#64748B" />
                                     <Text className="text-[11px] text-slate-500 font-bold uppercase tracking-widest ml-2">
@@ -696,40 +696,43 @@ export default function NewInvoiceScreen() {
                     >
                         <SectionHeader step="4" title={t('invoice_form.section_summary')} />
                         <View className={`${cardClass} divide-y divide-slate-100`}>
-                            <View className="flex-row justify-between items-center p-3">
-                                <Text className="text-slate-600 text-[14px]">{t('invoice_form.subtotal')}</Text>
-                                <Text className="text-slate-900 font-bold text-[14px]">{formatCurrency(subtotal)}</Text>
+                            <View className="flex-row justify-between items-center p-4">
+                                <Text className="text-slate-600 text-[15px]">{t('invoice_form.subtotal')}</Text>
+                                <Text className="text-slate-900 font-bold text-[15px]">{formatCurrency(subtotal)}</Text>
                             </View>
 
-                            {/* One simple line: TVA + taux (%) + montant */}
-                            <View className="flex-row justify-between items-center p-3">
-                                <View className="flex-row items-center flex-1 mr-2">
-                                    <Percent size={16} color="#64748B" />
-                                    <Text className="text-slate-600 text-[14px] ml-2">
-                                        {t('invoice_form.tax_short')}
-                                    </Text>
-                                    <TextInput
-                                        value={taxRate}
-                                        onChangeText={setTaxRate}
-                                        keyboardType="decimal-pad"
-                                        onFocus={() => setFocusedInput('tax_rate')}
-                                        onBlur={() => setFocusedInput(null)}
-                                        className={`w-16 text-right rounded-xl ml-3 px-2 py-1.5 text-slate-900 font-bold bg-slate-50 border ${
-                                            focusedInput === 'tax_rate'
-                                                ? 'border-indigo-400 bg-white'
-                                                : 'border-slate-100'
-                                        }`}
-                                    />
-                                    <Text className="text-slate-500 font-semibold ml-1">%</Text>
+                            <View className="p-4">
+                                <View className="flex-row items-center justify-between mb-2">
+                                    <View className="flex-row items-center flex-1 mr-2">
+                                        <Percent size={16} color="#64748B" />
+                                        <Text className="text-slate-600 text-[15px] ml-2 flex-shrink">
+                                            {t('invoice_form.tax_rate_label')}
+                                        </Text>
+                                    </View>
+                                    <View className="flex-row items-center">
+                                        <TextInput
+                                            value={taxRate}
+                                            onChangeText={setTaxRate}
+                                            keyboardType="decimal-pad"
+                                            onFocus={() => setFocusedInput('tax_rate')}
+                                            onBlur={() => setFocusedInput(null)}
+                                            className={`w-16 text-right rounded-xl px-2 py-2 text-slate-900 font-bold bg-slate-50 border ${
+                                                focusedInput === 'tax_rate' ? 'border-indigo-400 bg-white' : 'border-slate-100'
+                                            }`}
+                                        />
+                                        <Text className="text-slate-500 font-semibold ml-1">%</Text>
+                                    </View>
                                 </View>
-                                <Text className="text-slate-900 font-bold text-[14px]">
-                                    {formatCurrency(taxAmount)}
-                                </Text>
+                                <View className="flex-row justify-between items-center pl-7">
+                                    <Text className="text-slate-500 text-sm">
+                                        {t('invoice_form.tax_short')} ({parseNumber(taxRate)}%)
+                                    </Text>
+                                    <Text className="text-slate-900 font-semibold">{formatCurrency(taxAmount)}</Text>
+                                </View>
                             </View>
 
-                            {/* One simple line: Remise + champ + montant (négatif) */}
-                            <View className="flex-row justify-between items-center p-3">
-                                <Text className="text-slate-600 text-[14px]">{t('invoice_form.discount')}</Text>
+                            <View className="flex-row justify-between items-center p-4">
+                                <Text className="text-slate-600 text-[15px]">{t('invoice_form.discount')}</Text>
                                 <View className="flex-row items-center">
                                     <TextInput
                                         value={discount}
@@ -737,15 +740,11 @@ export default function NewInvoiceScreen() {
                                         keyboardType="decimal-pad"
                                         onFocus={() => setFocusedInput('discount')}
                                         onBlur={() => setFocusedInput(null)}
-                                        className={`w-22 text-right rounded-xl px-2.5 py-1.5 text-slate-900 font-bold mr-2 bg-slate-50 border ${
-                                            focusedInput === 'discount'
-                                                ? 'border-indigo-400 bg-white'
-                                                : 'border-slate-100'
+                                        className={`w-24 text-right rounded-xl px-3 py-2 text-slate-900 font-bold mr-2 bg-slate-50 border ${
+                                            focusedInput === 'discount' ? 'border-indigo-400 bg-white' : 'border-slate-100'
                                         }`}
                                     />
-                                    <Text className="text-emerald-600 font-bold text-[14px]">
-                                        −{formatCurrency(discountAmount)}
-                                    </Text>
+                                    <Text className="text-emerald-600 font-bold text-[15px]">−{formatCurrency(discountAmount)}</Text>
                                 </View>
                             </View>
 
@@ -753,11 +752,11 @@ export default function NewInvoiceScreen() {
                                 colors={['#EEF2FF', '#F5F3FF']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
-                                className="p-3"
+                                className="p-4"
                             >
                                 <View className="flex-row justify-between items-center">
-                                    <Text className="text-slate-900 font-extrabold text-base">{t('invoice_form.total_amount')}</Text>
-                                    <Text className="text-indigo-600 font-black text-xl">{formatCurrency(totalAmount)}</Text>
+                                    <Text className="text-slate-900 font-extrabold text-lg">{t('invoice_form.total_amount')}</Text>
+                                    <Text className="text-indigo-600 font-black text-2xl">{formatCurrency(totalAmount)}</Text>
                                 </View>
                             </LinearGradient>
                         </View>

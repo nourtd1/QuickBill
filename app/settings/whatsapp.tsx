@@ -107,7 +107,7 @@ export default function WhatsappSettingsScreen() {
                         <View className="relative mb-5">
                             <View className="absolute -left-1 top-4 w-4 h-4 bg-background transform rotate-45 z-0" />
                             <TextInput
-                                className={`bg-background p-5 rounded-2xl text-text-main font-medium text-sm border border-slate-100 z-10 min-h-[150px] ${language === 'ar' ? 'text-right' : 'text-left'}`}
+                                className={`bg-background p-5 rounded-2xl text-text-main font-medium text-sm border border-slate-100 z-10 min-h-[150px] ${language === 'ar-SA' ? 'text-right' : 'text-left'}`}
                                 multiline
                                 textAlignVertical="top"
                                 value={whatsappTemplate}
@@ -118,7 +118,7 @@ export default function WhatsappSettingsScreen() {
                         </View>
 
                         <Text className="text-slate-400 text-[10px] font-black uppercase mb-3 tracking-widest">{t('whatsapp_settings.insert_variable')}</Text>
-                        <View className="flex-row flex-wrap mb-6" style={{ gap: 8, flexDirection: language === 'ar' ? 'row-reverse' : 'row' }}>
+                        <View className="flex-row flex-wrap mb-6" style={{ gap: 8, flexDirection: language === 'ar-SA' ? 'row-reverse' : 'row' }}>
                             {tags.map(item => (
                                 <TouchableOpacity
                                     key={item.tag}
@@ -132,7 +132,7 @@ export default function WhatsappSettingsScreen() {
 
                         <View className="p-4 bg-background rounded-2xl flex-row items-center border border-slate-100">
                             <Info size={18} color="#64748B" />
-                            <Text className={`text-text-muted text-xs ml-3 font-medium flex-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                            <Text className={`text-text-muted text-xs ml-3 font-medium flex-1 ${language === 'ar-SA' ? 'text-right' : 'text-left'}`}>
                                 {t('whatsapp_settings.info')}
                             </Text>
                         </View>

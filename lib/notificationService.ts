@@ -1,27 +1,57 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
 /**
- * Configure default notification handler (how they appear when app is foregrounded)
+ * Dans Expo Go (SDK 53+), le module enregistre des effets de bord au chargement
+ * et les push Android ne sont plus supportés — on évite tout `import` statique.
  */
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-    }),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+type NotificationsModule = typeof import('expo-notifications');
+
+let notificationsMod: NotificationsModule | null = null;
+
+function getNotifications(): NotificationsModule | null {
+    if (isExpoGo) return null;
+    if (!notificationsMod) {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            notificationsMod = require('expo-notifications') as NotificationsModule;
+        } catch {
+            return null;
+        }
+    }
+    return notificationsMod;
+}
+
+let handlerConfigured = false;
+
+export function configureNotificationHandler(): void {
+    if (handlerConfigured || isExpoGo) return;
+    const Notifications = getNotifications();
+    if (!Notifications) return;
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
+        }),
+    });
+    handlerConfigured = true;
+}
 
 /**
  * Register for Push Notifications and get the token
  */
-export async function registerForPushNotificationsAsync() {
-    let token;
+export async function registerForPushNotificationsAsync(): Promise<string | undefined> {
+    if (isExpoGo) return undefined;
+
+    const Notifications = getNotifications();
+    if (!Notifications) return undefined;
 
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
@@ -32,32 +62,42 @@ export async function registerForPushNotificationsAsync() {
         });
     }
 
-    if (Device.isDevice) {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-
-        if (finalStatus !== 'granted') {
-            console.log('Failed to get push token for push notification!');
-            return;
-        }
-
-        try {
-            const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-            token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-            console.log('🔔 Expo Push Token:', token);
-        } catch (e) {
-            console.error('Error getting push token:', e);
-        }
-    } else {
+    if (!Device.isDevice) {
         console.log('Must use physical device for Push Notifications');
+        return undefined;
     }
 
-    return token;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return undefined;
+    }
+
+    try {
+        const projectId =
+            process.env.EXPO_PUBLIC_PROJECT_ID ??
+            Constants?.expoConfig?.extra?.eas?.projectId ??
+            Constants?.easConfig?.projectId;
+
+        if (!projectId) {
+            console.log('Push Tokens: EXPO_PUBLIC_PROJECT_ID / EAS projectId is not set');
+            return undefined;
+        }
+
+        const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+        console.log('🔔 Expo Push Token:', token);
+        return token;
+    } catch (e) {
+        console.error('Error getting push token:', e);
+        return undefined;
+    }
 }
 
 /**
@@ -66,14 +106,7 @@ export async function registerForPushNotificationsAsync() {
 export async function savePushTokenToProfile(userId: string, token: string) {
     if (!userId || !token) return;
 
-    // We assume an 'expo_push_token' column exists in 'profiles'
-    // You might need to add this column via SQL migration:
-    // ALTER TABLE profiles ADD COLUMN expo_push_token TEXT;
-
-    const { error } = await supabase
-        .from('profiles')
-        .update({ expo_push_token: token })
-        .eq('id', userId);
+    const { error } = await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);
 
     if (error) {
         console.error('Error saving push token to profile:', error);

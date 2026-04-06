@@ -14,7 +14,7 @@ interface RatesCache {
 /**
  * Validates if the cached rates are still valid (less than 24h old)
  */
-constisCacheValid = (cache: RatesCache | null): boolean => {
+const isCacheValid = (cache: RatesCache | null): boolean => {
     if (!cache) return false;
     const now = Date.now();
     return (now - cache.timestamp) < CACHE_DURATION;

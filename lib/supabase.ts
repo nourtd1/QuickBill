@@ -11,8 +11,9 @@ let supabaseAnonKey: string;
 try {
     supabaseUrl = getSupabaseUrl();
     supabaseAnonKey = getSupabaseAnonKey();
-} catch (error: any) {
-    console.error('❌ Erreur de configuration Supabase:', error.message);
+} catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('❌ Erreur de configuration Supabase:', msg);
     // Fallback values to prevent app crash, but app won't work properly
     supabaseUrl = '';
     supabaseAnonKey = '';

@@ -17,7 +17,7 @@ export const TAX_RATES = {
     'OTHER': 0
 };
 
-export const getTaxJurisdiction = (countryCode?: string): TaxJurisdiction => {
+export const getTaxJurisdiction = (countryCode?: string | null): TaxJurisdiction => {
     if (countryCode === 'Rwanda' || countryCode === 'RW') return 'RW';
     if (countryCode === 'Tchad' || countryCode === 'Chad' || countryCode === 'TD') return 'TD';
     return 'OTHER';
@@ -49,7 +49,7 @@ export const generateTaxReport = async (
     userId: string,
     startDate: Date,
     endDate: Date,
-    userCountry?: string
+    userCountry?: string | null
 ): Promise<TaxReportSummary> => {
     // 1. Fetch Invoices in range
     const { data: invoices, error } = await supabase

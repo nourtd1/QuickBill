@@ -10,7 +10,7 @@ import {
     Dimensions
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Plus, Search, Filter, ArrowUpRight, Clock, CheckCircle2, AlertCircle, FileText, ChevronRight, Share2, Printer, Download, Trash2, Edit, XCircle } from 'lucide-react-native';
+import { Plus, Search, Filter, ArrowUpRight, Clock, CheckCircle2, AlertCircle, FileText, ChevronRight, Share2, Printer, Download, Trash2, Edit, XCircle, ArrowLeft, LayoutGrid } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';

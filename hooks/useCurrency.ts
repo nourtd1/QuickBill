@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getRate } from '../lib/exchangeRateService';
 import { convertAmount, formatCurrency as formatEngine } from '../lib/currencyEngine';
-import styles from '../app/onboarding.tsx'; // Just to assume context usage if needed, but not required here.
+import styles from '../app/onboarding'; // Just to assume context usage if needed, but not required here.
 import { useAuth } from '../context/AuthContext'; // To get user default currency preference if exists
 
 export const useCurrency = (initialCurrency: string = 'USD') => {

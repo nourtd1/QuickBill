@@ -5,6 +5,7 @@
 export interface ValidationResult {
     isValid: boolean;
     errorKey?: string;
+    error?: string; // Pre-translated or fallback message
 }
 
 /**
@@ -12,12 +13,12 @@ export interface ValidationResult {
  */
 export function validateEmail(email: string): ValidationResult {
     if (!email || email.trim().length === 0) {
-        return { isValid: false, errorKey: 'validation.required' };
+        return { isValid: false, errorKey: 'validation.required', error: 'validation.required' };
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-        return { isValid: false, errorKey: 'validation.email_invalid' };
+        return { isValid: false, errorKey: 'validation.email_invalid', error: 'validation.email_invalid' };
     }
 
     return { isValid: true };
@@ -28,11 +29,11 @@ export function validateEmail(email: string): ValidationResult {
  */
 export function validatePassword(password: string): ValidationResult {
     if (!password || password.length === 0) {
-        return { isValid: false, errorKey: 'validation.required' };
+        return { isValid: false, errorKey: 'validation.required', error: 'validation.required' };
     }
 
     if (password.length < 6) {
-        return { isValid: false, errorKey: 'validation.password_too_short' };
+        return { isValid: false, errorKey: 'validation.password_too_short', error: 'validation.password_too_short' };
     }
 
     return { isValid: true };
@@ -60,20 +61,20 @@ export function validateInvoiceItems(
     items: { description: string; quantity: number; unitPrice: number }[]
 ): ValidationResult {
     if (!items || items.length === 0) {
-        return { isValid: false, errorKey: 'validation.item_required' };
+        return { isValid: false, errorKey: 'validation.item_required', error: 'validation.item_required' };
     }
 
     for (const item of items) {
         if (!item.description || item.description.trim().length === 0) {
-            return { isValid: false, errorKey: 'validation.item_desc_required' };
+            return { isValid: false, errorKey: 'validation.item_desc_required', error: 'validation.item_desc_required' };
         }
 
         if (item.quantity <= 0) {
-            return { isValid: false, errorKey: 'validation.quantity_positive' };
+            return { isValid: false, errorKey: 'validation.quantity_positive', error: 'validation.quantity_positive' };
         }
 
         if (item.unitPrice < 0) {
-            return { isValid: false, errorKey: 'validation.price_non_negative' };
+            return { isValid: false, errorKey: 'validation.price_non_negative', error: 'validation.price_non_negative' };
         }
     }
 
@@ -85,11 +86,11 @@ export function validateInvoiceItems(
  */
 export function validateTotalAmount(amount: number): ValidationResult {
     if (amount <= 0) {
-        return { isValid: false, errorKey: 'validation.amount_positive' };
+        return { isValid: false, errorKey: 'validation.amount_positive', error: 'validation.amount_positive' };
     }
 
     if (amount > 1000000000) {
-        return { isValid: false, errorKey: 'validation.amount_too_high' };
+        return { isValid: false, errorKey: 'validation.amount_too_high', error: 'validation.amount_too_high' };
     }
 
     return { isValid: true };
@@ -105,7 +106,7 @@ export function validatePhone(phone: string): ValidationResult {
 
     const phoneRegex = /^[\d\s\+\-\(\)]+$/;
     if (!phoneRegex.test(phone.trim()) || phone.trim().length < 6) {
-        return { isValid: false, errorKey: 'validation.phone_invalid' };
+        return { isValid: false, errorKey: 'validation.phone_invalid', error: 'validation.phone_invalid' };
     }
 
     return { isValid: true };
@@ -135,7 +136,7 @@ export function validateCurrency(currency: string): ValidationResult {
     }
 
     if (currency.trim().length !== 3) {
-        return { isValid: false, errorKey: 'validation.currency_invalid' };
+        return { isValid: false, errorKey: 'validation.currency_invalid', error: 'validation.currency_invalid' };
     }
 
     return { isValid: true };

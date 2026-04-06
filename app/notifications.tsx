@@ -20,9 +20,9 @@ import {
     getNotificationsLocal, 
     markNotificationAsReadLocal, 
     markAllNotificationsAsReadLocal, 
-    deleteNotificationLocal,
-    LocalNotification 
+    deleteNotificationLocal
 } from '../lib/localServices';
+import { AppNotification } from '../types';
 import { useColorScheme } from 'nativewind';
 import { format, isToday, isYesterday } from 'date-fns';
 
@@ -59,7 +59,7 @@ const NotificationIcon = ({ type, read }: { type: string, read: boolean }) => {
 export default function NotificationsScreen() {
     const router = useRouter();
     const { user } = useAuth();
-    const [notifications, setNotifications] = useState<LocalNotification[]>([]);
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [loading, setLoading] = useState(true);
     const { colorScheme } = useColorScheme();
     const isDark = colorScheme === 'dark';
@@ -110,8 +110,8 @@ export default function NotificationsScreen() {
         }
     };
 
-    const groupNotifications = (items: LocalNotification[]) => {
-        const groups: { [key: string]: LocalNotification[] } = {
+    const groupNotifications = (items: AppNotification[]) => {
+        const groups: { [key: string]: AppNotification[] } = {
             'Today': [],
             'Yesterday': [],
             'Earlier': []

@@ -4,16 +4,16 @@ import { Home, Settings, Users, FileText, Package, PieChart as PieChartIcon, Use
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../context/LanguageContext';
-import { useColorScheme } from 'nativewind';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function TabLayout() {
     const unreadCount = useUnreadMessages();
     const insets = useSafeAreaInsets();
     const { t } = useLanguage();
-    const { colorScheme } = useColorScheme();
+    const { resolvedTheme } = useTheme();
 
-    const tabBarBg = colorScheme === 'dark' ? '#0F172A' : '#FFFFFF';
-    const tabBarBorder = colorScheme === 'dark' ? '#334155' : '#F1F5F9';
+    const tabBarBg = resolvedTheme === 'dark' ? '#0F172A' : '#FFFFFF';
+    const tabBarBorder = resolvedTheme === 'dark' ? '#334155' : '#F1F5F9';
 
     return (
         <>

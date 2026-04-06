@@ -55,6 +55,9 @@ Retourne UNIQUEMENT un objet JSON valide (aucun bloc markdown, aucune explicatio
 
         if (data.error) {
             console.error("Gemini API Error:", data.error);
+            if (data.error.code === 429 || data.error.status === "RESOURCE_EXHAUSTED") {
+                throw new Error("Quota d'IA dépassé. Veuillez réessayer plus tard ou vérifier votre forfait.");
+            }
             throw new Error(data.error.message || "Erreur Gemini API");
         }
 
@@ -128,6 +131,9 @@ Retourne UNIQUEMENT un objet JSON valide (sans balises markdown) :
 
         if (data.error) {
             console.error("Gemini API Error:", data.error);
+            if (data.error.code === 429 || data.error.status === "RESOURCE_EXHAUSTED") {
+                throw new Error("Quota d'IA dépassé. Veuillez réessayer plus tard ou vérifier votre forfait.");
+            }
             throw new Error(data.error.message || "Erreur Gemini API");
         }
 
@@ -195,6 +201,9 @@ Retourne UNIQUEMENT un objet JSON valide :
         const data = await response.json();
 
         if (data.error) {
+            if (data.error.code === 429 || data.error.status === "RESOURCE_EXHAUSTED") {
+                throw new Error("Quota d'IA dépassé. Veuillez réessayer plus tard ou vérifier votre forfait.");
+            }
             throw new Error(data.error.message || "Erreur Gemini API");
         }
 

@@ -1,8 +1,6 @@
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { useEffect, useCallback, useState } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -10,7 +8,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 
-import { useColorScheme } from 'nativewind';
+import { ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
 import { OfflineProvider } from '../context/OfflineContext';
@@ -19,21 +18,13 @@ import { validateEnv } from '../lib/env';
 import ConfigError from '../components/ConfigError';
 import { OfflineIndicator } from '../components/OfflineIndicator';
 import { COLORS } from '../constants/colors';
+import { configureNotificationHandler } from '../lib/notificationService';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
     /* ignore error */
 });
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-    }),
-});
+configureNotificationHandler();
 
 function RootLayoutNav() {
     const { session, profile, loading } = useAuth();
@@ -41,24 +32,13 @@ function RootLayoutNav() {
     const segments = useSegments();
     const router = useRouter();
     const navigationState = useRootNavigationState();
-    const { colorScheme, setColorScheme } = useColorScheme();
+    const { resolvedTheme } = useTheme();
     const [loaded] = useFonts({
         // Add custom fonts here if needed, or leave empty if using system fonts
         // SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     });
 
-    // Theme persistence
-    useEffect(() => {
-        AsyncStorage.getItem('quickbill_theme').then(savedTheme => {
-            if (savedTheme) {
-                setColorScheme(savedTheme as any);
-            } else {
-                setColorScheme('system'); // default
-            }
-        });
-    }, [setColorScheme]);
-
-    const stackBackground = colorScheme === 'dark' ? COLORS.slate900 : '#EFF6FF';
+    const stackBackground = resolvedTheme === 'dark' ? COLORS.slate900 : '#EFF6FF';
 
     // Use a string representation of segments for stable effect dependencies
     const segmentsPath = segments.join('/');
@@ -118,56 +98,13 @@ function RootLayoutNav() {
         navigationState?.key // Ensure we trigger when navigation is ready
     ]);
 
-    // Handle Push Notifications registration 
-    useEffect(() => {
-        if (session && profile) {
-            registerForPushNotificationsAsync().then(token => {
-                if (token) {
-                    console.log('Push token acquired:', token);
-                    // TODO: Send token to Supabase profiles table
-                }
-            });
-        }
-    }, [session, !!profile]);
-
-    async function registerForPushNotificationsAsync() {
-        let token;
-        if (Device.isDevice) {
-            const { status: existingStatus } = await Notifications.getPermissionsAsync();
-            let finalStatus = existingStatus;
-            if (existingStatus !== 'granted') {
-                const { status } = await Notifications.requestPermissionsAsync();
-                finalStatus = status;
-            }
-            if (finalStatus !== 'granted') return null;
-
-            try {
-                // EXPO_PUBLIC_PROJECT_ID should be defined in .env
-                const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
-                
-                if (!projectId) {
-                    console.log('Push Tokens: EXPO_PUBLIC_PROJECT_ID is not set in .env');
-                    return null;
-                }
-
-                token = (await Notifications.getExpoPushTokenAsync({
-                    projectId: projectId,
-                })).data;
-            } catch (e) {
-                console.warn('Push Token Error:', e);
-                return null;
-            }
-        }
-        return token;
-    }
-
     if (loading || !loaded) {
         return <View />; // Keep splash screen visible via the native API
     }
 
     return (
-        <>
-            <StatusBar style="auto" />
+        <NavigationThemeProvider value={resolvedTheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
             <Stack screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: stackBackground },
@@ -195,7 +132,7 @@ function RootLayoutNav() {
                 <Stack.Screen name="settings" options={{ headerShown: false }} />
             </Stack>
             <OfflineIndicator />
-        </>
+        </NavigationThemeProvider>
     );
 }
 
@@ -231,13 +168,15 @@ export default function RootLayout() {
             <SafeAreaProvider>
                 <QueryClientProvider client={queryClient}>
                     <AuthProvider>
-                        <PreferencesProvider>
-                            <OfflineProvider>
-                                <LanguageProvider>
-                                    <RootLayoutNav />
-                                </LanguageProvider>
-                            </OfflineProvider>
-                        </PreferencesProvider>
+                        <ThemeProvider>
+                            <PreferencesProvider>
+                                <OfflineProvider>
+                                    <LanguageProvider>
+                                        <RootLayoutNav />
+                                    </LanguageProvider>
+                                </OfflineProvider>
+                            </PreferencesProvider>
+                        </ThemeProvider>
                     </AuthProvider>
                 </QueryClientProvider>
             </SafeAreaProvider>

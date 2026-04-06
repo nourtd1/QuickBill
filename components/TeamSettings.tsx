@@ -114,7 +114,7 @@ export default function TeamSettings() {
                 </View>
             ) : (
                 members.map((member) => {
-                    const email = member.email || (member as any).member_email || 'Inconnu';
+                    const email = member.member_email || 'Inconnu';
                     const initial = email[0] ? email[0].toUpperCase() : '?';
 
                     return (

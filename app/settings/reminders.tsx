@@ -110,7 +110,7 @@ export default function ReminderSettingsScreen() {
         { tag: '{link}', label: t('whatsapp_settings.tags.link') }
     ];
 
-    const isRTL = language === 'ar';
+    const isRTL = language === 'ar-SA';
 
     return (
         <View className="flex-1 bg-slate-50">

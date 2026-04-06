@@ -7,35 +7,47 @@ import { Alert } from 'react-native';
 export interface AppError {
     message: string;
     code?: string;
-    originalError?: any;
+    originalError?: unknown;
+}
+
+function errRecord(error: unknown): Record<string, unknown> | null {
+    if (error !== null && typeof error === 'object') {
+        return error as Record<string, unknown>;
+    }
+    return null;
 }
 
 /**
  * Extracts a user-friendly error message from various error types
  */
-export function getErrorMessage(error: any, t?: (key: string) => string): string {
+export function getErrorMessage(error: unknown, t?: (key: string) => string): string {
     if (typeof error === 'string') {
         return error;
     }
 
+    const rec = errRecord(error);
+    if (!rec) {
+        return t ? t('errors.unexpected') : 'An unexpected error occurred';
+    }
+
     // Try localized error message from code
-    if (error?.code && t) {
-        const localized = t(`errors.${error.code}`);
-        if (localized !== `errors.${error.code}`) {
+    const code = rec.code;
+    if (typeof code === 'string' && t) {
+        const localized = t(`errors.${code}`);
+        if (localized !== `errors.${code}`) {
             return localized;
         }
     }
 
-    if (error?.message) {
-        return error.message;
+    if (typeof rec.message === 'string') {
+        return rec.message;
     }
 
-    if (error?.error_description) {
-        return error.error_description;
+    if (typeof rec.error_description === 'string') {
+        return rec.error_description;
     }
 
-    if (error?.code) {
-        // Fallback mapping if no translator provided
+    if (typeof code === 'string') {
         const errorMessages: Record<string, string> = {
             '23505': 'This entry already exists',
             '23503': 'Invalid reference',
@@ -47,7 +59,9 @@ export function getErrorMessage(error: any, t?: (key: string) => string): string
             'network_error': 'Connection error. Check your internet.',
         };
 
-        return errorMessages[error.code] || error.message || 'An error occurred';
+        const mapped = errorMessages[code];
+        const msg = typeof rec.message === 'string' ? rec.message : undefined;
+        return mapped || msg || 'An error occurred';
     }
 
     return t ? t('errors.unexpected') : 'An unexpected error occurred';
@@ -56,7 +70,7 @@ export function getErrorMessage(error: any, t?: (key: string) => string): string
 /**
  * Shows an error alert to the user
  */
-export function showError(error: any, title: string = 'Error', t?: any) {
+export function showError(error: unknown, title: string = 'Error', t?: (key: string) => string) {
     const message = getErrorMessage(error, t);
     const localizedTitle = title === 'Error' || title === 'Erreur' ? (t ? t('errors.title') : title) : title;
     Alert.alert(localizedTitle, message);
@@ -65,7 +79,7 @@ export function showError(error: any, title: string = 'Error', t?: any) {
 /**
  * Shows a success alert to the user
  */
-export function showSuccess(message: string, title: string = 'Success', t?: any) {
+export function showSuccess(message: string, title: string = 'Success', t?: (key: string) => string) {
     const localizedTitle = title === 'Success' || title === 'Succès' ? (t ? t('common.success') : title) : title;
     Alert.alert(localizedTitle, message);
 }
@@ -73,17 +87,19 @@ export function showSuccess(message: string, title: string = 'Success', t?: any)
 /**
  * Checks if an error is a network-related error that could be retried
  */
-export function isNetworkError(error: any): boolean {
-    const message = error?.message?.toLowerCase() || '';
+export function isNetworkError(error: unknown): boolean {
+    const rec = errRecord(error);
+    const message =
+        rec && typeof rec.message === 'string' ? rec.message.toLowerCase() : '';
     return (
         message.includes('network error') ||
         message.includes('network request failed') ||
         message.includes('failed to fetch') ||
-        error?.code === 'network_error' ||
-        error?.status === 0 ||
-        error?.status === 502 ||
-        error?.status === 503 ||
-        error?.status === 504
+        rec?.code === 'network_error' ||
+        rec?.status === 0 ||
+        rec?.status === 502 ||
+        rec?.status === 503 ||
+        rec?.status === 504
     );
 }
 
@@ -95,12 +111,12 @@ export async function withRetry<T>(
     maxRetries: number = 3,
     initialDelay: number = 1000
 ): Promise<T> {
-    let lastError: any;
-    
+    let lastError: unknown;
+
     for (let i = 0; i <= maxRetries; i++) {
         try {
             return await fn();
-        } catch (error: any) {
+        } catch (error: unknown) {
             lastError = error;
             
             if (i < maxRetries && isNetworkError(error)) {
@@ -129,10 +145,12 @@ export async function handleAsyncError<T>(
             ? await withRetry(fn, options.maxRetries || 3)
             : await fn();
         return { data, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const rec = errRecord(error);
+        const code = rec && typeof rec.code === 'string' ? rec.code : undefined;
         const appError: AppError = {
             message: errorMessage || getErrorMessage(error),
-            code: error?.code,
+            code,
             originalError: error,
         };
         return { data: null, error: appError };

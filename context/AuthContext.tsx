@@ -132,13 +132,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (session?.user) {
                 fetchProfile(session.user.id).finally(() => setLoading(false));
 
-                // Register for push notifications in the background (non-blocking)
-                if (_event === 'SIGNED_IN') {
-                    registerForPushNotificationsAsync().then(token => {
-                        if (token && session.user) {
-                            savePushTokenToProfile(session.user.id, token);
-                        }
-                    }).catch(err => console.warn('Push token registration failed:', err));
+                // Push (hors Expo Go / build de dev) — INITIAL_SESSION + SIGNED_IN pour couvrir cold start
+                if (session.user && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION')) {
+                    registerForPushNotificationsAsync()
+                        .then((token) => {
+                            if (token && session.user) {
+                                savePushTokenToProfile(session.user.id, token);
+                            }
+                        })
+                        .catch((err) => console.warn('Push token registration failed:', err));
                 }
             } else {
                 setProfile(null);

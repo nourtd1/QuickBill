@@ -37,8 +37,12 @@ async function uploadReceiptImage(uri: string): Promise<string> {
 }
 
 /**
+ * Alias for scanReceipt for backward compatibility
+ */
+export const parseReceipt = scanReceipt;
+
+/**
  * Scans a receipt using user's Gemini API Key (Client Side)
- * ensuring Real Data is extracted.
  */
 export async function scanReceipt(imageUri: string): Promise<ExtractedReceiptData> {
     console.log("Starts scanning:", imageUri);
@@ -63,8 +67,12 @@ export async function scanReceipt(imageUri: string): Promise<ExtractedReceiptDat
 
         return aiData;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Scan Error:", error);
+        const msg = error instanceof Error ? error.message : '';
+        if (msg.includes("Quota d'IA dépassé")) {
+            throw error;
+        }
         throw new Error("Impossible d'analyser le reçu. Veuillez réessayer.");
     }
 }
@@ -77,8 +85,12 @@ export async function scanQRCode(qrText: string): Promise<ExtractedReceiptData> 
     try {
         const aiData = await processQRCodeWithGemini(qrText);
         return aiData;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("QR Scan Error:", error);
+        const msg = error instanceof Error ? error.message : '';
+        if (msg.includes("Quota d'IA dépassé")) {
+            throw error;
+        }
         throw new Error("Impossible d'analyser le code QR. Veuillez réessayer.");
     }
 }

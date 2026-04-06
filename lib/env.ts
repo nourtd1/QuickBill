@@ -50,3 +50,11 @@ export function getSupabaseAnonKey(): string {
     return key;
 }
 
+/**
+ * Generates the public URL for an invoice based on its share token
+ */
+export function getPublicInvoiceUrl(token: string): string {
+    const url = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+    return `${url}/storage/v1/object/public/invoices/${token}`;
+}
+

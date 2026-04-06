@@ -12,6 +12,7 @@ import {
     Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ArrowLeft, Users, UserPlus, Trash2, Mail, CheckCircle, X, Shield, Lock } from 'lucide-react-native';
 import { getTeamMembers, inviteMember, removeMember, TeamMember, TeamRole } from '../../lib/teamService';

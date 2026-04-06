@@ -22,6 +22,11 @@ export interface Profile {
     tax_inclusive?: boolean;
     stripe_account_id?: string | null;
     stripe_connected?: boolean;
+    reminders_enabled?: boolean;
+    reminder_intervals?: number[] | string;
+    reminder_template?: string | null;
+    default_currency?: string | null;
+    country?: string | null;
 }
 
 export interface Customer {

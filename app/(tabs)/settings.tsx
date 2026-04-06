@@ -31,7 +31,8 @@ import {
     ChevronRight,
     Crown,
     MessageSquare,
-    TrendingUp
+    TrendingUp,
+    Info
 } from 'lucide-react-native';
 
 const ICON_SIZE = 20;
@@ -356,6 +357,13 @@ export default function SettingsScreen() {
                             textTwColor="text-sky-600"
                             label={t('settings.language')}
                             onPress={() => router.push('/settings/language')}
+                        />
+                        <SettingItemWithColor
+                            icon={Info}
+                            bgClass="bg-indigo-50"
+                            textTwColor="text-indigo-600"
+                            label={t('settings.about')}
+                            onPress={() => router.push('/settings/about')}
                         />
                         <SettingItemWithColor
                             icon={MessageCircleQuestion}

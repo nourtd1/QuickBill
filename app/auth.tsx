@@ -28,7 +28,7 @@ import { sendWelcomeEmail, send2FACode } from '../lib/email';
 type ViewState = 'default' | 'verifyCode' | 'newPassword';
 type VerificationPurpose = 'signup' | 'recovery';
 
-const APPLE_REVIEW_EMAIL = 'apple.review@quickbill.com';
+const APPLE_REVIEW_EMAIL = 'apple.review.quickbill@gmail.com';
 const APPLE_REVIEW_OTP = '123456';
 
 export default function AuthScreen() {

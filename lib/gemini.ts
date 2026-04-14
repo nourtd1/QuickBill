@@ -43,7 +43,7 @@ Retourne UNIQUEMENT un objet JSON valide (aucun bloc markdown, aucune explicatio
         };
 
         // 3. Call Gemini API
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -66,7 +66,15 @@ Retourne UNIQUEMENT un objet JSON valide (aucun bloc markdown, aucune explicatio
         if (!textResponse) throw new Error("Réponse vide de Gemini");
 
         console.log("Gemini Raw Response:", textResponse);
-        return JSON.parse(textResponse);
+        
+        let cleanJson = textResponse;
+        const startIndex = cleanJson.indexOf('{');
+        const endIndex = cleanJson.lastIndexOf('}');
+        if (startIndex !== -1 && endIndex !== -1) {
+            cleanJson = cleanJson.substring(startIndex, endIndex + 1);
+        }
+        
+        return JSON.parse(cleanJson);
 
     } catch (error) {
         console.error('Gemini Processing Error:', error);
@@ -119,7 +127,7 @@ Retourne UNIQUEMENT un objet JSON valide (sans balises markdown) :
             }
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -140,8 +148,13 @@ Retourne UNIQUEMENT un objet JSON valide (sans balises markdown) :
         const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!textResponse) throw new Error("Réponse vide de Gemini");
 
-        // Cleanup markdown if AI ignores response_mime_type
-        const cleanJson = textResponse.replace(/```json|```/g, '').trim();
+        let cleanJson = textResponse;
+        const startIndex = cleanJson.indexOf('{');
+        const endIndex = cleanJson.lastIndexOf('}');
+        if (startIndex !== -1 && endIndex !== -1) {
+            cleanJson = cleanJson.substring(startIndex, endIndex + 1);
+        }
+        
         return JSON.parse(cleanJson);
 
     } catch (error) {
@@ -190,7 +203,7 @@ Retourne UNIQUEMENT un objet JSON valide :
             }
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -210,7 +223,13 @@ Retourne UNIQUEMENT un objet JSON valide :
         const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!textResponse) throw new Error("Réponse vide de Gemini");
 
-        const cleanJson = textResponse.replace(/```json|```/g, '').trim();
+        let cleanJson = textResponse;
+        const startIndex = cleanJson.indexOf('{');
+        const endIndex = cleanJson.lastIndexOf('}');
+        if (startIndex !== -1 && endIndex !== -1) {
+            cleanJson = cleanJson.substring(startIndex, endIndex + 1);
+        }
+        
         return JSON.parse(cleanJson);
     } catch (error) {
         console.error('Gemini QR Error:', error);

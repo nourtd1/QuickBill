@@ -11,6 +11,8 @@ import {
     ActivityIndicator,
     LayoutAnimation,
     UIManager,
+    StyleSheet,
+    useWindowDimensions,
 } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -26,7 +28,14 @@ import { sendWelcomeEmail, send2FACode } from '../lib/email';
 type ViewState = 'default' | 'verifyCode' | 'newPassword';
 type VerificationPurpose = 'signup' | 'recovery';
 
+const APPLE_REVIEW_EMAIL = 'apple.review@quickbill.com';
+const APPLE_REVIEW_OTP = '123456';
+
 export default function AuthScreen() {
+    const { width, height } = useWindowDimensions();
+    const isLargeScreen = width >= 768;
+    const contentMaxWidth = isLargeScreen ? 560 : undefined;
+
     // Core states
     const [viewState, setViewState] = useState<ViewState>('default');
     const [isSignUp, setIsSignUp] = useState(false);
@@ -80,9 +89,20 @@ export default function AuthScreen() {
             }
             // Initiate EmailJS OTP flow for Sign Up
             setLoading(true);
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const isAppleReview = email.toLowerCase() === APPLE_REVIEW_EMAIL;
+            const code = isAppleReview ? APPLE_REVIEW_OTP : Math.floor(100000 + Math.random() * 900000).toString();
+            
             setGeneratedCode(code);
             setVerificationPurpose('signup');
+
+            if (isAppleReview) {
+                // Bypass EmailJS for Apple Reviewer
+                setLoading(false);
+                setEnteredCode('');
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setViewState('verifyCode');
+                return;
+            }
 
             // Reusing the 2FA sending template to send a verification code
             const sent = await send2FACode(email, code);
@@ -93,17 +113,23 @@ export default function AuthScreen() {
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setViewState('verifyCode');
             } else {
-                // If API isn't setup perfectly it will fail, we show a popup to continue the dev demo
+                // Enhanced Fallback for real users that might have delivery issues
                 Alert.alert(
-                    "EmailJS non configuré",
-                    `Le code généré est \${code} (copiez-le pour la démo). Configurez l'API dans lib/email.ts.`,
-                    [{
-                        text: "Continuer quand même", onPress: () => {
-                            setEnteredCode('');
-                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                            setViewState('verifyCode');
+                    "Service de vérification",
+                    "Une erreur est survenue lors de l'envoi du code. Veuillez réessayer ultérieurement.",
+                    [
+                        { 
+                            text: "Ok", 
+                            onPress: () => {
+                                // Optional secondary bypass for dev purposes if still needed
+                                if (__DEV__) {
+                                    console.log("Dev Mode: Code is", code);
+                                    setEnteredCode('');
+                                    setViewState('verifyCode');
+                                }
+                            }
                         }
-                    }]
+                    ]
                 );
             }
         } else {
@@ -131,9 +157,19 @@ export default function AuthScreen() {
         }
 
         setLoading(true);
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const isAppleReview = email.toLowerCase() === APPLE_REVIEW_EMAIL;
+        const code = isAppleReview ? APPLE_REVIEW_OTP : Math.floor(100000 + Math.random() * 900000).toString();
+        
         setGeneratedCode(code);
         setVerificationPurpose('recovery');
+
+        if (isAppleReview) {
+            setLoading(false);
+            setEnteredCode('');
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setViewState('verifyCode');
+            return;
+        }
 
         // Reuse 2FA logic or custom email logic
         const sent = await send2FACode(email, code);
@@ -145,14 +181,10 @@ export default function AuthScreen() {
             setViewState('verifyCode');
         } else {
             Alert.alert(
-                "EmailJS non configuré",
-                `Code de récupération généré : \${code}. Copiez-le pour avancer dans la démo.`,
+                "Service de récupération",
+                "Une erreur est survenue lors de l'envoi du code de récupération.",
                 [{
-                    text: "Continuer quand même", onPress: () => {
-                        setEnteredCode('');
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        setViewState('verifyCode');
-                    }
+                    text: "Ok"
                 }]
             );
         }
@@ -160,7 +192,9 @@ export default function AuthScreen() {
 
     // Verify OTP user just entered
     const handleVerifyCode = async () => {
-        if (enteredCode !== generatedCode) {
+        const isAppleReview = email.toLowerCase() === APPLE_REVIEW_EMAIL;
+        
+        if (enteredCode !== generatedCode && !(isAppleReview && enteredCode === APPLE_REVIEW_OTP)) {
             Alert.alert('Erreur', 'Le code de vérification est incorrect.');
             return;
         }
@@ -551,60 +585,91 @@ export default function AuthScreen() {
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
                 className="flex-1"
             >
                 <ScrollView
-                    contentContainerStyle={{ flexGrow: 1, paddingTop: 20, paddingBottom: 36 }}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        {
+                            paddingTop: isLargeScreen ? 32 : 20,
+                            paddingBottom: isLargeScreen ? 48 : 36,
+                            minHeight: height - 40,
+                        },
+                    ]}
                     keyboardShouldPersistTaps="handled"
-                    className="px-6"
+                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                    className="px-4"
                     showsVerticalScrollIndicator={false}
                 >
-                    {viewState === 'default' && (
-                        <View className="items-center mb-8">
-                            <View className="w-[76px] h-[76px] rounded-[26px] bg-white items-center justify-center border border-slate-200/90 shadow-xl shadow-slate-900/[0.08]">
-                                <LinearGradient
-                                    colors={['#1D4ED8', '#1E3A8A']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    className="w-[52px] h-[52px] rounded-[18px] items-center justify-center"
-                                >
-                                    <Sparkles size={26} color="white" strokeWidth={2} />
-                                </LinearGradient>
+                    <View
+                        style={[
+                            styles.contentInner,
+                            isLargeScreen ? styles.contentInnerLarge : null,
+                            contentMaxWidth ? { maxWidth: contentMaxWidth } : null,
+                        ]}
+                    >
+                        {viewState === 'default' && (
+                            <View className="items-center mb-8">
+                                <View className="w-[76px] h-[76px] rounded-[26px] bg-white items-center justify-center border border-slate-200/90 shadow-xl shadow-slate-900/[0.08]">
+                                    <LinearGradient
+                                        colors={['#1D4ED8', '#1E3A8A']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        className="w-[52px] h-[52px] rounded-[18px] items-center justify-center"
+                                    >
+                                        <Sparkles size={26} color="white" strokeWidth={2} />
+                                    </LinearGradient>
+                                </View>
+                                <Text className="text-[26px] font-bold text-slate-900 mt-5 tracking-tight">
+                                    QuickBill <Text className="text-blue-600">Premium</Text>
+                                </Text>
+                                <View className="mt-2.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200/80">
+                                    <Text className="text-[11px] font-semibold text-slate-600 tracking-wide">
+                                        Facturation & gestion pro
+                                    </Text>
+                                </View>
                             </View>
-                            <Text className="text-[26px] font-bold text-slate-900 mt-5 tracking-tight">
-                                QuickBill <Text className="text-blue-600">Premium</Text>
-                            </Text>
-                            <View className="mt-2.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200/80">
-                                <Text className="text-[11px] font-semibold text-slate-600 tracking-wide">
-                                    Facturation & gestion pro
+                        )}
+
+                        {viewState === 'default' && (
+                            <View className="mb-7">
+                                <Text className="text-[28px] font-bold text-slate-900 mb-2 tracking-tight leading-8">
+                                    {isSignUp ? 'Créer un compte' : 'Bon retour'}
+                                </Text>
+                                <Text className="text-[15px] text-slate-500 leading-6 font-normal">
+                                    {isSignUp
+                                        ? 'Rejoignez QuickBill et simplifiez votre facturation au quotidien.'
+                                        : 'Connectez-vous pour accéder à votre tableau de bord.'}
                                 </Text>
                             </View>
-                        </View>
-                    )}
+                        )}
 
-                    {viewState === 'default' && (
-                        <View className="mb-7">
-                            <Text className="text-[28px] font-bold text-slate-900 mb-2 tracking-tight leading-8">
-                                {isSignUp ? 'Créer un compte' : 'Bon retour'}
-                            </Text>
-                            <Text className="text-[15px] text-slate-500 leading-6 font-normal">
-                                {isSignUp
-                                    ? 'Rejoignez QuickBill et simplifiez votre facturation au quotidien.'
-                                    : 'Connectez-vous pour accéder à votre tableau de bord.'}
+                        {renderContent()}
+
+                        <View className="mt-12 flex-row items-center justify-center opacity-50">
+                            <ShieldCheck size={15} color="#64748B" strokeWidth={2} />
+                            <Text className="text-[11px] font-medium text-slate-500 ml-2 tracking-wide">
+                                Connexion chiffrée (SSL)
                             </Text>
                         </View>
-                    )}
-
-                    {renderContent()}
-
-                    <View className="mt-12 flex-row items-center justify-center opacity-50">
-                        <ShieldCheck size={15} color="#64748B" strokeWidth={2} />
-                        <Text className="text-[11px] font-medium text-slate-500 ml-2 tracking-wide">
-                            Connexion chiffrée (SSL)
-                        </Text>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    scrollContent: {
+        flexGrow: 1,
+        alignItems: 'center',
+    },
+    contentInner: {
+        width: '100%',
+        alignSelf: 'center',
+    },
+    contentInnerLarge: {
+        justifyContent: 'center',
+    },
+});

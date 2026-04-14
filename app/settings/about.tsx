@@ -120,7 +120,7 @@ export default function AboutScreen() {
                 style={{ width: 3, height: 14, borderRadius: 2, marginRight: 10 }}
             />
             <Text
-                className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400"
+                className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400"
                 style={{ letterSpacing: 1.8 }}
             >
                 {children}
@@ -171,7 +171,10 @@ export default function AboutScreen() {
                         <ArrowLeft size={22} color={isDark ? '#F1F5F9' : '#0F172A'} />
                     </TouchableOpacity>
                     <View className="flex-1 items-center -ml-11">
-                        <Text className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-500 mb-0.5">
+                        <Text
+                            className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-500 mb-0.5"
+                            style={{ letterSpacing: 1.6 }}
+                        >
                             QuickBill
                         </Text>
                         <Text className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">

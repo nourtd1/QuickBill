@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nourdevtd.quickbill",
-      "buildNumber": "6",
+      "buildNumber": "3",
       "infoPlist": {
         "NSCameraUsageDescription": "QuickBill uses the camera to scan receipts and QR codes.",
         "NSPhotoLibraryUsageDescription": "QuickBill needs access to your photo library to upload your business logo and receipts.",

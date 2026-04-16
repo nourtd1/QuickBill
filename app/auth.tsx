@@ -114,20 +114,18 @@ export default function AuthScreen() {
                 setViewState('verifyCode');
             } else {
                 // Enhanced Fallback for real users that might have delivery issues
+                const configStatus = `(Keys: ${!!process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY ? 'OK' : 'MISSING'})`;
                 Alert.alert(
                     "Service de vérification",
-                    "Une erreur est survenue lors de l'envoi du code. Veuillez réessayer ultérieurement.",
+                    `Une erreur est survenue lors de l'envoi du code. Veuillez réessayer ultérieurement. ${__DEV__ ? configStatus : ''}`,
                     [
                         { 
+                            text: "Réessayer", 
+                            onPress: () => handleAuth()
+                        },
+                        { 
                             text: "Ok", 
-                            onPress: () => {
-                                // Optional secondary bypass for dev purposes if still needed
-                                if (__DEV__) {
-                                    console.log("Dev Mode: Code is", code);
-                                    setEnteredCode('');
-                                    setViewState('verifyCode');
-                                }
-                            }
+                            style: "cancel"
                         }
                     ]
                 );
@@ -633,7 +631,16 @@ export default function AuthScreen() {
                         )}
 
                         {viewState === 'default' && (
-                            <View className="mb-7">
+                            <TouchableOpacity 
+                                activeOpacity={1} 
+                                onLongPress={() => {
+                                    Alert.alert(
+                                        "Diagnostique Système",
+                                        `Service ID: ${process.env.EXPO_PUBLIC_EMAILJS_SERVICE_ID ? '✅' : '❌'}\nPublic Key: ${process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY ? '✅' : '❌'}\nTemplate: ${process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_2FA ? '✅' : '❌'}\nSupabase: ${process.env.EXPO_PUBLIC_SUPABASE_URL ? '✅' : '❌'}`
+                                    );
+                                }}
+                                className="mb-7"
+                            >
                                 <Text className="text-[28px] font-bold text-slate-900 mb-2 tracking-tight leading-8">
                                     {isSignUp ? 'Créer un compte' : 'Bon retour'}
                                 </Text>
@@ -642,7 +649,7 @@ export default function AuthScreen() {
                                         ? 'Rejoignez QuickBill et simplifiez votre facturation au quotidien.'
                                         : 'Connectez-vous pour accéder à votre tableau de bord.'}
                                 </Text>
-                            </View>
+                            </TouchableOpacity>
                         )}
 
                         {renderContent()}

@@ -40,6 +40,11 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
 };
 
 export const send2FACode = async (email: string, code: string) => {
+    if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !TEMPLATES.CODE) {
+        console.error('❌ EmailJS is not configured. Missing environment variables.');
+        return false;
+    }
+
     try {
         const response = await emailjs.send(
             EMAILJS_SERVICE_ID,

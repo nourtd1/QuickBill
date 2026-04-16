@@ -1,4 +1,4 @@
-import { processQRCodeWithGemini } from "./lib/gemini.ts";
+import { processQRCodeWithGemini } from "./lib/gemini";
 import { config } from "dotenv";
 
 config();

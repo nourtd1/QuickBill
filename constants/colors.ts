@@ -107,6 +107,18 @@ export const EXPENSE_CATEGORY_COLORS = {
     other: '#64748B', // Slate-500
 } as const;
 
+// Gradient presets for LinearGradient usage
+export const GRADIENTS = {
+    primaryCard: ['#1E40AF', '#1e3a8a'] as const,
+    primaryCardDark: ['#1e293b', '#0f172a'] as const,
+    primaryButton: ['#1e3a8a', '#1E40AF', '#3B82F6'] as const,
+    heroLight: ['#DBEAFE', '#F8FAFC', '#FFFFFF'] as const,
+    heroDark: ['rgba(30,64,175,0.22)', 'rgba(15,23,42,0.92)', '#0F172A'] as const,
+    settingsAvatar: ['#1E40AF', '#a855f7', '#60a5fa'] as const,
+    settingsAvatarFallbackLight: ['#f1f5f9', '#e2e8f0'] as const,
+    settingsAvatarFallbackDark: ['#1e293b', '#0f172a'] as const,
+} as const;
+
 export type ColorKey = keyof typeof COLORS;
 export type InvoiceStatus = keyof typeof INVOICE_STATUS_COLORS;
 export type ExpenseCategory = keyof typeof EXPENSE_CATEGORY_COLORS;

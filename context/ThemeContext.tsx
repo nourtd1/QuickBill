@@ -25,11 +25,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         AsyncStorage.getItem('quickbill_theme').then((savedTheme) => {
-            if (savedTheme === 'light') {
-                setUserThemePreference('light');
-            } else if (savedTheme === 'dark' || savedTheme === 'system') {
-                setUserThemePreference('light');
-                AsyncStorage.setItem('quickbill_theme', 'light');
+            if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
+                setUserThemePreference(savedTheme as ThemeType);
             }
         });
     }, []);
@@ -54,9 +51,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }, [resolvedTheme, setColorScheme]);
 
     const setThemePreference = async (theme: ThemeType) => {
-        if (theme !== 'light') return;
-        setUserThemePreference('light');
-        await AsyncStorage.setItem('quickbill_theme', 'light');
+        setUserThemePreference(theme);
+        await AsyncStorage.setItem('quickbill_theme', theme);
     };
 
     return (

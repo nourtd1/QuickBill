@@ -5,10 +5,7 @@ import {
     TouchableOpacity,
     ScrollView,
     RefreshControl,
-    Dimensions,
     Image,
-    Platform,
-    ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -17,16 +14,11 @@ import {
     Plus,
     ScanLine,
     Users,
-    BarChart3,
     Clock,
     ArrowUpRight,
-    Wallet,
     PenTool,
-    Palette,
     Server,
     ShieldCheck,
-    AlertTriangle,
-    UserPlus
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,86 +34,56 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { AppNotification as NotificationItem } from '../../types';
 import { useColorScheme } from 'nativewind';
 import { getInitials } from '../../lib/profile';
+import { COLORS, GRADIENTS } from '../../constants/colors';
 
-const { width } = Dimensions.get('window');
+const OVERLAY_STYLE = { backgroundColor: 'rgba(0,0,0,0.15)' };
 
-// --- Main Balance Card Component (Glassmorphism) ---
+
+// --- Main Balance Card Component ---
 const MainBalanceCard = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: any }) => {
     const { colorScheme } = useColorScheme();
     const isDark = colorScheme === 'dark';
 
-    if (!isDark) {
-        return (
-            <LinearGradient
-                colors={['rgba(255,255,255,0.82)', 'rgba(255,255,255,0.42)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className={`rounded-[28px] overflow-hidden border border-white/70 ${className || ''}`}
-                style={[
-                    {
-                        shadowColor: '#1E3A8A',
-                        shadowOffset: { width: 0, height: 14 },
-                        shadowOpacity: 0.14,
-                        shadowRadius: 28,
-                        elevation: 8,
-                    },
-                    style
-                ]}
-            >
-                <View className="absolute -top-12 -right-12 w-44 h-44 bg-blue-200/20 rounded-full pointer-events-none" />
-                <View className="absolute -bottom-10 -left-8 w-36 h-36 bg-indigo-200/20 rounded-full pointer-events-none" />
-                <View className="p-6 relative">
-                    {children}
-                </View>
-            </LinearGradient>
-        );
-    }
-
     return (
-        <View
-            className={`rounded-[32px] overflow-hidden border bg-slate-800/70 dark:border-slate-700/50 ${className || ''}`}
+        <LinearGradient
+            colors={isDark ? GRADIENTS.primaryCardDark : GRADIENTS.primaryCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className={`rounded-3xl overflow-hidden ${className || ''}`}
             style={[
                 {
-                    shadowColor: '#1313EC',
+                    shadowColor: '#1e3a8a',
                     shadowOffset: { width: 0, height: 12 },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 30,
-                    elevation: 6,
+                    shadowOpacity: 0.28,
+                    shadowRadius: 24,
+                    elevation: 8,
                 },
                 style
             ]}
         >
-            <LinearGradient
-                colors={['#1e293b', '#0f172a']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="absolute inset-0 pointer-events-none"
-            />
-            <View className="absolute -top-10 -right-10 w-40 h-40 bg-white/8 rounded-full pointer-events-none" />
-            <View className="absolute bottom-10 -left-10 w-32 h-32 bg-indigo-500/10 rounded-full pointer-events-none" />
             <View className="p-6 relative">
                 {children}
             </View>
-        </View>
+        </LinearGradient>
     );
 };
 
 const ActivityItem = ({ icon: Icon, iconBg, iconColor, title, date, amount, status, statusColor, statusBg, isPositive = true }: any) => (
-    <TouchableOpacity className="flex-row items-center p-4 bg-white dark:bg-[#1e293b] rounded-[24px] mb-3 shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-50 dark:border-slate-700/50 active:bg-slate-50 dark:active:bg-slate-700/40">
+    <TouchableOpacity className="flex-row items-center p-4 bg-white dark:bg-[#1e293b] rounded-2xl mb-3 shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-50 dark:border-slate-700/50 active:bg-slate-50 dark:active:bg-slate-700/40">
         <View className={`w-12 h-12 rounded-xl items-center justify-center mr-4 ${iconBg}`}>
             <Icon size={20} color={iconColor} />
         </View>
         <View className="flex-1">
-            <Text className="text-slate-900 dark:text-slate-50 font-bold text-sm tracking-tight">{title}</Text>
-            <Text className="text-slate-500 dark:text-slate-300 text-xs font-bold mt-0.5">{date}</Text>
+            <Text className="text-slate-900 dark:text-slate-50 font-semibold text-sm tracking-tight">{title}</Text>
+            <Text className="text-slate-500 dark:text-slate-300 text-xs font-medium mt-0.5">{date}</Text>
         </View>
         <View className="items-end">
-            <Text className={`font-bold text-base text-slate-900 dark:text-slate-50`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text className={`font-black text-base text-slate-900 dark:text-slate-50`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {amount}
             </Text>
             {status && (
                 <View className={`px-2 py-1 rounded-md mt-1 ${statusBg}`}>
-                    <Text className={`text-[10px] font-bold ${statusColor} dark:text-slate-100`}>{status}</Text>
+                    <Text className={`text-[10px] font-semibold ${statusColor} dark:text-slate-100`}>{status}</Text>
                 </View>
             )}
         </View>
@@ -151,7 +113,7 @@ export default function Dashboard() {
     // Real Data
     const upcomingInvoicesAmount = formatCurrency(pendingAmount, profile?.currency || 'USD');
     const monthlyGrowth = growth > 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`;
-    const growthColor = growth >= 0 ? '#10B981' : '#EF4444';
+    const growthColor = growth >= 0 ? COLORS.success : COLORS.danger;
 
     // Combine and sort activities from invoices and expenses
     const activities = useMemo(() => {
@@ -244,7 +206,7 @@ export default function Dashboard() {
                 {isDark ? (
                     <>
                         <LinearGradient
-                            colors={['rgba(30,64,175,0.22)', 'rgba(15,23,42,0.92)', '#0f172a']}
+                            colors={GRADIENTS.heroDark}
                             locations={[0, 0.5, 1]}
                             className="flex-1"
                         />
@@ -254,7 +216,7 @@ export default function Dashboard() {
                 ) : (
                     <>
                         <LinearGradient
-                            colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
+                            colors={GRADIENTS.heroLight}
                             locations={[0, 0.6, 1]}
                             className="flex-1"
                         />
@@ -268,14 +230,14 @@ export default function Dashboard() {
                 <ScrollView
                     className="flex-1 px-6 pt-2"
                     showsVerticalScrollIndicator={false}
-                    refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor="#2563EB" />}
+                    refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor={COLORS.primary} />}
                     contentContainerStyle={{ paddingBottom: 100 }}
                 >
                     {/* Header - Pro Design */}
                     <View className="flex-row justify-between items-center mb-6 mt-4 z-20">
                         <View className="flex-row items-center">
                             <View className="relative mr-4">
-                                <View className="w-14 h-14 rounded-[18px] border-[3px] border-white shadow-xl shadow-blue-300/40 overflow-hidden bg-white/80 dark:bg-slate-900">
+                                <View className="w-14 h-14 rounded-xl border-[3px] border-white shadow-xl shadow-blue-300/40 overflow-hidden bg-white/80 dark:bg-slate-900">
                                     {profile?.logo_url ? (
                                         <Image
                                             source={{ uri: profile.logo_url }}
@@ -294,7 +256,7 @@ export default function Dashboard() {
                             </View>
 
                             <View>
-                                <Text className="text-blue-900/60 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest mb-0.5">
+                                <Text className="text-blue-900/60 dark:text-slate-400 font-medium text-xs mb-0.5">
                                     {(() => {
                                         const hour = new Date().getHours();
                                         if (language === 'fr-FR') {
@@ -304,12 +266,12 @@ export default function Dashboard() {
                                     })()},
                                 </Text>
                                 <View className="flex-row items-center">
-                                <Text className="text-slate-900 dark:text-white text-2xl font-black tracking-tight mr-2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{userName}</Text>
+                                <Text className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight mr-2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{userName}</Text>
                                     <LinearGradient
-                                        colors={['#1E40AF', '#1e3a8a']}
+                                        colors={GRADIENTS.primaryCard}
                                         className="px-2 py-0.5 rounded-full"
                                     >
-                                    <Text className="text-[10px] dark:text-white font-black text-white uppercase tracking-widest">PRO</Text>
+                                    <Text className="text-[10px] dark:text-white font-bold text-white uppercase tracking-wider">PRO</Text>
                                     </LinearGradient>
                                 </View>
                             </View>
@@ -317,88 +279,37 @@ export default function Dashboard() {
 
                         <TouchableOpacity
                             onPress={() => setNotificationsVisible(!notificationsVisible)}
-                            className={`w-12 h-12 rounded-full items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 transition-all ${notificationsVisible ? 'bg-slate-900 dark:bg-slate-800' : 'bg-white dark:bg-slate-800'}`}
+                            accessibilityLabel={t('home.notifications.title')}
+                            accessibilityRole="button"
+                            className={`w-11 h-11 rounded-full items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 transition-all ${notificationsVisible ? 'bg-slate-900 dark:bg-slate-800' : 'bg-white dark:bg-slate-800'}`}
                         >
-                            <Bell size={22} color={notificationsVisible ? 'white' : '#334155'} />
-                            {/* Notification Dot */}
-                            {unreadCount > 0 && <View className="absolute top-3 right-3.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />}
+                            <Bell size={20} color={notificationsVisible ? 'white' : '#334155'} />
+                            {unreadCount > 0 && (
+                                <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full items-center justify-center border-2 border-white">
+                                    <Text className="text-white text-[9px] font-bold">{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                                </View>
+                            )}
                         </TouchableOpacity>
                     </View>
-
-                    {/* Notification Popover Overlay */}
-                    {notificationsVisible && (
-                        <View className="absolute top-24 right-6 left-6 z-50">
-                            <View className="bg-white dark:bg-slate-800 rounded-[32px] p-6 shadow-2xl shadow-blue-900/15 border border-slate-100 dark:border-slate-700/50">
-                                <View className="flex-row justify-between items-center mb-6">
-                                    <Text className="text-lg font-bold text-slate-900 dark:text-white">{t('home.notifications.title')}</Text>
-                                    {unreadCount > 0 && (
-                                        <TouchableOpacity onPress={markAllAsRead}>
-                                            <Text className="text-blue-600 dark:text-blue-300 font-bold text-xs">{t('home.notifications.mark_all_read')}</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-
-                                { /* Notification Items */ }
-                                <View className="mb-2">
-                                    {notifications.length === 0 ? (
-                                        <Text className="text-slate-500 dark:text-slate-300 text-center py-4">{t('home.notifications.empty')}</Text>
-                                    ) : (
-                                        notifications.slice(0, 3).map((notif: any, idx: number) => (
-                                            <TouchableOpacity 
-                                                key={notif.id} 
-                                                className={`flex-row mb-${idx === 2 ? '4' : '6'} relative`}
-                                                onPress={() => {
-                                                    setNotificationsVisible(false);
-                                                    router.push('/notifications');
-                                                }}
-                                            >
-                                                <View className="w-12 h-12 rounded-2xl bg-slate-50 items-center justify-center mr-4">
-                                                    <Bell size={20} color="#6366f1" />
-                                                </View>
-                                                <View className="flex-1 pr-4">
-                                                    <Text className="text-slate-900 dark:text-white font-bold text-sm mb-0.5" numberOfLines={1}>{notif.title}</Text>
-                                                    <Text className="text-slate-500 dark:text-slate-300 text-xs leading-4 mb-2" numberOfLines={2}>
-                                                        {notif.message}
-                                                    </Text>
-                                                    <Text className="text-slate-400 dark:text-slate-300 text-[10px] font-bold">
-                                                        {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </Text>
-                                                </View>
-                                                {notif.read_status === 0 && (
-                                                    <View className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full" />
-                                                )}
-                                            </TouchableOpacity>
-                                        ))
-                                    )}
-                                </View>
-
-                                <View className="h-[1px] bg-slate-100 mb-4" />
-
-                                <TouchableOpacity className="items-center py-2" onPress={() => { setNotificationsVisible(false); router.push('/notifications'); }}>
-                                    <Text className="text-blue-600 dark:text-blue-300 font-black text-[10px] uppercase tracking-widest">{t('home.notifications.view_all')}</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    )}
 
                     {/* Hero Card / Main Balance Card */}
                     <MainBalanceCard className="mb-6">
                         <View className="min-h-[140px] justify-between">
                             <View className="flex-row justify-between items-start">
-                                <Text className="text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-widest">{t('home.total_revenue')}</Text>
-                                <View className="w-8 h-8 rounded-full bg-white/70 items-center justify-center border border-white/80">
-                                    <TrendingUp size={16} color="#1313EC" />
+                                <Text className="text-white/70 font-semibold text-[11px] uppercase tracking-wider">{t('home.total_revenue')}</Text>
+                                <View className="w-8 h-8 rounded-full bg-white/15 items-center justify-center border border-white/20">
+                                    <TrendingUp size={16} color="white" />
                                 </View>
                             </View>
 
-                            <Text className="text-[#1313EC] dark:text-blue-300 text-[44px] font-[800] tracking-tighter my-2">
+                            <Text className="text-white text-[44px] font-[800] tracking-tighter my-2">
                                 {formatCurrency(netProfit, profile?.currency || 'USD')}
                             </Text>
 
                             <View className="flex-row gap-3 mt-1">
-                            <View className="bg-emerald-50/95 dark:bg-emerald-500/10 px-3 py-1.5 rounded-full flex-row items-center gap-1.5 border border-emerald-100/90 dark:border-emerald-500/30">
-                                    <View className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-                                    <Text className="text-emerald-700 dark:text-emerald-300 text-[10px] font-bold tracking-widest uppercase">+{growth.toFixed(0)}% {t('home.income_label')}</Text>
+                                <View className="bg-white/15 px-3 py-1.5 rounded-full flex-row items-center gap-1.5 border border-white/20">
+                                    <View className="w-2 h-2 rounded-full bg-emerald-400" />
+                                    <Text className="text-white text-[10px] font-semibold tracking-wider uppercase">+{growth.toFixed(0)}% {t('home.income_label')}</Text>
                                 </View>
                             </View>
                         </View>
@@ -407,22 +318,22 @@ export default function Dashboard() {
                     {/* Stats Row */}
                     <View className="flex-row justify-between mb-8">
                         {/* Upcoming Invoices */}
-                        <View className="bg-white dark:bg-[#1e293b] rounded-[24px] p-5 w-[48%] shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-slate-700/50">
+                        <View className="bg-white dark:bg-[#1e293b] rounded-2xl p-5 w-[48%] shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-slate-700/50">
                             <View className="w-10 h-10 rounded-xl bg-orange-100 items-center justify-center mb-4">
-                                <Clock size={20} color="#F97316" strokeWidth={2.5} />
+                                <Clock size={20} color={COLORS.warning} strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-400 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest mb-1.5">{t('home.pending')}</Text>
+                            <Text className="text-slate-600 dark:text-slate-300 font-semibold text-xs uppercase tracking-wide mb-1.5">{t('home.pending')}</Text>
                             <Text className="text-slate-900 dark:text-white text-xl font-black tracking-tight" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                                 {upcomingInvoicesAmount}
                             </Text>
                         </View>
 
                         {/* Monthly Growth */}
-                        <View className="bg-white dark:bg-[#1e293b] rounded-[24px] p-5 w-[48%] shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-slate-700/50">
+                        <View className="bg-white dark:bg-[#1e293b] rounded-2xl p-5 w-[48%] shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-slate-700/50">
                             <View className={`w-10 h-10 rounded-xl items-center justify-center mb-4 ${growth >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
                                 <TrendingUp size={20} color={growthColor} strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-400 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest mb-1.5">{t('home.growth')}</Text>
+                            <Text className="text-slate-600 dark:text-slate-300 font-semibold text-xs uppercase tracking-wide mb-1.5">{t('home.growth')}</Text>
                             <View className="flex-row items-center">
                             <Text className="text-slate-900 dark:text-white text-xl font-black tracking-tight mr-1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{monthlyGrowth}</Text>
                                 <ArrowUpRight size={18} color={growthColor} strokeWidth={3} style={{ transform: [{ rotate: growth >= 0 ? '0deg' : '90deg' }] }} />
@@ -431,61 +342,73 @@ export default function Dashboard() {
                     </View>
 
                     {/* Quick Actions */}
-                    <Text className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase tracking-widest mb-4 ml-1">{t('home.quick_actions')}</Text>
+                    <Text className="text-slate-900 dark:text-slate-100 font-semibold text-xs uppercase tracking-wide mb-4 ml-1">{t('home.quick_actions')}</Text>
                     <View className="flex-row justify-between mb-8 px-1">
                         {/* Invoice */}
                         <TouchableOpacity
                             onPress={() => router.push('/invoice/new')}
+                            accessibilityLabel={t('home.actions.invoice')}
+                            accessibilityRole="button"
                             className="items-center"
                         >
                             <LinearGradient
-                                colors={['#1E40AF', '#1e3a8a']}
-                                className="w-16 h-16 rounded-[20px] items-center justify-center shadow-lg shadow-blue-500/40 mb-3"
+                                colors={GRADIENTS.primaryCard}
+                                className="w-16 h-16 rounded-2xl items-center justify-center shadow-lg shadow-blue-500/40 mb-3"
                             >
                                 <Plus size={28} color="white" strokeWidth={2.5} />
                             </LinearGradient>
-                            <Text className="text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest">{t('home.actions.invoice')}</Text>
+                            <Text className="text-slate-600 dark:text-slate-300 font-semibold text-xs">{t('home.actions.invoice')}</Text>
                         </TouchableOpacity>
 
                         {/* Scan */}
                         <TouchableOpacity
                             onPress={() => router.push('/expenses/scan')}
+                            accessibilityLabel={t('home.actions.scan')}
+                            accessibilityRole="button"
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-white dark:bg-slate-800 rounded-[20px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 mb-3">
-                                <ScanLine size={24} color="#1E40AF" strokeWidth={2.5} />
+                            <View className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 mb-3">
+                                <ScanLine size={24} color={COLORS.primaryDark} strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest">{t('home.actions.scan')}</Text>
+                            <Text className="text-slate-600 dark:text-slate-300 font-semibold text-xs">{t('home.actions.scan')}</Text>
                         </TouchableOpacity>
 
                         {/* Clients */}
                         <TouchableOpacity
                             onPress={() => router.push('/(tabs)/clients')}
+                            accessibilityLabel={t('tabs.clients')}
+                            accessibilityRole="button"
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-white dark:bg-slate-800 rounded-[20px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 mb-3">
-                                <Users size={24} color="#1E40AF" strokeWidth={2.5} />
+                            <View className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 mb-3">
+                                <Users size={24} color={COLORS.primaryDark} strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest">{t('tabs.clients')}</Text>
+                            <Text className="text-slate-600 dark:text-slate-300 font-semibold text-xs">{t('tabs.clients')}</Text>
                         </TouchableOpacity>
 
-                        {/* Verify */}
+                        {/* Reconcile */}
                         <TouchableOpacity
                             onPress={() => router.push('/finance/reconcile')}
+                            accessibilityLabel={t('home.actions.reconcile', { defaultValue: 'Reconcile' })}
+                            accessibilityRole="button"
                             className="items-center"
                         >
-                            <View className="w-16 h-16 bg-white dark:bg-slate-800 rounded-[20px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 mb-3">
-                                <ShieldCheck size={24} color="#1E40AF" strokeWidth={2.5} />
+                            <View className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-slate-900/30 border border-slate-100 dark:border-slate-700/50 mb-3">
+                                <ShieldCheck size={24} color={COLORS.primaryDark} strokeWidth={2.5} />
                             </View>
-                            <Text className="text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest">{t('home.actions.verify')}</Text>
+                            <Text className="text-slate-600 dark:text-slate-300 font-semibold text-xs">{t('home.actions.reconcile', { defaultValue: 'Reconcile' })}</Text>
                         </TouchableOpacity>
                     </View>
 
                     {/* Recent Activity */}
                     <View className="flex-row justify-between items-center mb-4 ml-1">
-                            <Text className="text-slate-900 dark:text-white font-black text-xs uppercase tracking-widest">{t('home.recent_activity')}</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/invoices')}>
-                            <Text className="text-blue-600 dark:text-blue-300 font-black text-[10px] uppercase tracking-widest">{t('common.view_all')}</Text>
+                            <Text className="text-slate-900 dark:text-white font-semibold text-xs uppercase tracking-wide">{t('home.recent_activity')}</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/(tabs)/invoices')}
+                            accessibilityLabel={t('common.view_all')}
+                            accessibilityRole="link"
+                        >
+                            <Text className="text-blue-600 dark:text-blue-300 font-bold text-[11px] uppercase tracking-wide">{t('common.view_all')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -494,7 +417,7 @@ export default function Dashboard() {
                         const style = getActivityStyling(item);
                         return (
                             <ActivityItem
-                                key={item.id || index}
+                                key={item.id ? `${item.type}-${item.id}` : `${item.type}-${index}`}
                                 icon={style.icon}
                                 iconBg={style.iconBg}
                                 iconColor={style.iconColor}
@@ -508,17 +431,94 @@ export default function Dashboard() {
                             />
                         );
                     }) : (
-                        <View className="items-center py-8 bg-white dark:bg-[#1e293b] rounded-[24px] border border-slate-50 dark:border-slate-700/50 shadow-sm mb-6">
-                            <Clock size={32} color="#CBD5E1" className="mb-3" />
-                            <Text className="text-slate-900 dark:text-white font-bold mb-1">{t('home.empty_activity.title')}</Text>
-                            <Text className="text-slate-500 dark:text-slate-300 text-xs text-center px-10">
-                                {t('home.empty_activity.desc')}
-                            </Text>
-                        </View>
+                        <TouchableOpacity
+                            onPress={() => router.push('/invoice/new')}
+                            activeOpacity={0.9}
+                            className="bg-white dark:bg-[#1e293b] rounded-2xl border border-blue-100 dark:border-slate-700/50 shadow-sm mb-6 overflow-hidden"
+                        >
+                            <LinearGradient
+                                colors={isDark ? ['rgba(30,64,175,0.08)', 'transparent'] : ['rgba(37,99,235,0.04)', 'transparent']}
+                                className="p-6 items-center"
+                            >
+                                <View className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-2xl items-center justify-center mb-4">
+                                    <Plus size={24} color={COLORS.primary} strokeWidth={2.5} />
+                                </View>
+                                <Text className="text-slate-900 dark:text-white font-bold text-base mb-1">{t('home.getting_started.title', { defaultValue: 'Send your first invoice' })}</Text>
+                                <Text className="text-slate-500 dark:text-slate-300 text-xs text-center px-6 mb-4">
+                                    {t('home.getting_started.desc', { defaultValue: 'Create a professional invoice in under 60 seconds. Your activity will appear here.' })}
+                                </Text>
+                                <View className="bg-blue-600 px-5 py-2.5 rounded-full">
+                                    <Text className="text-white font-bold text-xs">{t('home.getting_started.cta', { defaultValue: 'Create Invoice' })}</Text>
+                                </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
                     )}
 
                 </ScrollView>
             </View>
+
+            {/* Notification Popover - fixed overlay */}
+            {notificationsVisible && (
+                <>
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={() => setNotificationsVisible(false)}
+                        className="absolute inset-0 z-40"
+                        style={OVERLAY_STYLE}
+                    />
+                    <View className="absolute z-50 right-6 left-6" style={{ top: insets.top + 64 }}>
+                        <View className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl shadow-blue-900/15 border border-slate-100 dark:border-slate-700/50">
+                            <View className="flex-row justify-between items-center mb-6">
+                                <Text className="text-lg font-semibold text-slate-900 dark:text-white">{t('home.notifications.title')}</Text>
+                                {unreadCount > 0 && (
+                                    <TouchableOpacity onPress={markAllAsRead}>
+                                        <Text className="text-blue-600 dark:text-blue-300 font-semibold text-xs">{t('home.notifications.mark_all_read')}</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            <View className="mb-2">
+                                {notifications.length === 0 ? (
+                                    <Text className="text-slate-500 dark:text-slate-300 text-center py-4">{t('home.notifications.empty')}</Text>
+                                ) : (
+                                    notifications.slice(0, 3).map((notif: any, idx: number) => (
+                                        <TouchableOpacity
+                                            key={notif.id}
+                                            className={`flex-row ${idx === 2 ? 'mb-4' : 'mb-6'} relative`}
+                                            onPress={() => {
+                                                setNotificationsVisible(false);
+                                                router.push('/notifications');
+                                            }}
+                                        >
+                                            <View className="w-12 h-12 rounded-2xl bg-slate-50 items-center justify-center mr-4">
+                                                <Bell size={20} color="#6366f1" />
+                                            </View>
+                                            <View className="flex-1 pr-4">
+                                                <Text className="text-slate-900 dark:text-white font-semibold text-sm mb-0.5" numberOfLines={1}>{notif.title}</Text>
+                                                <Text className="text-slate-500 dark:text-slate-300 text-xs leading-4 mb-2" numberOfLines={2}>
+                                                    {notif.message}
+                                                </Text>
+                                                <Text className="text-slate-500 dark:text-slate-300 text-[10px] font-medium">
+                                                    {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Text>
+                                            </View>
+                                            {notif.read_status === 0 && (
+                                                <View className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full" />
+                                            )}
+                                        </TouchableOpacity>
+                                    ))
+                                )}
+                            </View>
+
+                            <View className="h-[1px] bg-slate-100 mb-4" />
+
+                            <TouchableOpacity className="items-center py-2" onPress={() => { setNotificationsVisible(false); router.push('/notifications'); }}>
+                                <Text className="text-blue-600 dark:text-blue-300 font-bold text-[11px] uppercase tracking-wide">{t('home.notifications.view_all')}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </>
+            )}
 
             <AiVoiceAssistant visible={aiVisible} onClose={() => setAiVisible(false)} />
         </View>

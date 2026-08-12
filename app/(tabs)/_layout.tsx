@@ -5,6 +5,7 @@ import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
+import { COLORS } from '../../constants/colors';
 
 export default function TabLayout() {
     const unreadCount = useUnreadMessages();
@@ -12,8 +13,8 @@ export default function TabLayout() {
     const { t } = useLanguage();
     const { resolvedTheme } = useTheme();
 
-    const tabBarBg = resolvedTheme === 'dark' ? '#0F172A' : '#FFFFFF';
-    const tabBarBorder = resolvedTheme === 'dark' ? '#334155' : '#F1F5F9';
+    const tabBarBg = resolvedTheme === 'dark' ? COLORS.slate900 : COLORS.white;
+    const tabBarBorder = resolvedTheme === 'dark' ? COLORS.slate700 : COLORS.slate100;
 
     return (
         <>
@@ -21,8 +22,8 @@ export default function TabLayout() {
             <Tabs
                 screenOptions={{
                     headerShown: false,
-                    tabBarActiveTintColor: '#2563EB', // Blue-600
-                    tabBarInactiveTintColor: '#94A3B8', // Slate-400
+                    tabBarActiveTintColor: COLORS.primary,
+                    tabBarInactiveTintColor: COLORS.slate400,
                     tabBarStyle: {
                         borderTopWidth: 1,
                         borderTopColor: tabBarBorder,
@@ -52,7 +53,7 @@ export default function TabLayout() {
                     title: t('tabs.invoices'),
                     tabBarIcon: ({ color }) => <FileText size={24} color={color} />,
                     tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-                    tabBarBadgeStyle: { backgroundColor: '#EF4444' }
+                    tabBarBadgeStyle: { backgroundColor: COLORS.danger }
                 }}
             />
             <Tabs.Screen

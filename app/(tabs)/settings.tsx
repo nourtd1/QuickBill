@@ -14,6 +14,7 @@ import { useColorScheme } from 'nativewind';
 import { saveImageLocally } from '../../lib/localServices';
 import { getInitials } from '../../lib/profile';
 import Constants from 'expo-constants';
+import { COLORS, GRADIENTS } from '../../constants/colors';
 import {
     HelpCircle,
     Pencil,
@@ -98,14 +99,20 @@ export default function SettingsScreen() {
     };
 
     const handleSignOut = () => {
-        // Add confirmation logic if needed, for now direct action as per design
-        signOut();
+        Alert.alert(
+            t('settings.log_out'),
+            t('settings.logout_confirm', { defaultValue: 'Are you sure you want to log out?' }),
+            [
+                { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+                { text: t('settings.log_out'), style: 'destructive', onPress: () => signOut() },
+            ]
+        );
     };
 
     const Section = ({ title, children }: { title?: string; children: React.ReactNode }) => (
         <View className="mb-6">
             {title && (
-                <Text className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
+                <Text className="text-slate-500 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider mb-3 ml-1">
                     {title}
                 </Text>
             )}
@@ -115,32 +122,23 @@ export default function SettingsScreen() {
         </View>
     );
 
-    // Dynamic text color extraction workaround:
-    // Since NativeWind handles classes, we need to pass style objects or use specific text-color classes properly.
-    // However, tailwind classes like 'text-blue-600' need to be parsed by NativeWind.
-    // The trick 'style={{ color: textClass }}' won't work directly with class names string like 'text-blue-600'.
-    // Instead we will use a mapping or hex colors for the icon "color" prop, OR text-{color} class on the Icon? 
-    // Lucide doesn't accept className. 
-    // Fix: We'll pass the hex color directly or use specific classes on a wrapper Text if needed, 
-    // but Lucide icons take a `color` prop.
-    // Let's use a helper for colors to keep it clean and working.
+    const ICON_COLORS: Record<string, string> = {
+        'blue': COLORS.primary,
+        'purple': '#9333EA',
+        'orange': '#EA580C',
+        'indigo': COLORS.accent,
+        'emerald': COLORS.success,
+        'cyan': '#0891B2',
+        'slate': COLORS.slate600,
+        'sky': '#0284C7',
+        'teal': '#0D9488',
+        'red': COLORS.danger,
+        'amber': COLORS.warning,
+    };
 
-    const getColor = (twClass: string) => {
-        // Simple mapping for the requested design
-        switch (twClass) {
-            case 'text-blue-600': return '#2563EB';
-            case 'text-purple-600': return '#9333EA';
-            case 'text-orange-600': return '#EA580C';
-            case 'text-indigo-600': return '#4F46E5';
-            case 'text-emerald-600': return '#059669';
-            case 'text-cyan-600': return '#0891B2';
-            case 'text-slate-600': return '#475569';
-            case 'text-sky-600': return '#0284C7';
-            case 'text-teal-600': return '#0D9488';
-            case 'text-red-600': return '#DC2626';
-            case 'text-amber-600': return '#D97706';
-            default: return '#475569';
-        }
+    const getColor = (twClass: string): string => {
+        const match = twClass.match(/text-(\w+)-\d+/);
+        return match ? (ICON_COLORS[match[1]] ?? COLORS.slate600) : COLORS.slate600;
     };
 
     // Re-implement SettingItem to use the color helper
@@ -164,6 +162,8 @@ export default function SettingsScreen() {
         <TouchableOpacity
             onPress={onPress}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={label}
             className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-100 dark:border-slate-700/50' : ''}`}
         >
             <View className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${bgClass}`}>
@@ -183,7 +183,9 @@ export default function SettingsScreen() {
                     <Text className="text-3xl font-extrabold text-slate-900 dark:text-white">{t('settings.title')}</Text>
                     <TouchableOpacity
                         onPress={() => router.push('/settings/help')}
-                        className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full items-center justify-center shadow-sm"
+                        accessibilityLabel={t('settings.help_support')}
+                        accessibilityRole="button"
+                        className="w-11 h-11 bg-white dark:bg-slate-800 rounded-full items-center justify-center shadow-sm"
                     >
                         <HelpCircle size={20} color={colorScheme === 'dark' ? '#F8FAFC' : '#1E293B'} />
                     </TouchableOpacity>
@@ -198,7 +200,7 @@ export default function SettingsScreen() {
                     <View className="items-center mt-4 mb-8">
                         <View className="relative">
                             <LinearGradient
-                                colors={['#1337ec', '#a855f7', '#60a5fa']}
+                                colors={GRADIENTS.settingsAvatar}
                                 start={{ x: 0, y: 1 }}
                                 end={{ x: 1, y: 0 }}
                                 className="p-[3px] rounded-full"
@@ -211,7 +213,7 @@ export default function SettingsScreen() {
                                         />
                                     ) : (
                                         <LinearGradient
-                                            colors={colorScheme === 'dark' ? ['#1e293b', '#0f172a'] : ['#f1f5f9', '#e2e8f0']}
+                                            colors={colorScheme === 'dark' ? GRADIENTS.settingsAvatarFallbackDark : GRADIENTS.settingsAvatarFallbackLight}
                                             className="w-24 h-24 rounded-full items-center justify-center"
                                         >
                                             <Text className="text-3xl font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">
@@ -223,7 +225,7 @@ export default function SettingsScreen() {
                             </LinearGradient>
 
                             <TouchableOpacity
-                                className="absolute bottom-0 right-0 bg-[#1337ec] p-2 rounded-full border-[3px] border-white"
+                                className="absolute bottom-0 right-0 bg-[#1E40AF] p-2 rounded-full border-[3px] border-white"
                                 onPress={pickImage}
                                 disabled={uploadingAvatar}
                             >
@@ -240,9 +242,9 @@ export default function SettingsScreen() {
                         </Text>
 
                         {profile?.is_premium && (
-                            <View className="flex-row items-center bg-[#1337ec]/10 dark:bg-[#1337ec]/20 px-3 py-1 rounded-full mt-2">
-                                <BadgeCheck size={12} color={colorScheme === 'dark' ? '#93C5FD' : '#1337ec'} style={{ marginRight: 4 }} />
-                                <Text className="text-[#1337ec] dark:text-blue-300 text-xs font-bold uppercase tracking-wide">
+                            <View className="flex-row items-center bg-[#1E40AF]/10 dark:bg-[#1E40AF]/20 px-3 py-1 rounded-full mt-2">
+                                <BadgeCheck size={12} color={colorScheme === 'dark' ? '#93C5FD' : '#1E40AF'} style={{ marginRight: 4 }} />
+                                <Text className="text-[#1E40AF] dark:text-blue-300 text-xs font-bold uppercase tracking-wide">
                                     {t('settings.pro_badge')}
                                 </Text>
                             </View>
@@ -264,8 +266,8 @@ export default function SettingsScreen() {
                                 );
                             }}
                             rightElement={
-                                <View className="bg-[#1337ec]/10 px-2 py-0.5 rounded-md ml-auto mr-2">
-                                    <Text className="text-[10px] font-bold text-[#1337ec] uppercase tracking-wider">
+                                <View className="bg-[#1E40AF]/10 px-2 py-0.5 rounded-md ml-auto mr-2">
+                                    <Text className="text-[10px] font-bold text-[#1E40AF] uppercase tracking-wider">
                                         Bientôt
                                     </Text>
                                 </View>
@@ -378,9 +380,11 @@ export default function SettingsScreen() {
                     {/* Log Out */}
                     <TouchableOpacity
                         onPress={handleSignOut}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('settings.log_out')}
                         className="bg-red-50 dark:bg-red-900/20 flex-row items-center justify-center p-4 rounded-2xl mb-8"
                     >
-                        <LogOut size={20} color="#DC2626" style={{ marginRight: 8 }} />
+                        <LogOut size={20} color={COLORS.danger} style={{ marginRight: 8 }} />
                         <Text className="text-red-600 dark:text-red-400 font-bold text-base">{t('settings.log_out')}</Text>
                     </TouchableOpacity>
 

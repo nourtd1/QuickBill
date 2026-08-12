@@ -8,8 +8,6 @@ import {
     Image,
 
     ScrollView,
-    StatusBar as RNStatusBar,
-    Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -25,11 +23,7 @@ import { supabase } from '../../../lib/supabase';
 import { Client } from '../../../types';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useColorScheme } from 'nativewind';
-
-// Constants
-const PRIMARY_COLOR = '#2563EB'; // Blue-600
-const BG_LIGHT = '#F9FAFC';
-const BG_DARK = '#101322';
+import { COLORS, GRADIENTS } from '../../../constants/colors';
 
 import { ClientListSkeleton } from '../../../components/ClientListSkeleton';
 
@@ -124,23 +118,25 @@ export default function ClientsScreen() {
         return (
             <TouchableOpacity
                 onPress={() => router.push({ pathname: '/clients/form', params: { id: item.id } })}
-                className="bg-white dark:bg-[#151a2e] p-5 rounded-[24px] mb-4 flex-row justify-between items-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10 active:bg-slate-50/80 dark:active:bg-[#1b2140]"
+                accessibilityLabel={`${item.name}${hasBalance ? `, ${t('clients.balance')}: ${formatCurrency(balance)}` : ''}`}
+                accessibilityRole="button"
+                className="bg-white dark:bg-[#151a2e] p-5 rounded-2xl mb-4 flex-row justify-between items-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10 active:bg-slate-50/80 dark:active:bg-[#1b2140]"
             >
                 <View className="flex-row items-center gap-4">
                     {/* Avatar */}
-                    <View className="w-14 h-14 rounded-[18px] bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-700/50 items-center justify-center shadow-sm shadow-slate-200 dark:shadow-slate-900/30">
-                        <User size={24} color="#1E40AF" strokeWidth={2.5} />
+                    <View className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-700/50 items-center justify-center shadow-sm shadow-slate-200 dark:shadow-slate-900/30">
+                        <User size={24} color={COLORS.primaryDark} strokeWidth={2.5} />
                     </View>
 
                     <View>
-                        <Text className="font-black text-slate-900 dark:text-white text-base tracking-tight mb-0.5">{item.name}</Text>
-                        <Text className="text-slate-500 font-bold text-xs">{(item as any).business_name || (item as any).company_name || t('clients.individual')}</Text>
+                        <Text className="font-bold text-slate-900 dark:text-white text-base tracking-tight mb-0.5">{item.name}</Text>
+                        <Text className="text-slate-500 font-medium text-xs">{(item as any).business_name || (item as any).company_name || t('clients.individual')}</Text>
                     </View>
                 </View>
 
                 <View className="items-end">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{t('clients.balance')}</Text>
-                    <Text className={`font-black text-lg tracking-tighter ${hasBalance ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <Text className="text-slate-600 text-xs font-semibold uppercase tracking-wide mb-1">{t('clients.balance')}</Text>
+                    <Text className={`font-black text-lg tracking-tight ${hasBalance ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {formatCurrency(balance)}
                     </Text>
                 </View>
@@ -152,26 +148,34 @@ export default function ClientsScreen() {
         <View className="bg-transparent">
             {/* Header Title Section */}
             <View className="flex-row justify-between items-center mb-6 pt-2">
-                <Text className="text-[36px] font-black text-slate-900 dark:text-white tracking-tight" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t('clients.title')}</Text>
-                <TouchableOpacity className="bg-white dark:bg-[#151a2e] w-12 h-12 rounded-[18px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
-                    <User size={24} color="#1E40AF" strokeWidth={2.5} />
+                <Text className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t('clients.title')}</Text>
+                <TouchableOpacity
+                    accessibilityLabel={t('clients.title')}
+                    accessibilityRole="button"
+                    className="bg-white dark:bg-[#151a2e] w-12 h-12 rounded-xl items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10"
+                >
+                    <User size={24} color={COLORS.primaryDark} strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
             <View className="flex-row gap-3 mb-6">
-                <View className="flex-1 h-14 bg-white dark:bg-[#151a2e] rounded-[22px] flex-row items-center px-5 shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
-                    <Search size={20} color="#94A3B8" strokeWidth={2.5} className="mr-2" />
+                <View className="flex-1 h-14 bg-white dark:bg-[#151a2e] rounded-2xl flex-row items-center px-5 shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
+                    <Search size={20} color={COLORS.slate400} strokeWidth={2.5} className="mr-2" />
                     <TextInput
-                        className="flex-1 font-bold text-base text-slate-900 dark:text-white h-full"
+                        className="flex-1 font-medium text-base text-slate-900 dark:text-white h-full"
                         placeholder={t('clients.search_placeholder')}
-                        placeholderTextColor="#CBD5E1"
+                        placeholderTextColor="#64748B"
                         value={search}
                         onChangeText={setSearch}
                     />
                 </View>
-                <TouchableOpacity className="w-14 h-14 bg-slate-50 dark:bg-[#151a2e] rounded-[22px] items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10">
-                    <SlidersHorizontal size={20} color="#1E40AF" strokeWidth={2.5} />
+                <TouchableOpacity
+                    accessibilityLabel={t('invoices.filter')}
+                    accessibilityRole="button"
+                    className="w-14 h-14 bg-slate-50 dark:bg-[#151a2e] rounded-2xl items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-black/60 border border-slate-100 dark:border-white/10"
+                >
+                    <SlidersHorizontal size={20} color={COLORS.primaryDark} strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
@@ -189,9 +193,12 @@ export default function ClientsScreen() {
                         <TouchableOpacity
                             key={filter}
                             onPress={() => setActiveFilter(filter)}
+                            accessibilityRole="tab"
+                            accessibilityState={{ selected: isActive }}
+                            accessibilityLabel={t(`clients.filters.${filterKey}`)}
                             className={`mr-3 py-2.5 px-6 rounded-full border transition-all ${isActive ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white dark:bg-[#151a2e] border-slate-100 dark:border-white/10 shadow-sm shadow-slate-200/50 dark:shadow-black/60'}`}
                         >
-                            <Text className={`font-black uppercase tracking-widest text-[10px] ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-300'}`}>
+                            <Text className={`font-bold uppercase tracking-wide text-[11px] ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-300'}`}>
                                 {t(`clients.filters.${filterKey}`)}
                             </Text>
                         </TouchableOpacity>
@@ -201,7 +208,7 @@ export default function ClientsScreen() {
 
             {/* Section Title */}
             <View className="flex-row justify-between items-center mb-4 ml-1">
-                <Text className="font-black text-slate-900 dark:text-white text-[10px] uppercase tracking-widest">
+                <Text className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wide">
                     {t('clients.directory')}
                 </Text>
             </View>
@@ -216,30 +223,6 @@ export default function ClientsScreen() {
         <View className="flex-1 bg-white dark:bg-[#0a0f1e] relative">
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-            {/* Background Decorative Elements */}
-            <View className="absolute top-0 left-0 right-0 h-[45%] pointer-events-none">
-                {colorScheme === 'dark' ? (
-                    <>
-                        <LinearGradient
-                            colors={['rgba(19,55,236,0.5)', 'rgba(10,15,30,0.98)', '#050816']}
-                            locations={[0, 0.45, 1]}
-                            className="flex-1"
-                        />
-                        <View className="absolute -top-32 -right-32 w-80 h-80 bg-indigo-500/25 rounded-full" />
-                        <View className="absolute top-20 -left-20 w-48 h-48 bg-blue-500/20 rounded-full" />
-                    </>
-                ) : (
-                    <>
-                        <LinearGradient
-                            colors={['#DBEAFE', '#F8FAFC', '#ffffff']}
-                            locations={[0, 0.4, 1]}
-                            className="flex-1"
-                        />
-                        <View className="absolute -top-32 -right-32 w-80 h-80 bg-blue-400/10 rounded-full" />
-                        <View className="absolute top-20 -left-20 w-48 h-48 bg-indigo-400/10 rounded-full" />
-                    </>
-                )}
-            </View>
 
             <View style={{ paddingTop: insets.top, flex: 1 }}>
                 <FlatList
@@ -251,7 +234,21 @@ export default function ClientsScreen() {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         !loading ? (
-                            <Text className="text-center font-bold text-slate-400 mt-10">{t('clients.no_clients')}</Text>
+                            <View className="items-center justify-center py-20 px-4">
+                                <View className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center mb-6">
+                                    <User size={32} color={COLORS.slate400} />
+                                </View>
+                                <Text className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{t('clients.no_clients')}</Text>
+                                <Text className="text-slate-500 font-medium text-center px-10 mb-6">
+                                    {t('clients.empty_desc', { defaultValue: 'Add your first client to start sending invoices and tracking payments.' })}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/clients/form')}
+                                    className="bg-blue-600 px-6 py-3 rounded-full"
+                                >
+                                    <Text className="text-white font-bold text-sm">{t('clients.add_client')}</Text>
+                                </TouchableOpacity>
+                            </View>
                         ) : null
                     }
                 />
@@ -260,14 +257,16 @@ export default function ClientsScreen() {
             {/* Floating Action Button */}
             <TouchableOpacity
                 onPress={() => router.push('/clients/form')}
-                className="absolute bottom-8 right-6 w-16 h-16 rounded-[22px] shadow-2xl shadow-blue-500/50"
+                accessibilityLabel={t('clients.add_client')}
+                accessibilityRole="button"
+                className="absolute bottom-8 right-6 w-16 h-16 rounded-2xl shadow-2xl shadow-blue-500/50"
                 activeOpacity={0.9}
             >
                 <LinearGradient
-                    colors={['#1e3a8a', '#1E40AF', '#3b82f6']}
+                    colors={GRADIENTS.primaryButton}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    className="flex-1 items-center justify-center rounded-[22px]"
+                    className="flex-1 items-center justify-center rounded-2xl"
                 >
                     <Plus size={32} color="white" strokeWidth={2.5} />
                 </LinearGradient>

@@ -84,7 +84,7 @@ export default function Onboarding() {
     const isLast = currentIndex === slides.length - 1;
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top', 'left', 'right']}>
+        <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900" edges={['top', 'left', 'right']}>
             <StatusBar style="dark" />
 
             <View className="absolute top-0 left-0 right-0 h-[55%] overflow-hidden">
@@ -146,7 +146,7 @@ export default function Onboarding() {
                             </View>
                         </View>
 
-                        <View className="rounded-[28px] border border-slate-200/90 bg-white p-8 shadow-xl shadow-slate-900/[0.06]">
+                        <View className="rounded-[28px] border border-slate-200/90 dark:border-slate-700/70 bg-white dark:bg-slate-800 p-8 shadow-xl shadow-slate-900/[0.06]">
                             <LinearGradient
                                 colors={item.tint}
                                 start={{ x: 0, y: 0 }}
@@ -173,7 +173,7 @@ export default function Onboarding() {
             />
 
             <SafeAreaView
-                className="absolute bottom-0 left-0 right-0 border-t border-slate-200/70 bg-white/95 px-6 pt-5 pb-2"
+                className="absolute bottom-0 left-0 right-0 border-t border-slate-200/70 dark:border-slate-700/70 bg-white/95 dark:bg-slate-900/95 px-6 pt-5 pb-2"
                 edges={['bottom']}
             >
                 <View className="flex-row items-center justify-between">

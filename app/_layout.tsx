@@ -1,6 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { useEffect, useCallback, useState } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -144,6 +145,22 @@ import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function RootLayout() {
     const [configError, setConfigError] = useState<string | null>(null);
+
+    // Check and apply OTA updates on launch
+    useEffect(() => {
+        if (!Updates.isEnabled) return;
+        (async () => {
+            try {
+                const update = await Updates.checkForUpdateAsync();
+                if (update.isAvailable) {
+                    await Updates.fetchUpdateAsync();
+                    await Updates.reloadAsync();
+                }
+            } catch (e) {
+                // Silent fail — don't block app launch on update errors
+            }
+        })();
+    }, []);
 
     // Validate environment variables on app start
     useEffect(() => {
